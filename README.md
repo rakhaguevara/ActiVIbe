@@ -1,75 +1,56 @@
-# React + TypeScript + Vite
+# ActiVibe
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Platform volunteer berbasis AI untuk personalisasi minat dalam melakukan volunteer.
 
-Currently, two official plugins are available:
+Lihat [docs/PRD-ActiVibe-v2.0.md](docs/PRD-ActiVibe-v2.0.md) untuk detail produk lengkap (problem statement, FR-001–FR-027, data model, roadmap).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Struktur Repo
 
-## React Compiler
+Monorepo dengan 3 bagian utama:
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- `frontend/` — Web app (React 19 + TypeScript + Vite)
+- `backend/` — API & services (belum diinisialisasi)
+- `docs/` — Dokumentasi product (PRD, dst.)
 
-Note: This will impact Vite dev & build performances.
+### Struktur `frontend/src`
 
-## Expanding the ESLint configuration
+Folder disusun per aktor sesuai PRD (Volunteer, Organizer, Admin), saat ini masih berupa skeleton kosong:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── App.tsx
+├── main.tsx
+├── index.css
+├── assets/
+├── components/      # komponen UI reusable
+├── layouts/          # nav-body & layout wrapper per role
+├── routes/            # konfigurasi routing
+├── hooks/
+├── services/         # pemanggilan API
+├── types/
+├── utils/
+└── pages/
+    ├── auth/
+    ├── onboarding/
+    ├── volunteer/
+    ├── organizer/
+    └── admin/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Menjalankan Secara Lokal
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd frontend
+pnpm install
+pnpm dev
 ```
+
+Project menggunakan `pnpm`, jalankan command dari dalam `frontend/` (bukan dari root), karena `package.json` ada di sana.
+
+## Progres
+
+- [x] Bersihkan boilerplate template Vite/React (komponen demo, aset logo, styling default)
+- [x] Restruktur repo jadi monorepo (`frontend/`, `backend/`, `docs/`)
+- [x] Buat skeleton folder `frontend/src` per aktor (auth, onboarding, volunteer, organizer, admin)
+- [ ] Bangun layout nav-body
+- [ ] Inisialisasi `backend/`
