@@ -52,5 +52,10 @@ Project menggunakan `pnpm`, jalankan command dari dalam `frontend/` (bukan dari 
 - [x] Bersihkan boilerplate template Vite/React (komponen demo, aset logo, styling default)
 - [x] Restruktur repo jadi monorepo (`frontend/`, `backend/`, `docs/`)
 - [x] Buat skeleton folder `frontend/src` per aktor (auth, onboarding, volunteer, organizer, admin)
+- [x] Landing Page — Hero section dengan animasi page-load
+- [x] Landing Page — Stats card dengan counter animation (scroll-triggered)
+- [x] Landing Page — Features section (3 kartu, scroll-reveal, dekorasi flower & sun)
+- [x] Landing Page — Join section "Bergabung Bersama Activibe" (background biru #63C2E0, wave top/bottom, ikon dekoratif SVG, 2 foto PNG, tombol CTA oranye)
 - [ ] Bangun layout nav-body
 - [ ] Inisialisasi `backend/`
+
