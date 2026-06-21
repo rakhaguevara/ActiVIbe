@@ -13,12 +13,13 @@ import sunDeco from '../assets/svg/sun.svg'
 import waveTop    from '../assets/svg/Vector 2.svg'
 import waveBottom from '../assets/svg/Vector 3.svg'
 import deco1 from '../assets/svg/Group 1.svg'
-import deco2 from '../assets/svg/Group 2.svg'
 import deco3 from '../assets/svg/Group 3.svg'
 import deco4 from '../assets/svg/Group 4.svg'
 import deco5 from '../assets/svg/Group 5.svg'
 import pic1 from '../assets/png/pic1 1.png'
 import pic2 from '../assets/png/pic2 1.png'
+// ── About Section assets
+import aboutIllustration from '../assets/svg/logo-utama.svg'
 import './HomePage.css'
 
 /* ── Static data ── */
@@ -61,6 +62,87 @@ const JOIN_SLIDES = [
     eyebrow: 'Bergabung dan Berdampak',
     title:   'Jadilah Relawan Berdampak',
     desc:    'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+  },
+]
+
+/* ── How It Works steps (placeholder images — reusing pic1/pic2 until 5 real photos exist) ── */
+const HOW_IT_WORKS_STEPS = [
+  { label: 'Conversational Onboarding', image: pic1 },
+  { label: 'Smart AI Matching', image: pic2 },
+  { label: 'Pilih Kegiatan Personalmu', image: pic1 },
+  { label: 'Beraksi & Beri Dampak', image: pic2 },
+  { label: 'Track Your Impact', image: pic1 },
+]
+
+/* ── Symbols carousel (titles = real symbols inside logo-utama.svg; desc still placeholder) ── */
+const LOGO_SYMBOLS = [
+  { title: 'Matahari', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+  { title: 'Burung', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+  { title: 'Manusia', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+  { title: 'Pohon', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+  { title: 'Musik', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+  { title: 'Daun', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+  { title: 'Ombak', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+  { title: 'Kotak', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+]
+
+/* ── Activities (mock data — frontend-only for now, will be replaced by backend event listing) ── */
+const ACTIVITY_CATEGORIES = ['Semua', 'Lingkungan', 'Pendidikan', 'Sosial', 'Kesehatan']
+
+const ACTIVITIES = [
+  {
+    title: 'Bersih Pantai Bersama',
+    category: 'Lingkungan',
+    icon: iconAktivitas,
+    participants: 40,
+    dateRange: '12 - 28 Juli 2026',
+    quota: 15,
+    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+  },
+  {
+    title: 'Mengajar Anak-anak Pedesaan',
+    category: 'Pendidikan',
+    icon: guitarIcon,
+    participants: 11,
+    dateRange: '1 - 20 Agustus 2026',
+    quota: 8,
+    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+  },
+  {
+    title: 'Donor Darah Massal',
+    category: 'Kesehatan',
+    icon: medalIcon,
+    participants: 234,
+    dateRange: '5 Juli 2026',
+    quota: 50,
+    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+  },
+  {
+    title: 'Penanaman 1000 Pohon Mangrove',
+    category: 'Lingkungan',
+    icon: fireworkIcon,
+    participants: 342,
+    dateRange: '15 - 30 Juli 2026',
+    quota: 20,
+    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+  },
+  {
+    title: 'Bantu Panti Asuhan Ceria',
+    category: 'Sosial',
+    icon: iconOrganisasi,
+    participants: 28,
+    dateRange: '8 - 22 Agustus 2026',
+    quota: 12,
+    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+  },
+  {
+    title: 'Edukasi Kesehatan Remaja',
+    category: 'Kesehatan',
+    icon: iconVolunteer,
+    participants: 19,
+    dateRange: '3 - 17 Agustus 2026',
+    quota: 25,
+    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
   },
 ]
 
@@ -120,6 +202,45 @@ export default function HomePage() {
   const [pageLoaded, setPageLoaded] = useState(false)
   const featuresReveal = useRevealOnScroll(0.1)
   const joinReveal     = useRevealOnScroll(0.08)
+  const aboutReveal    = useRevealOnScroll(0.1)
+  const howReveal      = useRevealOnScroll(0.1)
+  const [activeStep, setActiveStep] = useState(0)
+
+  /* Symbols carousel */
+  const symbolsTrackRef = useRef<HTMLDivElement>(null)
+  const [activeSymbol, setActiveSymbol] = useState(0)
+
+  const scrollToSymbol = (i: number) => {
+    const track = symbolsTrackRef.current
+    const card = track?.children[i] as HTMLElement | undefined
+    if (!track || !card) return
+    track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' })
+  }
+
+  const handleSymbolsScroll = () => {
+    const track = symbolsTrackRef.current
+    if (!track) return
+    let closest = 0
+    let closestDist = Infinity
+    Array.from(track.children).forEach((child, i) => {
+      const el = child as HTMLElement
+      const dist = Math.abs(el.offsetLeft - track.offsetLeft - track.scrollLeft)
+      if (dist < closestDist) { closestDist = dist; closest = i }
+    })
+    setActiveSymbol(closest)
+  }
+
+  const goSymbol = (i: number) => {
+    const next = Math.max(0, Math.min(LOGO_SYMBOLS.length - 1, i))
+    setActiveSymbol(next)
+    scrollToSymbol(next)
+  }
+
+  /* Activities filter */
+  const [activeCategory, setActiveCategory] = useState('Semua')
+  const filteredActivities = activeCategory === 'Semua'
+    ? ACTIVITIES
+    : ACTIVITIES.filter(a => a.category === activeCategory)
 
   /* Mobile slider state */
   const [slideIndex,   setSlideIndex]   = useState(0)
@@ -289,6 +410,207 @@ export default function HomePage() {
 
         {/* wave bottom */}
         <img src={waveBottom} alt="" className="join__wave join__wave--bottom" aria-hidden="true" />
+      </section>
+
+      {/* ═══ About ═══ */}
+      <section
+        ref={aboutReveal.ref as React.RefObject<HTMLElement>}
+        className={`about${aboutReveal.visible ? ' about--visible' : ''}`}
+      >
+        <img src={sunDeco} alt="" className="about__deco about__deco--sun" aria-hidden="true" />
+
+        <div className="about__inner">
+          <h2 className="about__title">Tentang Activibe</h2>
+
+          <div className="about__grid">
+            <div className="about__illustration-wrap">
+              <img
+                src={aboutIllustration}
+                alt="Ilustrasi komunitas Activibe"
+                className="about__illustration"
+              />
+            </div>
+
+            <div className="about__content">
+              <p className="about__desc">
+                Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas. Quis diam sed scelerisque aliquam imperdiet egestas.
+              </p>
+              <p className="about__desc">
+                Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas. Quis diam sed scelerisque aliquam imperdiet egestas.
+              </p>
+              <a href="#" className="about__cta">More About Us..</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ How It Works ═══ */}
+      <section
+        ref={howReveal.ref as React.RefObject<HTMLElement>}
+        className={`how${howReveal.visible ? ' how--visible' : ''}`}
+      >
+        <img src={flowerDeco} alt="" className="how__deco how__deco--flower" aria-hidden="true" />
+
+        <div className="how__inner">
+          <div className="how__eyebrow-row">
+            <span className="how__eyebrow">Cara Kerja ActiVibe</span>
+            <span className="how__eyebrow-line" aria-hidden="true" />
+          </div>
+
+          <h2 className="how__title">
+            Perjalanan volunteering yang terpersonalisasi,<br />
+            dari pendaftaran hingga sertifikasi.
+          </h2>
+
+          <div className="how__grid">
+            <div className="how__nav-wrap">
+              <span className="how__counter" aria-hidden="true">
+                {String(activeStep + 1).padStart(2, '0')}/{String(HOW_IT_WORKS_STEPS.length).padStart(2, '0')}
+              </span>
+              <span className="how__rail" aria-hidden="true" />
+
+              <ul className="how__nav">
+                {HOW_IT_WORKS_STEPS.map(({ label }, i) => (
+                  <li key={label}>
+                    <button
+                      type="button"
+                      className={`how__nav-item${i === activeStep ? ' how__nav-item--active' : ''}`}
+                      onClick={() => setActiveStep(i)}
+                    >
+                      {label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="how__image-wrap">
+              <img
+                key={activeStep}
+                src={HOW_IT_WORKS_STEPS[activeStep].image}
+                alt={HOW_IT_WORKS_STEPS[activeStep].label}
+                className="how__image"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Symbols Carousel ═══ */}
+      <section className="symbols">
+        <div className="symbols__inner">
+          <div className="symbols__header">
+            <h2 className="symbols__title">
+              SATU LOGO.<br />BANYAK MAKNA.
+            </h2>
+            <div className="symbols__header-side">
+              <p className="symbols__desc">
+                Setiap simbol dalam logo Activibe punya cerita dan makna tersendiri. Kenali filosofi di balik setiap elemen yang merepresentasikan nilai-nilai kami.
+              </p>
+              <a href="#" className="symbols__cta">Lihat Semua Simbol →</a>
+            </div>
+          </div>
+
+          <div
+            className="symbols__track"
+            ref={symbolsTrackRef}
+            onScroll={handleSymbolsScroll}
+          >
+            {LOGO_SYMBOLS.map(({ title, desc }, i) => (
+              <article key={title} className={`symbols__card symbols__card--${i % 4}`}>
+                <h3 className="symbols__card-title">{title}</h3>
+                <p className="symbols__card-desc">{desc}</p>
+                <a href="#" className="symbols__card-link">Pelajari Lebih Lanjut →</a>
+              </article>
+            ))}
+          </div>
+
+          <div className="symbols__nav">
+            <button
+              type="button"
+              className="symbols__arrow"
+              aria-label="Sebelumnya"
+              onClick={() => goSymbol(activeSymbol - 1)}
+              disabled={activeSymbol === 0}
+            >
+              ‹
+            </button>
+
+            <div className="symbols__dots" role="tablist" aria-label="Pilih simbol">
+              {LOGO_SYMBOLS.map(({ title }, i) => (
+                <button
+                  key={title}
+                  role="tab"
+                  aria-selected={i === activeSymbol}
+                  aria-label={title}
+                  className={`symbols__dot${i === activeSymbol ? ' symbols__dot--active' : ''}`}
+                  onClick={() => goSymbol(i)}
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="symbols__arrow"
+              aria-label="Selanjutnya"
+              onClick={() => goSymbol(activeSymbol + 1)}
+              disabled={activeSymbol === LOGO_SYMBOLS.length - 1}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Activities ═══ */}
+      <section className="activities">
+        <img src={flowerDeco} alt="" className="activities__deco activities__deco--flower" aria-hidden="true" />
+
+        <div className="activities__inner">
+          <h2 className="activities__title">Kegiatan Terpopuler</h2>
+
+          <div className="activities__filters">
+            {ACTIVITY_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`activities__filter${cat === activeCategory ? ' activities__filter--active' : ''}`}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="activities__grid">
+            {filteredActivities.map(({ title, icon, participants, dateRange, quota, desc }, i) => (
+              <article key={title} className="activity-card">
+                <div className={`activity-card__banner activity-card__banner--${i % 4}`}>
+                  <img src={icon} alt="" className="activity-card__icon" />
+                </div>
+
+                <div className="activity-card__body">
+                  <div className="activity-card__meta">
+                    <span className="activity-card__participants">+{participants} Peserta</span>
+                    <span className="activity-card__date">{dateRange}</span>
+                  </div>
+
+                  <h3 className="activity-card__title">{title}</h3>
+                  <p className="activity-card__desc">{desc}</p>
+
+                  <div className="activity-card__footer">
+                    <span className="activity-card__quota">Kuota: {quota} tersisa</span>
+                    <a href="#" className="activity-card__cta">Daftar Sekarang</a>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="activities__footer">
+            <a href="#" className="activities__cta">Lihat Semua Kegiatan</a>
+          </div>
+        </div>
       </section>
 
     </main>

@@ -253,3 +253,183 @@ import pic2       from '../assets/png/pic2 1.png'       // foto kecil (volunteer
 4. **Foto placeholder** — `pic1 1.png` dan `pic2 1.png` sudah di `assets/png/`. Ganti dengan gambar nyata sesuai konten jika diperlukan.
 5. **Section berikutnya** — Tambahkan setelah `</section>` `.join` di `HomePage.tsx`.
 
+---
+
+## Sesi 3 — 2026-06-20 (by Claude)
+
+> Catatan: sesi ini dikerjakan oleh Claude (bukan Gemini), tapi tetap ditulis di file ini sesuai instruksi user agar histori perubahan AI tetap di satu tempat.
+
+### Scope: Landing Page — About Section ("Tentang Activibe")
+
+**Files yang diubah:**
+- `frontend/src/pages/HomePage.tsx`
+- `frontend/src/pages/HomePage.css`
+
+**Files yang TIDAK diubah (sengaja):**
+- `README.md`
+- `frontend/src/components/Navbar.tsx` / `Navbar.css`
+- `frontend/src/App.tsx`
+- Semua file SVG/PNG yang ada sebelumnya (hanya 1 asset lama yang dipakai ulang, lihat di bawah)
+
+**Fix tambahan (di luar scope, tapi blocking build):** `frontend/src/pages/HomePage.tsx` punya import `deco2` (dari Join Section, Sesi 2) yang tidak pernah dipakai di JSX — ini membuat `pnpm build` gagal (`tsc -b` error TS6133) sejak sebelum sesi ini. Import yang tidak terpakai tersebut dihapus supaya build kembali bersih.
+
+---
+
+### Perubahan di `HomePage.tsx`
+
+#### 1. Import tambahan
+```ts
+import aboutIllustration from '../assets/svg/logo-utama.svg'
+```
+`logo-utama.svg` sudah ada di assets sejak sebelumnya tapi belum pernah dipakai — dipilih oleh user sendiri sebagai ilustrasi lingkaran komunitas (orang, musik, matahari, burung, air) untuk section ini.
+
+#### 2. Hook `aboutReveal` (baru di `HomePage`)
+- `useRevealOnScroll(0.1)`, sama seperti yang dipakai `featuresReveal`/`joinReveal`.
+
+#### 3. JSX — About Section (baru, setelah `</section>` `.join`)
+```
+<section .about>
+  <img .about__deco--sun>          ← reuse sun.svg (sama seperti di Features)
+  <div .about__inner>
+    <h2 .about__title>             ← "Tentang Activibe" + underline kuning via ::after
+    <div .about__grid>
+      <div .about__illustration-wrap>
+        <img .about__illustration> ← logo-utama.svg
+      </div>
+      <div .about__content>
+        <p .about__desc> × 2       ← lorem ipsum (placeholder, sama gaya dgn section lain)
+        <a .about__cta>            ← "More About Us.." (oranye, sama warna dgn join__cta)
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+---
+
+### Perubahan di `HomePage.css`
+
+| Class / Rule | Fungsi |
+|---|---|
+| `.about` | Background stripe pattern via `repeating-linear-gradient` (lavender `#f4f2fb` / putih, 28px per stripe) |
+| `.about__deco--sun` | Posisi absolut pojok kanan-bawah, reuse `sun.svg` |
+| `.about__title` | Bold 800, ukuran clamp(24px, 3vw, 34px) |
+| `.about__title::after` | Underline kuning `#F5C30D` tebal 4px, lebar mengikuti teks (bukan full-width) |
+| `.about__grid` | Grid 2 kolom: ilustrasi `minmax(220px, 340px)` + teks `1fr`, gap 56px |
+| `.about__illustration-wrap` | Scroll-reveal slide dari kiri (`translateX(-32px)` → 0) |
+| `.about__content` | Scroll-reveal slide dari kanan (`translateX(32px)` → 0) |
+| `.about__desc` | 15px, line-height 1.75, warna `#4b5563` |
+| `.about__cta` | Tombol oranye `#F47920`, `align-self: flex-end` (rapat ke kanan kolom teks) |
+| `@media (max-width: 900px)` | Grid jadi 1 kolom, ilustrasi center max-width 280px, teks & CTA center |
+| `@media (max-width: 600px)` | Padding dikurangi, judul 24px, deco sun diperkecil |
+| `@media (prefers-reduced-motion)` | Matikan animasi reveal |
+
+**Catatan desain penting:** awalnya ditambahkan elemen `<hr className="about__divider">` (garis biru horizontal full-width di bawah judul), tapi setelah dicek ulang terhadap reference image dari user, garis itu TIDAK ADA di desain asli — yang terlihat seperti garis biru adalah wave bawah dari section Join (`.join__wave--bottom`) yang bocor ke screenshot. Elemen ini sudah dihapus lagi; jangan ditambahkan kembali tanpa konfirmasi user.
+
+---
+
+### Asset yang Digunakan (Sesi 3)
+
+| File | Peran |
+|---|---|
+| `logo-utama.svg` | Ilustrasi lingkaran komunitas (kiri), dipilih user sendiri, baru dipakai pertama kali di sesi ini |
+| `sun.svg` | Reuse dari Features Section, dekorasi pojok kanan-bawah |
+
+---
+
+### Catatan untuk AI Berikutnya
+
+1. **Teks masih placeholder** — sama seperti section lain, `about__desc` masih lorem ipsum. Tunggu instruksi user sebelum diganti konten asli.
+2. **Verifikasi visual** — section ini sudah dicocokkan langsung terhadap reference image (screenshot Figma) yang dikirim user, bukan cuma dugaan dari deskripsi. Kalau mau ubah layout, cek ulang ke user dulu karena sudah pixel-matched.
+3. **Section berikutnya** — tambahkan setelah `</section>` `.about` di `HomePage.tsx`.
+
+---
+
+## Sesi 4 — 2026-06-20 (by Claude)
+
+### Scope: Fix gap Join→About, hapus stripe background, + Section "Cara Kerja ActiVibe" (How It Works, 5 langkah)
+
+**Files yang diubah:**
+- `frontend/src/pages/HomePage.tsx`
+- `frontend/src/pages/HomePage.css`
+
+---
+
+### Fix 1 — Gap putih besar antara `.join` dan `.about` di viewport lebar
+
+**Root cause:** `.join__wave--top` / `.join__wave--bottom` (`Vector 2.svg` / `Vector 3.svg`) pakai `width:100%; height:auto`, jadi tinggi gambar scale proporsional terhadap LEBAR viewport. Sebagian besar canvas SVG itu adalah solid white fill (buffer blend ke section putih berikutnya) — di viewport sempit (~1440px) buffer ini kecil dan tidak kelihatan, tapi di viewport lebar (1920px+) buffer ini ikut membesar jadi area putih kosong yang besar sebelum heading "Tentang Activibe" muncul.
+
+**Fix yang DIPAKAI (sesuai instruksi user — wave jangan disentuh):** `.about` diberi `margin-top: -380px` (di-override jadi `-40px` pada `@media max-width:900px` supaya tidak menutupi foto/tombol Join di tablet/mobile, karena wave jauh lebih pendek di sana). Ini menarik `.about` naik menimpa sisa "ekor putih" wave, tanpa mengubah ukuran/aspect ratio wave itu sendiri.
+
+**Yang SUDAH DICOBA dan DIBATALKAN:** sempat eksperimen kasih `max-height` pada `.join__wave` supaya tidak scale berlebihan di viewport lebar — user minta dibatalkan ("wave tidak perlu disentuh, sudah benar seperti awal"). `.join__wave` / `.join__wave--top` / `.join__wave--bottom` sudah dikembalikan persis ke kondisi Sesi 2 (Gemini), tidak ada perubahan di situ.
+
+**PENTING untuk AI berikutnya:** nilai `-380px` ini didapat dari pengujian visual manual di 1440px & 1920px (lihat tidak ada gap di keduanya, tidak overlap ke foto Join). Ini BUKAN formula yang scale otomatis terhadap semua lebar viewport — kalau user lapor masih ada gap/overlap di lebar lain (misal ultra-wide >2200px atau lebar di antara 900–1440px), kemungkinan perlu disesuaikan lagi.
+
+---
+
+### Fix 2 — Hapus background stripe ungu/lavender
+
+User minta hapus "garis-garis ungu" di background **dua kali**: pertama di `.about`, lalu di `.how` (section baru, lihat di bawah) — meskipun reference screenshot user sendiri menampilkan pattern stripe itu. Kesimpulan: **JANGAN PAKAI stripe background (`repeating-linear-gradient` lavender/putih) di section manapun**, walau referensi desain menunjukkannya. Background section sebaiknya solid `#ffffff` kecuali user minta lain.
+
+---
+
+### Section Baru: `.how` ("Cara Kerja ActiVibe")
+
+**Perilaku:** stepper interaktif 5 langkah — klik salah satu item navigasi di kiri akan mengubah highlight nav (background oranye `#F47920` + teks putih) DAN gambar di kanan, sekaligus. State dipegang oleh `activeStep` (`useState`, default `0`) di komponen `HomePage`. Pola click-to-switch ini sama seperti `goSlide` yang sudah ada di Join Section mobile slider.
+
+#### Data: `HOW_IT_WORKS_STEPS` (5 item, label final dari user — BUKAN lorem ipsum)
+```ts
+const HOW_IT_WORKS_STEPS = [
+  { label: 'Conversational Onboarding', image: pic1 },
+  { label: 'Smart AI Matching', image: pic2 },
+  { label: 'Pilih Kegiatan Personalmu', image: pic1 },
+  { label: 'Beraksi & Beri Dampak', image: pic2 },
+  { label: 'Track Your Impact', image: pic1 },
+]
+```
+**PENTING:** belum ada 5 foto asli — sengaja reuse `pic1`/`pic2` (sudah ada di `assets/png/`, sama persis dengan yang dipakai Join Section) sebagai placeholder berselang-seling, sesuai instruksi user ("gunakan image yang tersedia di png terlebih dahulu"). Ganti ke 5 foto asli begitu tersedia — cukup update field `image` di array ini, tidak perlu ubah JSX/CSS.
+
+#### JSX — struktur
+```
+<section .how>
+  <img .how__deco--flower>        ← reuse flower.svg (sama seperti Features)
+  <div .how__inner>
+    <div .how__eyebrow-row>       ← "Cara Kerja ActiVibe" + garis abu pendek
+    <h2 .how__title>              ← "Perjalanan volunteering yang terpersonalisasi, dari pendaftaran hingga sertifikasi."
+    <div .how__grid>
+      <div .how__nav-wrap>
+        <span .how__counter>      ← "01/05" rotated vertical (writing-mode: vertical-rl)
+        <span .how__rail>         ← garis vertikal oranye
+        <ul .how__nav>
+          <li><button .how__nav-item[--active]>  ← 5x, onClick={() => setActiveStep(i)}
+        </ul>
+      </div>
+      <div .how__image-wrap>
+        <img .how__image key={activeStep}>  ← src berubah sesuai HOW_IT_WORKS_STEPS[activeStep].image
+      </div>
+    </div>
+  </div>1
+</section>
+```
+`key={activeStep}` pada `<img>` dipakai supaya animasi `fadeInUp` (sudah ada dari Sesi 1) re-trigger setiap ganti step.
+
+#### CSS — kelas penting
+| Class | Fungsi |
+|---|---|
+| `.how__nav-item--active` | Background oranye `#F47920`, teks putih, box-shadow — state aktif |
+| `.how__nav-item:hover` | Tint oranye transparan tipis untuk item non-aktif |
+| `.how__counter` | `writing-mode: vertical-rl` + `rotate(180deg)` untuk teks vertikal "0X/05" |
+| `.how__rail` | Garis vertikal 2px oranye di sebelah counter |
+| `@media (max-width: 900px)` | Grid jadi 1 kolom (nav di atas, image di bawah) |
+
+**Verifikasi:** sudah dicek `tsc -b` + `pnpm build` clean, screenshot di 1440px & mobile (390px), dan diuji logic-nya dengan sementara ubah `useState(0)` → `useState(3)` lalu screenshot ulang (konfirmasi nav item ke-4 ter-highlight + gambar ganti ke `pic2`) sebelum dikembalikan ke `0`. **Belum diuji klik manual di browser asli** — tidak ada tool browser-automation (Playwright/chromium-cli) yang tersedia di environment ini untuk simulasi klik sungguhan, jadi kalau ada bug spesifik di event klik (bukan di logic render), user perlu cek langsung.
+
+---
+
+### Catatan untuk AI Berikutnya
+
+1. **Jangan pakai stripe background lagi** — lihat Fix 2 di atas, ini sudah 2x diminta dihapus.
+2. **5 foto asli belum ada** — `HOW_IT_WORKS_STEPS[].image` masih reuse `pic1`/`pic2`. Tunggu aset asli dari user.
+3. **`margin-top: -380px` di `.about`** bukan solusi permanen yang robust di semua lebar viewport — lihat Fix 1.
+4. **Section berikutnya** — tambahkan setelah `</section>` `.how` di `HomePage.tsx`.
+
