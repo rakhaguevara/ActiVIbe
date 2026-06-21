@@ -357,7 +357,7 @@
   font-size: 15px;
   font-weight: 600;
   padding: 14px 40px;
-  border-radius: 999px;
+  border-radius: 16px;
   text-decoration: none;
   letter-spacing: 0.2px;
 
@@ -441,7 +441,7 @@
 }
 
 .join__wave--bottom {
-  margin-top: -6px;
+  margin-top: -12px;
 }
 
 /* ── Decorative SVG doodles ──
@@ -533,10 +533,10 @@
   /* above bg(0), decos(1), waves(2) */
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  max-width: 1100px;
+  gap: 100px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 16px 80px 32px;
+  padding: 16px 120px 32px;
   align-items: center;
 }
 
@@ -547,6 +547,8 @@
   /* fix: explicit bg so no white bleed-through on rounded corners */
   background: var(--color-secondary);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  border: 10px solid rgba(255, 255, 255, 0.65);
+
 
   /* scroll-reveal initial */
   opacity: 0;
@@ -563,7 +565,7 @@
 
 .join__img--main {
   width: 100%;
-  height: 260px;
+  height: 400px;
   object-fit: cover;
   display: block;
 }
@@ -626,12 +628,12 @@
   /* fix: explicit bg so no white bleed-through */
   background: var(--color-secondary);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22);
-  border: 3px solid rgba(255, 255, 255, 0.65);
+  border: 8px solid rgba(255, 255, 255, 0.65);
 }
 
 .join__img--secondary {
   width: 100%;
-  height: 180px;
+  height: 240px;
   object-fit: cover;
   display: block;
 }
@@ -1010,10 +1012,19 @@
   }
 
   .about__deco--sun {
-    width: 90px;
+    width: 120px;
     right: -14px;
     bottom: -10px;
+    /* membuat matahari di atas semua elemen  */
+
+    z-index: -1;
   }
+
+    .about__illustration-wrap {
+    max-width: 200px;
+
+  }
+
 }
 
 /* ── Reduced motion ── */
@@ -1141,7 +1152,7 @@
   text-align: left;
   background: transparent;
   border: none;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 14px 20px;
   font-size: 15px;
   font-weight: 600;
@@ -1151,13 +1162,13 @@
 }
 
 .how__nav-item:hover {
-  background: var(--color-accent-orange-soft);
+
 }
 
 .how__nav-item--active {
   background: var(--color-accent-orange);
   color: var(--color-text-on-accent);
-  box-shadow: 0 6px 20px rgba(243, 96, 56, 0.35);
+
 }
 
 .how__nav-item--active:hover {
@@ -1314,7 +1325,7 @@
   font-size: 14px;
   font-weight: 700;
   padding: 12px 28px;
-  border-radius: 999px;
+  border-radius: 8px;
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
@@ -1329,7 +1340,7 @@
 /* ── Track (scroll-snap carousel) ── */
 .symbols__track {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
@@ -1348,7 +1359,7 @@
   scroll-snap-align: start;
   width: 260px;
   min-height: 280px;
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 28px 24px;
   display: flex;
   flex-direction: column;
@@ -1737,7 +1748,7 @@
   font-size: 15px;
   font-weight: 600;
   padding: 14px 40px;
-  border-radius: 999px;
+  border-radius: 16px;
   text-decoration: none;
   letter-spacing: 0.2px;
   transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
