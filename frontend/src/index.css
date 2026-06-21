@@ -1,3 +1,84 @@
+/* ============================================
+   ActiVibe Design Tokens — sumber: docs/design.md
+   Jangan hardcode hex di komponen, selalu pakai var(--token-name).
+   ============================================ */
+:root {
+  /* 1. Base / neutral */
+  --color-bg-true: #FFFFFF;
+  --color-bg-surface: #FEFEFE;
+
+  /* 2. Brand primary — ungu */
+  --color-primary: #6D50A3;
+  --color-primary-hover: #5E4490;
+  --color-primary-active: #4F3979;
+  --color-primary-soft: #EFE9F7;
+
+  /* 3. Brand secondary — biru */
+  --color-secondary: #63C2E0;
+  --color-secondary-dark: #4BA9C9;
+  --color-secondary-soft: #E5F6FB;
+
+  /* 4. Accent — orange */
+  --color-accent-orange: #F36038;
+  --color-accent-orange-hover: #DD4F29;
+  --color-accent-orange-soft: #FDEAE3;
+
+  /* 5. Accent — kuning */
+  --color-accent-yellow: #F5C30D;
+  --color-accent-yellow-soft: #FEF6DC;
+
+  /* 6. Text colors */
+  --color-text-heading: #1A1A2E;
+  --color-text-body: #4A4A5A;
+  --color-text-muted: #8A8A9A;
+  --color-text-on-dark: #FFFFFF;
+  --color-text-on-accent: #FFFFFF;
+
+  /* 7. Semantic / status */
+  --color-success: #3FA66B;
+  --color-success-soft: #E5F5EC;
+  --color-warning: var(--color-accent-yellow);
+  --color-warning-soft: var(--color-accent-yellow-soft);
+  --color-danger: #E14B4B;
+  --color-danger-soft: #FBE7E7;
+  --color-info: var(--color-secondary);
+
+  /* 8. Border & divider */
+  --color-border-light: #ECECF1;
+  --color-border-medium: #D9D9E3;
+
+  /* Typography */
+  --font-display: 'Itim', cursive, system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, -apple-system, sans-serif;
+
+  --text-display-lg: clamp(2rem, 4vw, 3rem);
+  --text-display-md: clamp(1.5rem, 3vw, 2.25rem);
+  --text-display-sm: 1.25rem;
+
+  --text-body-lg: 1.125rem;
+  --text-body-md: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-body-xs: 0.75rem;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.6;
+
+  /* Spacing */
+  --space-section-gap-min: 40px;
+  --space-section-gap-max: 48px;
+  --space-section-gap: clamp(var(--space-section-gap-min), 4vw, var(--space-section-gap-max));
+
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --container-max-width: 1280px;
+  --container-padding-inline: 24px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -6,4 +87,17 @@ html,
 body {
   margin: 0;
   overflow-x: hidden; /* prevent horizontal scrollbar from edge-bleeding deco SVGs */
+}
+
+body, p, button, input, label, textarea, select {
+  font-family: var(--font-body);
+  color: var(--color-text-body);
+  line-height: var(--leading-normal);
+}
+
+h1, h2, h3, h4, h5, h6, .heading {
+  font-family: var(--font-display);
+  color: var(--color-text-heading);
+  line-height: var(--leading-tight);
+  margin: 0;
 }

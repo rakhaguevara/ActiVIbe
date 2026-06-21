@@ -396,6 +396,13 @@ window.addEventListener('scroll', () => {
 .btn--outline:hover { background: var(--color-primary-soft); }
 ```
 
+**Revisi v1.1 (keputusan Rakha):** pill 999px untuk SEMUA tombol ternyata kelihatan monoton kalau diterapkan ke seluruh halaman sekaligus (CTA besar, tombol kecil di dalam card, dst jadi kelihatan sama semua). Jadi radius tombol dipecah berdasarkan ukuran/peran:
+
+- **CTA besar berdiri sendiri** (satu tombol penting per section, padding besar ≥`14px 40px`, contoh: "Cari Aktifitas", "Lihat Semua Kegiatan", "Subscribe") → tetap **pill `999px`**.
+- **CTA sekunder/inline** (menyatu di tengah konten, padding medium `~12px 32px`, contoh: "Mengenal Program", "More About Us..") → **`12px`**, bukan pill.
+- **Tombol kecil berulang di dalam card/grid** (padding kecil `~8px 18px`, contoh: "Daftar Sekarang" di tiap activity card) → **`10px`**.
+- Filter/tag pill (Section 6.3-style chip, contoh filter kategori) dan **stepper active pill (Section 6.5)** tetap pill `999px` — itu komponen berbeda dari tombol CTA, bukan bagian dari aturan ini.
+
 ### 6.2 Card
 
 ```css

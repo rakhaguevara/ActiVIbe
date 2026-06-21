@@ -146,6 +146,25 @@ const ACTIVITIES = [
   },
 ]
 
+/* ── Trust badges (value proposition ActiVibe) ── */
+const TRUST_BADGES = [
+  {
+    icon: medalIcon,
+    title: 'Smart AI Matching',
+    desc: 'Rekomendasi kegiatan volunteer dipersonalisasi sesuai minat dan lokasimu.',
+  },
+  {
+    icon: medalIcon,
+    title: 'Komunitas Terverifikasi',
+    desc: 'Setiap organisasi & kegiatan diverifikasi tim ActiVibe, aman untuk diikuti.',
+  },
+  {
+    icon: medalIcon,
+    title: 'Impact Passport Digital',
+    desc: 'Setiap kontribusimu otomatis tercatat jadi portofolio sosial yang bisa dibagikan.',
+  },
+]
+
 /* ── Hooks ── */
 function useCountUp(target: number, trigger: boolean, duration = 1600) {
   const [count, setCount] = useState(0)
@@ -236,11 +255,23 @@ export default function HomePage() {
     scrollToSymbol(next)
   }
 
-  /* Activities filter */
+  /* Activities filter + horizontal carousel (4 card per tampilan, sisanya digeser) */
   const [activeCategory, setActiveCategory] = useState('Semua')
   const filteredActivities = activeCategory === 'Semua'
     ? ACTIVITIES
     : ACTIVITIES.filter(a => a.category === activeCategory)
+
+  const activitiesTrackRef = useRef<HTMLDivElement>(null)
+
+  const scrollActivities = (dir: 1 | -1) => {
+    const track = activitiesTrackRef.current
+    if (!track) return
+    track.scrollBy({ left: dir * track.clientWidth * 0.95, behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    activitiesTrackRef.current?.scrollTo({ left: 0 })
+  }, [activeCategory])
 
   /* Mobile slider state */
   const [slideIndex,   setSlideIndex]   = useState(0)
@@ -582,34 +613,71 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="activities__grid">
-            {filteredActivities.map(({ title, icon, participants, dateRange, quota, desc }, i) => (
-              <article key={title} className="activity-card">
-                <div className={`activity-card__banner activity-card__banner--${i % 4}`}>
-                  <img src={icon} alt="" className="activity-card__icon" />
-                </div>
+          <div className="activities__carousel">
+            <button
+              type="button"
+              className="activities__arrow activities__arrow--prev"
+              aria-label="Kegiatan sebelumnya"
+              onClick={() => scrollActivities(-1)}
+            >
+              ‹
+            </button>
 
-                <div className="activity-card__body">
-                  <div className="activity-card__meta">
-                    <span className="activity-card__participants">+{participants} Peserta</span>
-                    <span className="activity-card__date">{dateRange}</span>
+            <div className="activities__grid" ref={activitiesTrackRef}>
+              {filteredActivities.map(({ title, icon, participants, dateRange, quota, desc }, i) => (
+                <article key={title} className="activity-card">
+                  <div className={`activity-card__banner activity-card__banner--${i % 4}`}>
+                    <img src={icon} alt="" className="activity-card__icon" />
                   </div>
 
-                  <h3 className="activity-card__title">{title}</h3>
-                  <p className="activity-card__desc">{desc}</p>
+                  <div className="activity-card__body">
+                    <div className="activity-card__meta">
+                      <span className="activity-card__participants">+{participants} Peserta</span>
+                      <span className="activity-card__date">{dateRange}</span>
+                    </div>
 
-                  <div className="activity-card__footer">
-                    <span className="activity-card__quota">Kuota: {quota} tersisa</span>
-                    <a href="#" className="activity-card__cta">Daftar Sekarang</a>
+                    <h3 className="activity-card__title">{title}</h3>
+                    <p className="activity-card__desc">{desc}</p>
+
+                    <div className="activity-card__footer">
+                      <span className="activity-card__quota">Kuota: {quota} tersisa</span>
+                      <a href="#" className="activity-card__cta">Daftar Sekarang</a>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="activities__arrow activities__arrow--next"
+              aria-label="Kegiatan selanjutnya"
+              onClick={() => scrollActivities(1)}
+            >
+              ›
+            </button>
           </div>
 
           <div className="activities__footer">
             <a href="#" className="activities__cta">Lihat Semua Kegiatan</a>
           </div>
+        </div>
+      </section>
+
+      {/* ═══ Trust Badges ═══ */}
+      <section className="trust">
+        <div className="trust__card">
+          {TRUST_BADGES.map(({ icon, title, desc }) => (
+            <div key={title} className="trust__item">
+              <div className="trust__badge">
+                <img src={icon} alt="" className="trust__badge-icon" />
+              </div>
+              <div className="trust__text">
+                <h3 className="trust__title">{title}</h3>
+                <p className="trust__desc">{desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

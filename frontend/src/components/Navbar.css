@@ -1,8 +1,3 @@
-*{
-  font-family: 'Inter', sans-serif;
-}
-
-
 .navbar {
   position: fixed;
   top: 0;
@@ -20,7 +15,7 @@
   justify-content: space-between;
   gap: 0;
 
-  background: #ffffff;
+  background: var(--color-bg-true);
   border-radius: 0;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
 
@@ -30,16 +25,30 @@
     top 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     border-radius 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.3s ease,
+    backdrop-filter 0.3s ease,
     box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Sticky + aktif — glass effect (semi-transparent + blur), BUKAN solid putih,
+   sesuai docs/design.md Section 5.2 */
 .navbar--sticky {
   top: 24px;
   max-width: 1200px;
   height: 58px;
   padding: 0 28px;
   border-radius: 100px;
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 32px rgba(26, 26, 46, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .navbar--sticky {
+    background: rgba(255, 255, 255, 0.92);
+  }
 }
 
 /* Logo */
@@ -74,7 +83,7 @@
 .navbar__link {
   font-size: 15px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--color-text-heading);
   text-decoration: none;
   padding: 8px 14px;
   border-radius: 8px;
@@ -83,8 +92,8 @@
 }
 
 .navbar__link:hover {
-  background: #f4f1fb;
-  color: #6d50a3;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 /* CTA */
@@ -92,7 +101,7 @@
   flex-shrink: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #6d50a3;
+  color: var(--color-primary);
   text-decoration: none;
   padding: 8px 4px;
   transition: opacity 0.15s ease;
@@ -122,14 +131,14 @@
 }
 
 .navbar__hamburger:hover {
-  background: #f4f1fb;
+  background: var(--color-primary-soft);
 }
 
 .navbar__hamburger span {
   display: block;
   width: 22px;
   height: 2px;
-  background: #1a1a1a;
+  background: var(--color-text-heading);
   border-radius: 2px;
   transition: transform 0.25s ease, opacity 0.25s ease, width 0.25s ease;
   transform-origin: center;
@@ -155,7 +164,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: #ffffff;
+  background: var(--color-bg-true);
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding: 12px 12px 16px;
   border-radius: 0 0 20px 20px;
@@ -175,7 +184,7 @@
 .navbar__mobile-link {
   font-size: 15px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--color-text-heading);
   text-decoration: none;
   padding: 12px 16px;
   border-radius: 10px;
@@ -183,19 +192,19 @@
 }
 
 .navbar__mobile-link:hover {
-  background: #f4f1fb;
-  color: #6d50a3;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .navbar__mobile-cta {
   margin-top: 8px;
   padding: 13px 16px;
-  border-radius: 10px;
+  border-radius: 999px;
   text-align: center;
   font-size: 15px;
   font-weight: 600;
-  color: #ffffff;
-  background: #6d50a3;
+  color: var(--color-text-on-accent);
+  background: var(--color-primary);
   text-decoration: none;
   transition: opacity 0.15s ease;
 }
@@ -256,7 +265,7 @@
     max-width: none;
     flex-direction: column;
     gap: 4px;
-    background: #ffffff;
+    background: var(--color-bg-true);
     border-top: 1px solid rgba(0, 0, 0, 0.06);
     padding: 12px 16px 16px;
     border-radius: 0;
