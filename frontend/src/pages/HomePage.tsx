@@ -20,6 +20,7 @@ import pic1 from '../assets/png/pic1 1.png'
 import pic2 from '../assets/png/pic2 1.png'
 // ── About Section assets
 import aboutIllustration from '../assets/svg/logo-utama.svg'
+import Footer from '../components/Footer'
 import './HomePage.css'
 
 /* ── Static data ── */
@@ -680,6 +681,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <Footer />
 
     </main>
   )
