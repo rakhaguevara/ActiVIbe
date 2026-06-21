@@ -166,6 +166,56 @@ const TRUST_BADGES = [
   },
 ]
 
+/* ── Gallery (placeholder photos — reusing pic1/pic2 until real activity photos exist) ── */
+const GALLERY_MOMENTS = [
+  { tab: 'Pantai', img: pic1, title: 'Bersih Pantai Bersama', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Lingkungan', volunteers: 40, likes: 128, comments: 24 },
+  { tab: 'Mangrove', img: pic2, title: 'Penanaman 1000 Pohon Mangrove', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Lingkungan', volunteers: 342, likes: 256, comments: 51 },
+  { tab: 'Edukasi', img: pic1, title: 'Mengajar Anak-anak Pedesaan', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Pendidikan', volunteers: 11, likes: 89, comments: 12 },
+  { tab: 'Donor Darah', img: pic2, title: 'Donor Darah Massal', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Kesehatan', volunteers: 234, likes: 310, comments: 64 },
+  { tab: 'Panti Asuhan', img: pic1, title: 'Bantu Panti Asuhan Ceria', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Sosial', volunteers: 28, likes: 142, comments: 19 },
+  { tab: 'Remaja', img: pic2, title: 'Edukasi Kesehatan Remaja', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Kesehatan', volunteers: 19, likes: 77, comments: 9 },
+]
+
+/* ── Rating / testimonials ── */
+const TESTIMONIALS = [
+  {
+    quote: 'Saya sudah ikut beberapa kegiatan lewat ActiVibe dan selalu merasa terhubung dengan komunitas yang suportif. Prosesnya mudah, dari cari kegiatan sampai dapat sertifikat kontribusi.',
+    name: 'Dewi Anggraini',
+    role: 'Volunteer Bersih Pantai',
+    avatar: pic1,
+  },
+  {
+    quote: 'Smart matching-nya beneran membantu nemuin kegiatan yang sesuai minat dan lokasi, jadi nggak perlu scroll lama buat cari yang pas.',
+    name: 'Putu Aditya',
+    role: 'Organizer Komunitas Hijau',
+    avatar: pic2,
+  },
+  {
+    quote: 'Tiga kata saja: ActiVibe luar biasa!',
+    name: 'Sarah Kusuma',
+    role: 'Volunteer Edukasi Anak',
+    avatar: pic1,
+  },
+  {
+    quote: 'Impact Passport-nya jadi portofolio sosial yang bisa langsung aku lampirkan waktu daftar beasiswa. Sangat membantu.',
+    name: 'Rian Saputra',
+    role: 'Volunteer Donor Darah',
+    avatar: pic2,
+  },
+  {
+    quote: 'Komunitas di sini ramah banget buat yang baru pertama kali jadi volunteer. Nggak perlu pengalaman dulu.',
+    name: 'Maya Lestari',
+    role: 'Volunteer Panti Asuhan',
+    avatar: pic1,
+  },
+  {
+    quote: 'Recommended!',
+    name: 'Fajar Nugroho',
+    role: 'Organizer Komunitas Mangrove',
+    avatar: pic2,
+  },
+]
+
 /* ── Hooks ── */
 function useCountUp(target: number, trigger: boolean, duration = 1600) {
   const [count, setCount] = useState(0)
@@ -273,6 +323,25 @@ export default function HomePage() {
   useEffect(() => {
     activitiesTrackRef.current?.scrollTo({ left: 0 })
   }, [activeCategory])
+
+  /* Gallery tabs */
+  const [activeMoment, setActiveMoment] = useState(0)
+
+  const goMoment = (dir: 1 | -1) => {
+    setActiveMoment((prev) => (prev + dir + GALLERY_MOMENTS.length) % GALLERY_MOMENTS.length)
+  }
+
+  const prevMoment = GALLERY_MOMENTS[(activeMoment - 1 + GALLERY_MOMENTS.length) % GALLERY_MOMENTS.length]
+  const nextMoment = GALLERY_MOMENTS[(activeMoment + 1) % GALLERY_MOMENTS.length]
+
+  /* Rating pagination (3 per page) */
+  const RATING_PER_PAGE = 3
+  const ratingPageCount = Math.ceil(TESTIMONIALS.length / RATING_PER_PAGE)
+  const [ratingPage, setRatingPage] = useState(0)
+  const visibleTestimonials = TESTIMONIALS.slice(
+    ratingPage * RATING_PER_PAGE,
+    ratingPage * RATING_PER_PAGE + RATING_PER_PAGE
+  )
 
   /* Mobile slider state */
   const [slideIndex,   setSlideIndex]   = useState(0)
@@ -679,6 +748,131 @@ export default function HomePage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ═══ Gallery ═══ */}
+      <section className="gallery">
+        <div className="gallery__inner">
+          <h2 className="gallery__title">
+            GALERI MOMEN<br />VOLUNTEER KAMI.
+          </h2>
+          <p className="gallery__subtitle">
+            Setiap kegiatan ActiVibe meninggalkan cerita. Jelajahi momen-momen nyata dari volunteer
+            yang sudah turun langsung memberi dampak.
+          </p>
+
+          <div className="gallery__tabs-row">
+            <div className="gallery__tabs">
+              {GALLERY_MOMENTS.map(({ tab }, i) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className={`gallery__tab${i === activeMoment ? ' gallery__tab--active' : ''}`}
+                  onClick={() => setActiveMoment(i)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="gallery__nav">
+              <button type="button" className="gallery__nav-arrow" aria-label="Sebelumnya" onClick={() => goMoment(-1)}>‹</button>
+              <button type="button" className="gallery__nav-arrow" aria-label="Selanjutnya" onClick={() => goMoment(1)}>›</button>
+            </div>
+          </div>
+
+          <div className="gallery__carousel">
+            <article className="gallery__peek gallery__peek--left">
+              <div className="gallery__peek-head">
+                <span className="gallery__peek-avatar" aria-hidden="true" />
+                <span className="gallery__peek-name">{prevMoment.title}</span>
+              </div>
+              <img src={prevMoment.img} alt="" className="gallery__peek-img" />
+              <div className="gallery__peek-stats">
+                <span>♥ {prevMoment.likes}</span>
+                <span>💬 {prevMoment.comments}</span>
+              </div>
+            </article>
+
+            <article className="gallery__feature">
+              <img src={GALLERY_MOMENTS[activeMoment].img} alt={GALLERY_MOMENTS[activeMoment].title} className="gallery__feature-img" />
+              <div className="gallery__feature-overlay" aria-hidden="true" />
+
+              <div className="gallery__feature-floating gallery__feature-floating--card">
+                <img src={GALLERY_MOMENTS[activeMoment].img} alt="" className="gallery__feature-floating-thumb" />
+                <div>
+                  <p className="gallery__feature-floating-title">+{GALLERY_MOMENTS[activeMoment].volunteers} Volunteer</p>
+                  <p className="gallery__feature-floating-sub">ikut berpartisipasi</p>
+                </div>
+              </div>
+
+              <div className="gallery__feature-floating gallery__feature-floating--tag">
+                {GALLERY_MOMENTS[activeMoment].tag}
+              </div>
+
+              <div className="gallery__feature-content">
+                <p className="gallery__feature-label">{GALLERY_MOMENTS[activeMoment].tag}</p>
+                <h3 className="gallery__feature-title">{GALLERY_MOMENTS[activeMoment].title}</h3>
+                <p className="gallery__feature-desc">{GALLERY_MOMENTS[activeMoment].desc}</p>
+                <a href="#" className="gallery__feature-cta">Lihat Galeri →</a>
+              </div>
+            </article>
+
+            <article className="gallery__peek gallery__peek--right">
+              <div className="gallery__peek-head">
+                <span className="gallery__peek-avatar" aria-hidden="true" />
+                <span className="gallery__peek-name">{nextMoment.title}</span>
+              </div>
+              <img src={nextMoment.img} alt="" className="gallery__peek-img" />
+              <div className="gallery__peek-stats">
+                <span>♥ {nextMoment.likes}</span>
+                <span>💬 {nextMoment.comments}</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Rating ═══ */}
+      <section className="rating">
+        <div className="rating__inner">
+          <div className="rating__eyebrow-row">
+            <span className="rating__eyebrow">Ulasan</span>
+            <span className="rating__eyebrow-line" aria-hidden="true" />
+          </div>
+          <h2 className="rating__title">Apa Kata Volunteer Kami</h2>
+
+          <div className="rating__grid">
+            {visibleTestimonials.map(({ quote, name, role, avatar }) => (
+              <article key={name} className="rating-card">
+                <p className="rating-card__quote">{quote}</p>
+                <div className="rating-card__author">
+                  <img src={avatar} alt="" className="rating-card__avatar" />
+                  <div className="rating-card__author-text">
+                    <span className="rating-card__name">{name}</span>
+                    <span className="rating-card__role">{role}</span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {ratingPageCount > 1 && (
+            <div className="rating__dots" role="tablist" aria-label="Halaman ulasan">
+              {Array.from({ length: ratingPageCount }).map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === ratingPage}
+                  aria-label={`Halaman ulasan ${i + 1}`}
+                  className={`rating__dot${i === ratingPage ? ' rating__dot--active' : ''}`}
+                  onClick={() => setRatingPage(i)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
