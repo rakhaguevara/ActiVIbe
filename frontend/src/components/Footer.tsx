@@ -31,6 +31,8 @@ const CONTACT_INFO = [
   { icon: FaEnvelope, label: 'support@activibe.com' },
 ]
 
+const LEGAL_LINKS = ['Kebijakan Privasi', 'Syarat Penggunaan', 'Legal']
+
 export default function Footer() {
   const [email, setEmail] = useState('')
 
@@ -111,6 +113,22 @@ export default function Footer() {
               </li>
             ))}
           </ul>
+        </div>
+      </div>
+
+      <div className="footer__bottom">
+        <p className="footer__copyright">
+          © {new Date().getFullYear()} ActiVibe. Semua hak dilindungi.
+        </p>
+        <div className="footer__legal">
+          {LEGAL_LINKS.map((label, i) => (
+            <span key={label} className="footer__legal-item">
+              <a href="#" className="footer__legal-link">{label}</a>
+              {i < LEGAL_LINKS.length - 1 && (
+                <span className="footer__legal-sep" aria-hidden="true">·</span>
+              )}
+            </span>
+          ))}
         </div>
       </div>
     </footer>
