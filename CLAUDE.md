@@ -15,7 +15,7 @@ Sebelum menambah atau mengubah style:
 
 Monorepo dengan 3 bagian utama:
 - `frontend/` — Web app (React 19 + TypeScript + Vite, pakai `pnpm`)
-- `backend/` — API & services (belum diinisialisasi)
+- `backend/` — API & services (belum diinisialisasi — rencana arsitektur: Express.js + PostgreSQL + Prisma + JWT, lihat [backend/README.md](backend/README.md). Auth dipanggil langsung dari frontend lewat REST API, **bukan** Next.js/NextAuth)
 - `docs/` — Dokumentasi product (PRD, design system, dst.)
 
 Lihat [README.md](README.md) dan [docs/PRD-ActiVibe-v2.0.md](docs/PRD-ActiVibe-v2.0.md) untuk detail produk lengkap.

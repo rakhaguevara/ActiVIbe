@@ -9,7 +9,7 @@ Lihat [docs/PRD-ActiVibe-v2.0.md](docs/PRD-ActiVibe-v2.0.md) untuk detail produk
 Monorepo dengan 3 bagian utama:
 
 - `frontend/` — Web app (React 19 + TypeScript + Vite)
-- `backend/` — API & services (belum diinisialisasi)
+- `backend/` — API & services (belum diinisialisasi — rencana arsitektur sudah ada di [backend/README.md](backend/README.md): Express.js + PostgreSQL + Prisma + JWT)
 - `docs/` — Dokumentasi product (PRD, dst.)
 
 ### Struktur `frontend/src`
