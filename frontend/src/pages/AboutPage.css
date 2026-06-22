@@ -41,3 +41,90 @@
     padding: 72px 20px 0;
   }
 }
+
+/* ── Cerita Kami ── */
+.about-page__story {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-true);
+  padding: 64px 40px 88px;
+}
+
+.about-page__story-title {
+  position: relative;
+  display: inline-block;
+  font-size: clamp(24px, 3vw, 34px);
+  margin: 0 0 16px;
+}
+
+.about-page__story-title::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: -8px;
+  width: calc(100% - 4px);
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-accent-yellow);
+}
+
+.about-page__story-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 340px) 1fr;
+  gap: 56px;
+  align-items: center;
+  margin-top: 56px;
+  max-width: 1200px;
+  margin-inline: auto;
+}
+
+.about-page__story-illustration-wrap {
+  opacity: 0;
+  transform: translateX(-32px);
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.1s,
+    transform 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+}
+
+.about-page__story--visible .about-page__story-illustration-wrap {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.about-page__story-illustration {
+  width: 100%;
+  display: block;
+}
+
+.about-page__story-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  opacity: 0;
+  transform: translateX(32px);
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.2s,
+    transform 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
+}
+
+.about-page__story--visible .about-page__story-content {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.about-page__story-desc {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .about-page__story-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .about-page__story-illustration-wrap {
+    max-width: 280px;
+    margin-inline: auto;
+  }
+}

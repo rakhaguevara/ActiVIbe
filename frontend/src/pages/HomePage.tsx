@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
 import bg from '../assets/svg/background-1.svg'
 import wave from '../assets/svg/wave.svg'
 import iconVolunteer from '../assets/svg/recruitment 1.svg'
@@ -234,22 +235,6 @@ function useCountUp(target: number, trigger: boolean, duration = 1600) {
     return () => cancelAnimationFrame(raf)
   }, [trigger, target, duration])
   return count
-}
-
-function useRevealOnScroll(threshold = 0.15) {
-  const ref = useRef<HTMLElement>(null)
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect() } },
-      { threshold }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [threshold])
-  return { ref, visible }
 }
 
 /* ── Sub-components ── */

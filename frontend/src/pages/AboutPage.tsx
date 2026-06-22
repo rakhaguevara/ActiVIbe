@@ -1,8 +1,12 @@
 import wave from '../assets/svg/wave.svg'
+import storyIllustration from '../assets/svg/logo-utama.svg'
 import Footer from '../components/Footer'
+import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
 import './AboutPage.css'
 
 export default function AboutPage() {
+  const storyReveal = useRevealOnScroll(0.1)
+
   return (
     <main className="about-page">
       <section className="about-page__hero">
@@ -14,6 +18,40 @@ export default function AboutPage() {
           bagaimana kami mencoba menjawabnya.
         </p>
         <img src={wave} alt="" className="about-page__hero-wave" aria-hidden="true" />
+      </section>
+
+      <section
+        ref={storyReveal.ref as React.RefObject<HTMLElement>}
+        className={`about-page__story${storyReveal.visible ? ' about-page__story--visible' : ''}`}
+      >
+        <div className="about-page__story-grid">
+          <div className="about-page__story-illustration-wrap">
+            <img
+              src={storyIllustration}
+              alt="Ilustrasi komunitas ActiVibe"
+              className="about-page__story-illustration"
+            />
+          </div>
+
+          <div className="about-page__story-content">
+            <h2 className="about-page__story-title">Cerita Kami</h2>
+            <p className="about-page__story-desc">
+              Di Indonesia, partisipasi sosial masyarakatnya tinggi — tapi sebagian besar kegiatan
+              volunteer masih dicari secara manual, tanpa rekomendasi yang benar-benar memahami
+              minat dan skill masing-masing orang. Akibatnya, tingkat ketidaksesuaian antara
+              volunteer dan kegiatan yang mereka ikuti diperkirakan mencapai 40–60%. Banyak yang
+              berhenti setelah satu kali coba, dan organisasi kesulitan menjaring volunteer yang
+              benar-benar relevan.
+            </p>
+            <p className="about-page__story-desc">
+              Dari situ, tim kami — Saw iT — mulai merancang ActiVibe: platform volunteer yang
+              menggunakan AI untuk mencocokkan minat, skill, dan jadwal seseorang dengan kegiatan
+              yang paling sesuai untuk mereka. Bukan sekadar daftar kegiatan, tapi pengalaman
+              volunteering yang personal, terukur, dan punya jejak dampak yang bisa dibanggakan
+              lewat Impact Passport.
+            </p>
+          </div>
+        </div>
       </section>
 
       <Footer />
