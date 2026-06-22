@@ -50,6 +50,13 @@ const MISSION_POINTS = [
   },
 ] as const
 
+const TEAM = [
+  { name: 'Rakha Dzikra Guevara', role: 'Product Owner', initial: 'R' },
+  { name: 'Haikal', role: 'Co-Founder & Tim Pengembang', initial: 'H' },
+  { name: 'Daffa', role: 'Co-Founder & Tim Pengembang', initial: 'D' },
+  { name: 'Abiem', role: 'Co-Founder & Tim Pengembang', initial: 'A' },
+] as const
+
 export default function AboutPage() {
   const storyReveal = useRevealOnScroll(0.1)
 
@@ -136,6 +143,23 @@ export default function AboutPage() {
                 <span className="about-page__mission-badge" aria-hidden="true">{icon}</span>
                 <h3 className="about-page__mission-title">{title}</h3>
                 <p className="about-page__mission-desc">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="about-page__team">
+        <div className="about-page__team-inner">
+          <p className="about-page__team-eyebrow">Tim Kami</p>
+          <h2 className="about-page__team-title">Orang-Orang di Balik ActiVibe</h2>
+
+          <div className="about-page__team-grid">
+            {TEAM.map(({ name, role, initial }) => (
+              <div key={name} className="about-page__team-card">
+                <span className="about-page__team-avatar" aria-hidden="true">{initial}</span>
+                <p className="about-page__team-name">{name}</p>
+                <p className="about-page__team-role">{role}</p>
               </div>
             ))}
           </div>
