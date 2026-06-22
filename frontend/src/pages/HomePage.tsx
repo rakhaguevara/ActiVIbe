@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import bg from '../assets/svg/background-1.svg'
 import wave from '../assets/svg/wave.svg'
 import iconVolunteer from '../assets/svg/recruitment 1.svg'
@@ -539,7 +540,7 @@ export default function HomePage() {
               <p className="about__desc">
                 Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas. Quis diam sed scelerisque aliquam imperdiet egestas.
               </p>
-              <a href="#" className="about__cta">More About Us..</a>
+              <Link to="/tentang-kami" className="about__cta">More About Us..</Link>
             </div>
           </div>
         </div>

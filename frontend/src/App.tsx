@@ -1,18 +1,19 @@
 import { useState } from 'react'
+import { BrowserRouter } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import AuthModal, { type AuthMode } from './components/AuthModal'
-import HomePage from './pages/HomePage'
+import AppRoutes from './routes/AppRoutes'
 
 function App() {
   const [authMode, setAuthMode] = useState<AuthMode | null>(null)
 
   return (
-    <>
+    <BrowserRouter>
       <Navbar
         onLoginClick={() => setAuthMode('login')}
         onSignupClick={() => setAuthMode('signup')}
       />
-      <HomePage />
+      <AppRoutes />
 
       {authMode && (
         <AuthModal
@@ -21,7 +22,7 @@ function App() {
           onModeChange={setAuthMode}
         />
       )}
-    </>
+    </BrowserRouter>
   )
 }
 

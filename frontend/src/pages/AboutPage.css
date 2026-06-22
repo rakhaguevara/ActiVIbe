@@ -1,0 +1,43 @@
+/* ── Hero ── */
+.about-page__hero {
+  position: relative;
+  margin-top: 72px;
+  padding: 96px 40px 0;
+  text-align: center;
+  overflow: hidden;
+}
+
+.about-page__hero-eyebrow {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.about-page__hero-title {
+  font-size: clamp(28px, 4vw, 44px);
+  margin: 0 auto 20px;
+  max-width: 720px;
+}
+
+.about-page__hero-desc {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--color-text-body);
+  max-width: 620px;
+  margin: 0 auto 48px;
+}
+
+.about-page__hero-wave {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 600px) {
+  .about-page__hero {
+    padding: 72px 20px 0;
+  }
+}

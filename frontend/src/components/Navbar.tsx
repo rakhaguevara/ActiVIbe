@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import logo from '../assets/svg/logo.svg'
 import './Navbar.css'
 
@@ -6,7 +7,7 @@ const NAV_LINKS = [
   { label: 'Cari Aktivitas', href: '#' },
   { label: 'Cari Organisasi', href: '#' },
   { label: 'Cara Kerja', href: '#' },
-  { label: 'Tentang Kami', href: '#' },
+  { label: 'Tentang Kami', href: '#', to: '/tentang-kami' },
 ]
 
 interface NavbarProps {
@@ -48,15 +49,21 @@ export default function Navbar({ onLoginClick, onSignupClick }: NavbarProps) {
           .filter(Boolean)
           .join(' ')}
       >
-        <a href="/" className="navbar__logo">
+        <Link to="/" className="navbar__logo">
           <img src={logo} alt="ActiVibe" height="44" />
-        </a>
+        </Link>
 
         <nav className="navbar__links">
-          {NAV_LINKS.map(({ label, href }) => (
-            <a key={label} href={href} className="navbar__link">
-              {label}
-            </a>
+          {NAV_LINKS.map(({ label, href, to }) => (
+            to ? (
+              <Link key={label} to={to} className="navbar__link">
+                {label}
+              </Link>
+            ) : (
+              <a key={label} href={href} className="navbar__link">
+                {label}
+              </a>
+            )
           ))}
         </nav>
 
@@ -82,15 +89,26 @@ export default function Navbar({ onLoginClick, onSignupClick }: NavbarProps) {
 
         {isMenuOpen && (
           <div className="navbar__mobile-menu">
-            {NAV_LINKS.map(({ label, href }) => (
-              <a
-                key={label}
-                href={href}
-                className="navbar__mobile-link"
-                onClick={closeMenu}
-              >
-                {label}
-              </a>
+            {NAV_LINKS.map(({ label, href, to }) => (
+              to ? (
+                <Link
+                  key={label}
+                  to={to}
+                  className="navbar__mobile-link"
+                  onClick={closeMenu}
+                >
+                  {label}
+                </Link>
+              ) : (
+                <a
+                  key={label}
+                  href={href}
+                  className="navbar__mobile-link"
+                  onClick={closeMenu}
+                >
+                  {label}
+                </a>
+              )
             ))}
             <button
               type="button"
