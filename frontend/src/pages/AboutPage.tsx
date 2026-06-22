@@ -4,6 +4,34 @@ import Footer from '../components/Footer'
 import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
 import './AboutPage.css'
 
+const TIMELINE = [
+  {
+    label: 'Riset & Insight',
+    desc: 'Mengamati langsung masalah mismatch volunteer di lapangan, mengumpulkan data dan feedback dari calon volunteer maupun organisasi penyelenggara.',
+    active: false,
+  },
+  {
+    label: 'Ide ActiVibe Lahir',
+    desc: 'Tim Saw iT merancang konsep platform matching berbasis AI sebagai jawaban atas masalah yang ditemukan.',
+    active: false,
+  },
+  {
+    label: 'Penyusunan PRD & Design System',
+    desc: 'Menyusun dokumen produk lengkap (problem statement hingga FR-027) dan sistem desain yang konsisten di seluruh platform.',
+    active: false,
+  },
+  {
+    label: 'MVP Landing Page',
+    desc: 'Landing page, autentikasi, dan fondasi desain ActiVibe yang sedang kamu lihat ini.',
+    active: true,
+  },
+  {
+    label: 'Next: Peluncuran Beta',
+    desc: 'Conversational Onboarding, Smart AI Matching, dan Impact Passport masuk ke tahap pengembangan penuh.',
+    active: false,
+  },
+] as const
+
 export default function AboutPage() {
   const storyReveal = useRevealOnScroll(0.1)
 
@@ -50,6 +78,28 @@ export default function AboutPage() {
               volunteering yang personal, terukur, dan punya jejak dampak yang bisa dibanggakan
               lewat Impact Passport.
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="about-page__timeline">
+        <div className="about-page__timeline-inner">
+          <p className="about-page__timeline-eyebrow">Timeline Perjalanan</p>
+          <h2 className="about-page__timeline-title">Dari Ide Sampai ke Sini</h2>
+
+          <div className="about-page__timeline-list">
+            {TIMELINE.map((item) => (
+              <div
+                key={item.label}
+                className={`about-page__timeline-item${item.active ? ' about-page__timeline-item--active' : ''}`}
+              >
+                <span className="about-page__timeline-rail" aria-hidden="true" />
+                <div className="about-page__timeline-body">
+                  <span className="about-page__timeline-label">{item.label}</span>
+                  <p className="about-page__timeline-desc">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
