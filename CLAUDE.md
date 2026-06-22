@@ -20,6 +20,10 @@ Monorepo dengan 3 bagian utama:
 
 Lihat [README.md](README.md) dan [docs/PRD-ActiVibe-v2.0.md](docs/PRD-ActiVibe-v2.0.md) untuk detail produk lengkap.
 
+## Git Push
+
+Jangan pernah menjalankan `git push` (atau push lewat tool apa pun). Setelah commit selesai dibuat, biarkan user yang melakukan push sendiri.
+
 ## Menjaga File Ini Tetap Up to Date
 
 File ini **wajib diperbarui** setiap kali ada keputusan struktural/desain baru yang signifikan (struktur folder berubah, aturan styling baru, role/flow baru ditambahkan), supaya sesi Claude berikutnya tidak kehilangan konteks. Jangan biarkan isi file ini basi dibanding kondisi repo yang sebenarnya — kalau ada perubahan besar di `docs/design.md`, `docs/PRD-ActiVibe-v2.0.md`, atau struktur repo, update referensi di sini juga.

@@ -9,7 +9,12 @@ const NAV_LINKS = [
   { label: 'Tentang Kami', href: '#' },
 ]
 
-export default function Navbar() {
+interface NavbarProps {
+  onLoginClick: () => void
+  onSignupClick: () => void
+}
+
+export default function Navbar({ onLoginClick, onSignupClick }: NavbarProps) {
   const [isSticky, setIsSticky] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -55,9 +60,14 @@ export default function Navbar() {
           ))}
         </nav>
 
-        <a href="/auth" className="navbar__cta">
-          Login/Daftar
-        </a>
+        <div className="navbar__auth">
+          <button type="button" className="navbar__login" onClick={onLoginClick}>
+            Masuk
+          </button>
+          <button type="button" className="navbar__signup" onClick={onSignupClick}>
+            Daftar
+          </button>
+        </div>
 
         <button
           className={`navbar__hamburger${isMenuOpen ? ' is-open' : ''}`}
@@ -82,9 +92,20 @@ export default function Navbar() {
                 {label}
               </a>
             ))}
-            <a href="/auth" className="navbar__mobile-cta" onClick={closeMenu}>
-              Login/Daftar
-            </a>
+            <button
+              type="button"
+              className="navbar__mobile-login"
+              onClick={() => { closeMenu(); onLoginClick() }}
+            >
+              Masuk
+            </button>
+            <button
+              type="button"
+              className="navbar__mobile-cta"
+              onClick={() => { closeMenu(); onSignupClick() }}
+            >
+              Daftar
+            </button>
           </div>
         )}
       </header>

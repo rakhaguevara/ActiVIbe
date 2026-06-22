@@ -4,7 +4,13 @@
       "Bash(node check.cjs)",
       "Bash(node check2.cjs)",
       "Bash(node diag.cjs)",
-      "Bash(node diag2.cjs)"
+      "Bash(node diag2.cjs)",
+      "Bash(pnpm install *)",
+      "Bash(npx --no-install playwright --version)",
+      "Read(//d//**)",
+      "Bash(NODE_PATH=\"C:\\\\Users\\\\rakha\\\\AppData\\\\Local\\\\npm-cache\\\\_npx\\\\48b1ca104c3549f4\\\\node_modules\" node /d/tmp/verify-auth-modal.mjs)",
+      "Bash(node /d/tmp/verify-auth-modal.mjs)",
+      "Bash(node -e ' *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\rakha\\AppData\\Local\\Temp\\shot3",
