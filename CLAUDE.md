@@ -20,9 +20,13 @@ Monorepo dengan 3 bagian utama:
 
 Lihat [README.md](README.md) dan [docs/PRD-ActiVibe-v2.0.md](docs/PRD-ActiVibe-v2.0.md) untuk detail produk lengkap.
 
-## Git Push
+**Routing:** sejak halaman "Tentang Kami", `frontend/` pakai `react-router-dom` (dikonfigurasi di `frontend/src/routes/AppRoutes.tsx`, dibungkus `<BrowserRouter>` di `App.tsx`). `Navbar` dan `AuthModal` dirender di luar `<Routes>` supaya tetap tampil di semua halaman. Kalau menambah halaman baru, daftarkan route-nya di `AppRoutes.tsx`, jangan render langsung di `App.tsx`.
 
-Jangan pernah menjalankan `git push` (atau push lewat tool apa pun). Setelah commit selesai dibuat, biarkan user yang melakukan push sendiri.
+## Git Commit & Push
+
+Jangan pernah menjalankan `git commit` atau `git push` (lewat tool apa pun) di sesi utama tanpa diminta eksplisit oleh user di pesan itu juga. Cukup siapkan perubahan di working tree (`git add` boleh, atau tidak sama sekali), lalu biarkan user yang melakukan commit & push sendiri.
+
+**Pengecualian (dikonfirmasi user 2026-06-22):** kalau user secara eksplisit memilih menjalankan `superpowers:subagent-driven-development` (atau skill lain yang mekanismenya butuh commit antar-task untuk diff review), implementer **subagent** boleh commit lokal per task sebagai mekanisme internal proses — bukan final history. Tidak ada `git push` dalam kondisi apa pun. User tetap pegang kendali penuh untuk review/reset/squash semua commit itu sebelum push sendiri. Di luar konteks ini (misal menulis spec/plan doc biasa di sesi utama), tetap jangan commit tanpa diminta.
 
 ## Menjaga File Ini Tetap Up to Date
 

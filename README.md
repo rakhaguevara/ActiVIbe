@@ -14,7 +14,7 @@ Monorepo dengan 3 bagian utama:
 
 ### Struktur `frontend/src`
 
-Folder disusun per aktor sesuai PRD (Volunteer, Organizer, Admin), saat ini masih berupa skeleton kosong:
+Folder disusun per aktor sesuai PRD (Volunteer, Organizer, Admin). `routes/` dan `hooks/` sudah mulai terisi (routing & `useRevealOnScroll`), sisanya masih skeleton kosong:
 
 ```
 src/
@@ -24,8 +24,8 @@ src/
 ├── assets/
 ├── components/      # komponen UI reusable
 ├── layouts/          # nav-body & layout wrapper per role
-├── routes/            # konfigurasi routing
-├── hooks/
+├── routes/            # konfigurasi routing (AppRoutes.tsx — react-router-dom)
+├── hooks/             # custom hooks reusable (cth. useRevealOnScroll)
 ├── services/         # pemanggilan API
 ├── types/
 ├── utils/
@@ -56,6 +56,8 @@ Project menggunakan `pnpm`, jalankan command dari dalam `frontend/` (bukan dari 
 - [x] Landing Page — Stats card dengan counter animation (scroll-triggered)
 - [x] Landing Page — Features section (3 kartu, scroll-reveal, dekorasi flower & sun)
 - [x] Landing Page — Join section "Bergabung Bersama Activibe" (background biru #63C2E0, wave top/bottom, ikon dekoratif SVG, 2 foto PNG, tombol CTA oranye)
+- [x] Modal Login & Sign Up (`AuthModal`), dipicu dari tombol Masuk/Daftar di Navbar
+- [x] Routing pertama di project (`react-router-dom`) — Halaman "Tentang Kami" (`/tentang-kami`) berisi cerita, timeline, visi-misi, dan tim
 - [ ] Bangun layout nav-body
 - [ ] Inisialisasi `backend/`
 
