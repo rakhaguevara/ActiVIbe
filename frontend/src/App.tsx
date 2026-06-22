@@ -13,7 +13,7 @@ function App() {
         onLoginClick={() => setAuthMode('login')}
         onSignupClick={() => setAuthMode('signup')}
       />
-      <AppRoutes />
+      <AppRoutes onSignupClick={() => setAuthMode('signup')} />
 
       {authMode && (
         <AuthModal

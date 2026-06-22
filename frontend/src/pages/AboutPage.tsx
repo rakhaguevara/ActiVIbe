@@ -57,7 +57,11 @@ const TEAM = [
   { name: 'Abiem', role: 'Co-Founder & Tim Pengembang', initial: 'A' },
 ] as const
 
-export default function AboutPage() {
+interface AboutPageProps {
+  onSignupClick: () => void
+}
+
+export default function AboutPage({ onSignupClick }: AboutPageProps) {
   const storyReveal = useRevealOnScroll(0.1)
 
   return (
@@ -164,6 +168,17 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="about-page__cta">
+        <h2 className="about-page__cta-title">Jadi Bagian dari Perjalanan Ini</h2>
+        <p className="about-page__cta-desc">
+          Mulai langkah pertamamu bersama ActiVibe — baik sebagai volunteer yang ingin
+          berdampak, atau organisasi yang ingin menjangkau lebih banyak relawan.
+        </p>
+        <button type="button" className="about-page__cta-button" onClick={onSignupClick}>
+          Daftar Sekarang
+        </button>
       </section>
 
       <Footer />
