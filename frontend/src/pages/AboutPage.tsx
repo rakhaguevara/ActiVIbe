@@ -1,5 +1,7 @@
 import wave from '../assets/svg/wave.svg'
 import storyIllustration from '../assets/svg/logo-utama.svg'
+import pic1 from '../assets/png/pic1 1.png'
+import pic2 from '../assets/png/pic2 1.png'
 import Footer from '../components/Footer'
 import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
 import './AboutPage.css'
@@ -55,6 +57,15 @@ const TEAM = [
   { name: 'Haikal', role: 'Co-Founder & Tim Pengembang', initial: 'H' },
   { name: 'Daffa', role: 'Co-Founder & Tim Pengembang', initial: 'D' },
   { name: 'Abiem', role: 'Co-Founder & Tim Pengembang', initial: 'A' },
+] as const
+
+const GALLERY = [
+  { img: pic1, caption: 'Sesi Riset Awal' },
+  { img: pic2, caption: 'Diskusi Tim Saw iT' },
+  { img: pic1, caption: 'Workshop Design System' },
+  { img: pic2, caption: 'Demo MVP Internal' },
+  { img: pic1, caption: 'Brainstorming Roadmap' },
+  { img: pic2, caption: 'Persiapan Peluncuran' },
 ] as const
 
 interface AboutPageProps {
@@ -179,6 +190,22 @@ export default function AboutPage({ onSignupClick }: AboutPageProps) {
         <button type="button" className="about-page__cta-button" onClick={onSignupClick}>
           Daftar Sekarang
         </button>
+      </section>
+
+      <section className="about-page__gallery">
+        <div className="about-page__gallery-inner">
+          <p className="about-page__gallery-eyebrow">Galeri</p>
+          <h2 className="about-page__gallery-title">Momen Perjalanan Kami</h2>
+
+          <div className="about-page__gallery-grid">
+            {GALLERY.map(({ img, caption }, i) => (
+              <figure key={`${caption}-${i}`} className="about-page__gallery-card">
+                <img src={img} alt={caption} className="about-page__gallery-img" />
+                <figcaption className="about-page__gallery-caption">{caption}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
       </section>
 
       <Footer />
