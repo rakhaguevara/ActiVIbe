@@ -32,6 +32,24 @@ const TIMELINE = [
   },
 ] as const
 
+const MISSION_POINTS = [
+  {
+    icon: '01',
+    title: 'Memudahkan Pencarian',
+    desc: 'Mengurangi proses coba-coba lewat rekomendasi kegiatan yang relevan dengan minat dan kemampuan setiap volunteer.',
+  },
+  {
+    icon: '02',
+    title: 'Mendukung Organisasi',
+    desc: 'Membantu NGO dan komunitas menjangkau volunteer yang tepat, lebih cepat, dan lebih efisien dari proses manual.',
+  },
+  {
+    icon: '03',
+    title: 'Transparansi Dampak',
+    desc: 'Mencatat setiap kontribusi volunteer lewat Impact Passport digital yang bisa dibagikan dan dibanggakan.',
+  },
+] as const
+
 export default function AboutPage() {
   const storyReveal = useRevealOnScroll(0.1)
 
@@ -98,6 +116,26 @@ export default function AboutPage() {
                   <span className="about-page__timeline-label">{item.label}</span>
                   <p className="about-page__timeline-desc">{item.desc}</p>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="about-page__vision">
+        <div className="about-page__vision-inner">
+          <p className="about-page__vision-eyebrow">Visi & Misi</p>
+          <h2 className="about-page__vision-statement">
+            Menjadi platform volunteer paling terpercaya di Indonesia, tempat setiap orang bisa
+            menemukan kegiatan sosial yang benar-benar sesuai dengan minat dan potensinya.
+          </h2>
+
+          <div className="about-page__mission-grid">
+            {MISSION_POINTS.map(({ icon, title, desc }) => (
+              <div key={title} className="about-page__mission-item">
+                <span className="about-page__mission-badge" aria-hidden="true">{icon}</span>
+                <h3 className="about-page__mission-title">{title}</h3>
+                <p className="about-page__mission-desc">{desc}</p>
               </div>
             ))}
           </div>

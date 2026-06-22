@@ -215,3 +215,88 @@
     padding: 24px 20px 64px;
   }
 }
+
+/* ── Visi & Misi ── */
+.about-page__vision {
+  background: var(--color-primary-soft);
+  padding: 64px 40px;
+}
+
+.about-page__vision-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.about-page__vision-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.about-page__vision-statement {
+  font-size: clamp(22px, 3vw, 30px);
+  color: var(--color-text-heading);
+  max-width: 760px;
+  margin: 0 auto 48px;
+}
+
+.about-page__mission-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.about-page__mission-item {
+  flex: 1;
+  min-width: 220px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.about-page__mission-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-bg-true);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--color-primary);
+  box-shadow: 0 0 0 6px var(--color-accent-yellow-soft);
+}
+
+.about-page__mission-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.about-page__mission-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .about-page__vision {
+    padding: 48px 24px;
+  }
+
+  .about-page__mission-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+}
