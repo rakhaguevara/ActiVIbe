@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import EventCard from '../../components/EventCard'
+import EventDetailPanel from '../../components/EventDetailPanel'
+import type { Event } from '../../types/event'
 import { mockEvents } from '../../data/mockEvents'
 import banner from '../../assets/svg/background-1.svg'
 import './FindActivityPage.css'
@@ -31,6 +33,8 @@ export default function FindActivityPage() {
     }
     return events
   }, [sortBy])
+
+  const selectedEvent: Event = sortedEvents.find((event) => event.id === selectedEventId) ?? sortedEvents[0]
 
   if (isLoading || !user) {
     return null
@@ -71,6 +75,8 @@ export default function FindActivityPage() {
             />
           ))}
         </div>
+
+        <EventDetailPanel event={selectedEvent} />
       </div>
     </main>
   )
