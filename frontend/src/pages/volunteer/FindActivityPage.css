@@ -86,3 +86,14 @@
     padding-inline: 20px;
   }
 }
+
+.find-activity-page__empty {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  padding: 24px;
+}
+
+.find-activity-page__empty--panel {
+  grid-column: span 2;
+  text-align: center;
+}

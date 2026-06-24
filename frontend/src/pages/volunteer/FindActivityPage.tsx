@@ -4,16 +4,25 @@ import { useAuth } from '../../contexts/AuthContext'
 import EventCard from '../../components/EventCard'
 import EventDetailPanel from '../../components/EventDetailPanel'
 import EventApplyForm from '../../components/EventApplyForm'
-import type { Event } from '../../types/event'
+import VolunteerSearchBar, { type EventFilters } from '../../components/VolunteerSearchBar'
 import { mockEvents } from '../../data/mockEvents'
 import banner from '../../assets/svg/background-1.svg'
 import './FindActivityPage.css'
 
 type SortOption = 'matchScore' | 'dateAsc'
 
+const EMPTY_FILTERS: EventFilters = {
+  keyword: '',
+  location: '',
+  category: '',
+  skill: '',
+  oneDayOnly: false,
+}
+
 export default function FindActivityPage() {
   const { user, isLoading } = useAuth()
   const navigate = useNavigate()
+  const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS)
   const [sortBy, setSortBy] = useState<SortOption>('matchScore')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(
     () => [...mockEvents].sort((a, b) => b.matchScore - a.matchScore)[0]?.id ?? null
@@ -25,21 +34,62 @@ export default function FindActivityPage() {
     }
   }, [isLoading, user, navigate])
 
+  const categories = useMemo(() => Array.from(new Set(mockEvents.map((event) => event.category))), [])
+  const skills = useMemo(() => Array.from(new Set(mockEvents.flatMap((event) => event.skills))), [])
+
+  const filteredEvents = useMemo(() => {
+    const keyword = filters.keyword.trim().toLowerCase()
+    const location = filters.location.trim().toLowerCase()
+
+    return mockEvents.filter((event) => {
+      if (
+        keyword &&
+        !event.title.toLowerCase().includes(keyword) &&
+        !event.description.toLowerCase().includes(keyword)
+      ) {
+        return false
+      }
+      if (location && !event.location.toLowerCase().includes(location)) {
+        return false
+      }
+      if (filters.category && event.category !== filters.category) {
+        return false
+      }
+      if (filters.skill && !event.skills.includes(filters.skill)) {
+        return false
+      }
+      if (filters.oneDayOnly && event.startDate !== event.endDate) {
+        return false
+      }
+      return true
+    })
+  }, [filters])
+
   const sortedEvents = useMemo(() => {
-    const events = [...mockEvents]
+    const events = [...filteredEvents]
     if (sortBy === 'matchScore') {
       events.sort((a, b) => b.matchScore - a.matchScore)
     } else {
       events.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     }
     return events
-  }, [sortBy])
+  }, [filteredEvents, sortBy])
 
-  const selectedEvent: Event = sortedEvents.find((event) => event.id === selectedEventId) ?? sortedEvents[0]
+  useEffect(() => {
+    if (sortedEvents.length === 0) {
+      setSelectedEventId(null)
+      return
+    }
+    if (!sortedEvents.some((event) => event.id === selectedEventId)) {
+      setSelectedEventId(sortedEvents[0].id)
+    }
+  }, [sortedEvents, selectedEventId])
 
   if (isLoading || !user) {
     return null
   }
+
+  const selectedEvent = sortedEvents.find((event) => event.id === selectedEventId) ?? null
 
   return (
     <main className="find-activity-page">
@@ -49,6 +99,8 @@ export default function FindActivityPage() {
           Halo, {user.name.split(' ')[0]}! Yuk temukan kegiatan volunteer yang cocok buatmu.
         </p>
       </section>
+
+      <VolunteerSearchBar filters={filters} onChange={setFilters} categories={categories} skills={skills} />
 
       <div className="find-activity-page__results-row">
         <p className="find-activity-page__results-count">
@@ -67,6 +119,9 @@ export default function FindActivityPage() {
 
       <div className="find-activity-page__columns">
         <div className="find-activity-page__list">
+          {sortedEvents.length === 0 && (
+            <p className="find-activity-page__empty">Tidak ada kegiatan yang cocok dengan filter ini.</p>
+          )}
           {sortedEvents.map((event) => (
             <EventCard
               key={event.id}
@@ -77,8 +132,16 @@ export default function FindActivityPage() {
           ))}
         </div>
 
-        <EventDetailPanel event={selectedEvent} />
-        <EventApplyForm event={selectedEvent} />
+        {selectedEvent ? (
+          <>
+            <EventDetailPanel event={selectedEvent} />
+            <EventApplyForm event={selectedEvent} />
+          </>
+        ) : (
+          <p className="find-activity-page__empty find-activity-page__empty--panel">
+            Pilih atau ubah filter untuk melihat kegiatan.
+          </p>
+        )}
       </div>
     </main>
   )
