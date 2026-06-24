@@ -1,0 +1,69 @@
+/* ── Masonry Container ── */
+.masonry-list {
+  position: relative;
+  width: 100%;
+  /* height is set dynamically via inline style */
+}
+
+/* ── Item Wrapper (positioned absolutely by GSAP) ── */
+.masonry-item-wrapper {
+  position: absolute;
+  will-change: transform, width, height, opacity;
+  padding: 8px;
+  top: 0;
+  left: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* ── Image tile ── */
+.masonry-item-img {
+  position: relative;
+  background-size: cover;
+  background-position: center center;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  box-shadow: 0px 8px 32px -8px rgba(26, 26, 46, 0.18);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.masonry-item-wrapper:hover .masonry-item-img {
+  box-shadow: 0px 16px 48px -8px rgba(109, 80, 163, 0.28);
+}
+
+/* ── Caption overlay ── */
+.masonry-item-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 32px 14px 14px;
+  background: linear-gradient(
+    to top,
+    rgba(26, 26, 46, 0.78) 0%,
+    transparent 100%
+  );
+  border-radius: 0 0 12px 12px;
+
+  /* hidden by default, reveal on hover */
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.masonry-item-wrapper:hover .masonry-item-caption {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.masonry-item-caption span {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+  display: block;
+}

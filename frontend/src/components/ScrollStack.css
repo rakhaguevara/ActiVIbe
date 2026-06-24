@@ -1,0 +1,114 @@
+/* ── ScrollStack: hanya aktif di mobile (≤ 768px) ──
+   Di desktop, komponen ini tidak dirender sama sekali (lihat HomePage.tsx).
+   Semua style di sini adalah mobile-only. */
+
+.scroll-stack-scroller {
+  position: relative;
+  width: 100%;
+  height: 520px;           /* tinggi viewport scroll area */
+  overflow-y: auto;
+  overflow-x: visible;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: scroll-position;
+
+  /* Sembunyikan scrollbar — scroll tetap jalan */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll-stack-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-stack-inner {
+  padding: 16px 20px 40vh;  /* bottom padding besar agar pin bisa release */
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Card dasar ── */
+.scroll-stack-card {
+  transform-origin: top center;
+  will-change: transform, filter;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  position: relative;
+
+  width: 100%;
+  min-height: 200px;
+  border-radius: 24px;
+  padding: 28px 24px;
+  box-sizing: border-box;
+
+  /* Bayangan agar terlihat menumpuk */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+}
+
+/* ── Warna per simbol — ikuti pola symbols__card--N di HomePage.css ── */
+.scroll-stack-card--0 {
+  background: #f0ebe8;
+  color: #1a1a2e;
+}
+
+.scroll-stack-card--1 {
+  background: #e8eff0;
+  color: #1a1a2e;
+}
+
+.scroll-stack-card--2 {
+  background: #fdf5e4;
+  color: #1a1a2e;
+}
+
+.scroll-stack-card--3 {
+  background: #eef0e8;
+  color: #1a1a2e;
+}
+
+/* Loop warna untuk card ke-4 dst */
+.scroll-stack-card:nth-child(4n+1) { background: #f0ebe8; color: #1a1a2e; }
+.scroll-stack-card:nth-child(4n+2) { background: #e8eff0; color: #1a1a2e; }
+.scroll-stack-card:nth-child(4n+3) { background: #fdf5e4; color: #1a1a2e; }
+.scroll-stack-card:nth-child(4n+4) { background: #eef0e8; color: #1a1a2e; }
+
+/* ── Konten dalam card ── */
+.scroll-stack-card__title {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin: 0 0 12px;
+}
+
+.scroll-stack-card__desc {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-secondary);
+  margin: 0 0 24px;
+}
+
+.scroll-stack-card__link {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  text-decoration: none;
+}
+
+.scroll-stack-card__link:hover {
+  text-decoration: underline;
+}
+
+/* ── Spacer ── */
+.scroll-stack-end {
+  width: 100%;
+  height: 1px;
+}

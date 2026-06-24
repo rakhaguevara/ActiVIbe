@@ -22,6 +22,7 @@ import pic1 from '../assets/png/pic1 1.png'
 import pic2 from '../assets/png/pic2 1.png'
 // ── About Section assets
 import aboutIllustration from '../assets/svg/logo-utama.svg'
+import ScrollStack, { ScrollStackItem } from '../components/ScrollStack'
 import Footer from '../components/Footer'
 import './HomePage.css'
 
@@ -598,6 +599,7 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* ── DESKTOP: horizontal scroll carousel (hidden on mobile via CSS) ── */}
           <div
             className="symbols__track"
             ref={symbolsTrackRef}
@@ -612,6 +614,29 @@ export default function HomePage() {
             ))}
           </div>
 
+          {/* ── MOBILE: ScrollStack stacking animation (hidden on desktop via CSS) ── */}
+          <div className="symbols__stack-mobile">
+            <ScrollStack
+              itemDistance={80}
+              itemScale={0.04}
+              itemStackDistance={24}
+              stackPosition="25%"
+              scaleEndPosition="12%"
+              baseScale={0.88}
+              rotationAmount={0}
+              blurAmount={0}
+            >
+              {LOGO_SYMBOLS.map(({ title, desc }, i) => (
+                <ScrollStackItem key={title} itemClassName={`scroll-stack-card--${i % 4}`}>
+                  <h3 className="scroll-stack-card__title">{title}</h3>
+                  <p className="scroll-stack-card__desc">{desc}</p>
+                  <a href="#" className="scroll-stack-card__link">Pelajari Lebih Lanjut →</a>
+                </ScrollStackItem>
+              ))}
+            </ScrollStack>
+          </div>
+
+          {/* Nav dots (desktop only) */}
           <div className="symbols__nav">
             <button
               type="button"

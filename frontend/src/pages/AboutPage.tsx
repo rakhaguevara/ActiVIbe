@@ -1,8 +1,9 @@
-import wave from '../assets/svg/wave.svg'
 import storyIllustration from '../assets/svg/logo-utama.svg'
 import pic1 from '../assets/png/pic1 1.png'
 import pic2 from '../assets/png/pic2 1.png'
 import Footer from '../components/Footer'
+import Masonry from '../components/Masonry'
+import ChromaGrid from '../components/ChromaGrid'
 import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
 import './AboutPage.css'
 
@@ -53,20 +54,48 @@ const MISSION_POINTS = [
 ] as const
 
 const TEAM = [
-  { name: 'Rakha Dzikra Guevara', role: 'Product Owner', initial: 'R' },
-  { name: 'Haikal', role: 'Co-Founder & Tim Pengembang', initial: 'H' },
-  { name: 'Daffa', role: 'Co-Founder & Tim Pengembang', initial: 'D' },
-  { name: 'Abiem', role: 'Co-Founder & Tim Pengembang', initial: 'A' },
-] as const
+  {
+    image: 'https://i.pravatar.cc/300?img=12',
+    title: 'Rakha Dzikra Guevara',
+    subtitle: 'Product Owner',
+    handle: '@rakha.dzikra',
+    borderColor: '#6D50A3',
+    gradient: 'linear-gradient(155deg, #6D50A3 0%, #2a1a45 100%)',
+  },
+  {
+    image: 'https://i.pravatar.cc/300?img=53',
+    title: 'Haikal',
+    subtitle: 'Co-Founder & Tim Pengembang',
+    handle: '@haikal',
+    borderColor: '#63C2E0',
+    gradient: 'linear-gradient(155deg, #63C2E0 0%, #0a2a3a 100%)',
+  },
+  {
+    image: 'https://i.pravatar.cc/300?img=68',
+    title: 'Daffa',
+    subtitle: 'Co-Founder & Tim Pengembang',
+    handle: '@daffa',
+    borderColor: '#F36038',
+    gradient: 'linear-gradient(155deg, #F36038 0%, #3a1005 100%)',
+  },
+  {
+    image: 'https://i.pravatar.cc/300?img=33',
+    title: 'Abiem',
+    subtitle: 'Co-Founder & Tim Pengembang',
+    handle: '@abiem',
+    borderColor: '#F5C30D',
+    gradient: 'linear-gradient(155deg, #b8890a 0%, #2a2000 100%)',
+  },
+]
 
 const GALLERY = [
-  { img: pic1, caption: 'Sesi Riset Awal' },
-  { img: pic2, caption: 'Diskusi Tim Saw iT' },
-  { img: pic1, caption: 'Workshop Design System' },
-  { img: pic2, caption: 'Demo MVP Internal' },
-  { img: pic1, caption: 'Brainstorming Roadmap' },
-  { img: pic2, caption: 'Persiapan Peluncuran' },
-] as const
+  { id: '1', img: pic1, caption: 'Sesi Riset Awal',         height: 560 },
+  { id: '2', img: pic2, caption: 'Diskusi Tim Saw iT',       height: 440 },
+  { id: '3', img: pic1, caption: 'Workshop Design System',   height: 640 },
+  { id: '4', img: pic2, caption: 'Demo MVP Internal',        height: 480 },
+  { id: '5', img: pic1, caption: 'Brainstorming Roadmap',    height: 520 },
+  { id: '6', img: pic2, caption: 'Persiapan Peluncuran',     height: 400 },
+]
 
 interface AboutPageProps {
   onSignupClick: () => void
@@ -85,7 +114,6 @@ export default function AboutPage({ onSignupClick }: AboutPageProps) {
           volunteer yang benar-benar cocok dengan minat dan kemampuan kita? Ini cerita tentang
           bagaimana kami mencoba menjawabnya.
         </p>
-        <img src={wave} alt="" className="about-page__hero-wave" aria-hidden="true" />
       </section>
 
       <section
@@ -169,14 +197,16 @@ export default function AboutPage({ onSignupClick }: AboutPageProps) {
           <p className="about-page__team-eyebrow">Tim Kami</p>
           <h2 className="about-page__team-title">Orang-Orang di Balik ActiVibe</h2>
 
-          <div className="about-page__team-grid">
-            {TEAM.map(({ name, role, initial }) => (
-              <div key={name} className="about-page__team-card">
-                <span className="about-page__team-avatar" aria-hidden="true">{initial}</span>
-                <p className="about-page__team-name">{name}</p>
-                <p className="about-page__team-role">{role}</p>
-              </div>
-            ))}
+          <div className="about-page__team-chroma">
+            <ChromaGrid
+              items={TEAM}
+              columns={4}
+              rows={1}
+              radius={320}
+              damping={0.45}
+              fadeOut={0.6}
+              ease="power3.out"
+            />
           </div>
         </div>
       </section>
@@ -197,13 +227,18 @@ export default function AboutPage({ onSignupClick }: AboutPageProps) {
           <p className="about-page__gallery-eyebrow">Galeri</p>
           <h2 className="about-page__gallery-title">Momen Perjalanan Kami</h2>
 
-          <div className="about-page__gallery-grid">
-            {GALLERY.map(({ img, caption }, i) => (
-              <figure key={`${caption}-${i}`} className="about-page__gallery-card">
-                <img src={img} alt={caption} className="about-page__gallery-img" />
-                <figcaption className="about-page__gallery-caption">{caption}</figcaption>
-              </figure>
-            ))}
+          <div className="about-page__gallery-masonry">
+            <Masonry
+              items={GALLERY}
+              animateFrom="bottom"
+              ease="power3.out"
+              duration={0.6}
+              stagger={0.06}
+              scaleOnHover={true}
+              hoverScale={0.97}
+              blurToFocus={true}
+              colorShiftOnHover={false}
+            />
           </div>
         </div>
       </section>

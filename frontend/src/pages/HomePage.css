@@ -1456,6 +1456,11 @@
   transform: scale(1.3);
 }
 
+/* ── ScrollStack mobile \u2014 hidden by default (desktop shows carousel) ── */
+.symbols__stack-mobile {
+  display: none;
+}
+
 /* ── Tablet ── */
 @media (max-width: 900px) {
   .symbols {
@@ -1477,19 +1482,32 @@
   }
 }
 
-/* ── Mobile ── */
-@media (max-width: 600px) {
-  .symbols__card {
-    width: 220px;
-    min-height: 240px;
+/* ── Mobile: switch from carousel → ScrollStack ── */
+@media (max-width: 768px) {
+  /* Sembunyikan horizontal carousel + nav di mobile */
+  .symbols__track,
+  .symbols__nav {
+    display: none;
+  }
+
+  /* Tampilkan ScrollStack */
+  .symbols__stack-mobile {
+    display: block;
+    margin: 0 -20px;   /* stretch ke tepi layar */
   }
 
   .symbols__title {
     font-size: 26px;
   }
 
-  .symbols__nav {
-    margin-top: 24px;
+  .symbols__header {
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  .symbols__header-side {
+    max-width: 100%;
   }
 }
 
