@@ -32,6 +32,27 @@ describe('registerUser', () => {
       registerUser({ firstName: 'Other', lastName: 'Person', email: 'casey@example.com', password: 'password456' })
     ).rejects.toMatchObject({ statusCode: 409 })
   })
+
+  it('throws a 409 AppError on a concurrent duplicate registration (P2002 race past findUnique)', async () => {
+    const payload = { firstName: 'Casey', lastName: 'Smith', email: 'race@example.com', password: 'password123' }
+
+    // Fire both calls without awaiting in between so both can pass the
+    // findUnique check before either create() commits, forcing the second
+    // create() to hit the DB's @unique constraint (Prisma error P2002)
+    // instead of the findUnique-detected duplicate-email branch.
+    const [first, second] = await Promise.allSettled([registerUser(payload), registerUser(payload)])
+
+    const results = [first, second]
+    const fulfilled = results.filter((r) => r.status === 'fulfilled')
+    const rejected = results.filter((r) => r.status === 'rejected')
+
+    expect(fulfilled).toHaveLength(1)
+    expect(rejected).toHaveLength(1)
+    expect(rejected[0].reason).toMatchObject({ statusCode: 409, message: 'Email sudah terdaftar' })
+
+    const stored = await prisma.user.findMany({ where: { email: 'race@example.com' } })
+    expect(stored).toHaveLength(1)
+  })
 })
 
 describe('loginUser', () => {

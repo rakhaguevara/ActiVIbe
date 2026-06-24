@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { signAccessToken, signRefreshToken, verifyAccessToken } from '../../utils/jwt.js'
 import { hashToken } from '../../utils/hash.js'
@@ -37,14 +38,26 @@ export async function registerUser({ firstName, lastName, email, password }) {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10)
-  const user = await prisma.user.create({
-    data: {
-      name: `${firstName} ${lastName}`.trim(),
-      email,
-      password: hashedPassword,
-      isVerified: true,
-    },
-  })
+  let user
+  try {
+    user = await prisma.user.create({
+      data: {
+        name: `${firstName} ${lastName}`.trim(),
+        email,
+        password: hashedPassword,
+        isVerified: true,
+      },
+    })
+  } catch (error) {
+    // Race condition: another request created the same email between our
+    // findUnique check above and this create. The DB's @unique constraint
+    // on User.email rejects the insert with Prisma error code P2002 — map
+    // it to the same 409 the findUnique check would have produced.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new AppError(409, 'Email sudah terdaftar')
+    }
+    throw error
+  }
 
   const tokens = await issueTokens(user)
   return { user: toPublicUser(user), ...tokens }
