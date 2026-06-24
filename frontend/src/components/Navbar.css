@@ -117,6 +117,14 @@
   transition: opacity 0.15s ease;
 }
 
+.navbar__user-name {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-heading);
+  padding: 8px 4px;
+}
+
 .navbar__login:hover {
   opacity: 0.75;
 }

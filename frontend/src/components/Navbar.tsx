@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/logo.svg'
 import './Navbar.css'
 
@@ -38,6 +39,15 @@ export default function Navbar({ onLoginClick, onSignupClick }: NavbarProps) {
 
   const closeMenu = () => setIsMenuOpen(false)
 
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    closeMenu()
+    navigate('/')
+  }
+
   return (
     <>
       <header
@@ -68,12 +78,23 @@ export default function Navbar({ onLoginClick, onSignupClick }: NavbarProps) {
         </nav>
 
         <div className="navbar__auth">
-          <button type="button" className="navbar__login" onClick={onLoginClick}>
-            Masuk
-          </button>
-          <button type="button" className="navbar__signup" onClick={onSignupClick}>
-            Daftar
-          </button>
+          {user ? (
+            <>
+              <span className="navbar__user-name">{user.name.split(' ')[0]}</span>
+              <button type="button" className="navbar__login" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="navbar__login" onClick={onLoginClick}>
+                Masuk
+              </button>
+              <button type="button" className="navbar__signup" onClick={onSignupClick}>
+                Daftar
+              </button>
+            </>
+          )}
         </div>
 
         <button
@@ -110,20 +131,32 @@ export default function Navbar({ onLoginClick, onSignupClick }: NavbarProps) {
                 </a>
               )
             ))}
-            <button
-              type="button"
-              className="navbar__mobile-login"
-              onClick={() => { closeMenu(); onLoginClick() }}
-            >
-              Masuk
-            </button>
-            <button
-              type="button"
-              className="navbar__mobile-cta"
-              onClick={() => { closeMenu(); onSignupClick() }}
-            >
-              Daftar
-            </button>
+            {user ? (
+              <button
+                type="button"
+                className="navbar__mobile-login"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="navbar__mobile-login"
+                  onClick={() => { closeMenu(); onLoginClick() }}
+                >
+                  Masuk
+                </button>
+                <button
+                  type="button"
+                  className="navbar__mobile-cta"
+                  onClick={() => { closeMenu(); onSignupClick() }}
+                >
+                  Daftar
+                </button>
+              </>
+            )}
           </div>
         )}
       </header>
