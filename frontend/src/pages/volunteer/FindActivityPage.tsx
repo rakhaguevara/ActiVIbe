@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import EventCard from '../../components/EventCard'
 import EventDetailPanel from '../../components/EventDetailPanel'
+import EventApplyForm from '../../components/EventApplyForm'
 import type { Event } from '../../types/event'
 import { mockEvents } from '../../data/mockEvents'
 import banner from '../../assets/svg/background-1.svg'
@@ -77,6 +78,7 @@ export default function FindActivityPage() {
         </div>
 
         <EventDetailPanel event={selectedEvent} />
+        <EventApplyForm event={selectedEvent} />
       </div>
     </main>
   )

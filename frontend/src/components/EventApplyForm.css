@@ -1,0 +1,115 @@
+.event-apply-form {
+  background: var(--color-bg-true);
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.event-apply-form__event-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.event-apply-form__event-date {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 8px;
+}
+
+.event-apply-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.event-apply-form__field label {
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+
+.event-apply-form__field input,
+.event-apply-form__field textarea {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-medium);
+  border-radius: 10px;
+  resize: vertical;
+}
+
+.event-apply-form__field input[readonly] {
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+}
+
+.event-apply-form__availability {
+  display: flex;
+  gap: 16px;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.event-apply-form__availability legend {
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin-bottom: 6px;
+  width: 100%;
+}
+
+.event-apply-form__availability label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+}
+
+.event-apply-form__submit {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-body-md);
+  color: var(--color-text-on-accent);
+  background: var(--color-primary);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.event-apply-form__submit:hover {
+  background: var(--color-primary-hover);
+}
+
+.event-apply-form__submit:active {
+  background: var(--color-primary-active);
+  transform: scale(0.98);
+}
+
+.event-apply-form--success {
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.event-apply-form__success-text {
+  font-size: var(--text-body-md);
+  font-weight: 600;
+  color: var(--color-success);
+  margin: 0;
+}
+
+.event-apply-form__success-event {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
