@@ -2,7 +2,7 @@
 
 > API service untuk ActiVibe — menangani autentikasi (OTP, registrasi), data pengguna, kegiatan volunteer, dan logika bisnis inti. Dipanggil oleh frontend di folder [`frontend/`](../frontend) (React 19 + TypeScript + Vite) pada monorepo ini.
 
-Status: **Fondasi awal — fitur pertama yang akan dibangun: Register & Login.**
+Status: **Register & Login sudah dibangun dan diverifikasi end-to-end** (lihat `docs/superpowers/specs/2026-06-24-register-login-activation-design.md` dan plan-nya). OTP (FR-002/FR-003) **belum** diimplementasikan — register saat ini langsung set `isVerified: true` tanpa verifikasi, ditunda sampai provider SMS/email diputuskan (lihat Section 9).
 
 ---
 
@@ -14,7 +14,7 @@ Status: **Fondasi awal — fitur pertama yang akan dibangun: Register & Login.**
 | Framework | Express.js | Dipilih karena tim belum pernah pakai backend framework — learning curve paling landai dibanding NestJS. Bisa migrasi nanti kalau kompleksitas bertambah. |
 | Database | PostgreSQL | Data model ActiVibe sangat relational (banyak many-to-many) — lihat PRD v2.0 Section 7.1/8.1. |
 | ORM | Prisma | Tim belum pernah pakai ORM — Prisma punya DX & type-safety terbaik untuk pemula. |
-| Auth strategy | JWT (access + refresh token) diterbitkan backend ini | Frontend (React) memanggil endpoint backend langsung via HTTP client (fetch/axios) dan menyimpan token di state management pilihan tim — lihat Section 5 & Section 9 (belum diputuskan). |
+| Auth strategy | JWT (access + refresh token) diterbitkan backend ini, dikirim sebagai httpOnly cookie | Frontend (React) memanggil endpoint backend langsung via `fetch` dengan `credentials: 'include'` — frontend tidak pernah pegang token mentah, status login dibaca lewat `AuthContext` + `GET /auth/me`. Lihat Section 9. |
 | Hosting | VPS Hostinger, PostgreSQL native install | Backup database **wajib disetup manual** — lihat Section 7. |
 
 ---
@@ -36,10 +36,10 @@ docs/       — Dokumentasi product (PRD, design system, dst.)
 | Kirim & verifikasi OTP | Backend (folder ini) |
 | Simpan password (hashed) | Backend (folder ini) |
 | Validasi kredensial saat login | Backend (folder ini) — expose endpoint REST biasa |
-| Simpan & kirim token di tiap request | Frontend (React) — strategi penyimpanan token belum diputuskan, lihat Section 9 |
-| Refresh token / access token | Backend menerbitkan; frontend menyimpan & memanggil endpoint refresh saat token expired |
+| Simpan & kirim token di tiap request | **Browser** (httpOnly cookie) — frontend tidak pegang token mentah, lihat Section 9 |
+| Refresh token / access token | Backend menerbitkan via cookie. **Endpoint `/auth/refresh` belum dibangun** — access token cookie umurnya 15 menit, begitu expired user harus login ulang (ditunda sengaja, lihat plan di `docs/superpowers/`). |
 
-Backend ini **tidak tahu apa-apa soal state management di sisi frontend**. Backend cuma expose REST API biasa (`/auth/register`, `/auth/verify-otp`, `/auth/login`). Frontend yang memanggil endpoint ini langsung lewat HTTP client, lalu menyimpan hasilnya (data user, access/refresh token) ke state management/context yang dipakai tim.
+Backend ini **tidak tahu apa-apa soal state management di sisi frontend**. Backend expose REST API (`/auth/register`, `/auth/login`, `/auth/me`, `/auth/logout` — lihat Section 8) dan set token sebagai httpOnly cookie. Frontend memanggil endpoint ini lewat `fetch` (`credentials: 'include'`), lalu menyimpan data user (bukan token) ke `AuthContext`.
 
 Kalau ada anggota tim yang bingung "kok auth-nya kepisah backend/frontend?" — jawabannya: cuma ada **satu** sumber kebenaran auth (backend ini). Frontend hanya menyimpan & mengirim token, bukan tempat verifikasi password/OTP.
 
@@ -85,42 +85,11 @@ backend/
 
 Schema Prisma **wajib** mengikuti entity di PRD v2.0 Section 7.1/8.1 sebagai source of truth — jangan menambah/mengubah field tanpa update PRD dulu (lihat `CLAUDE.md` Section 3, aturan #4).
 
-Entity inti untuk fitur Register/Login (fase ini):
+Entity yang **benar-benar terimplementasi** ada di `prisma/schema.prisma` (source of truth — jangan duplikasi di sini, supaya tidak drift dari kode asli). Ringkasan perbedaan dari rencana awal:
 
-```prisma
-model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String?  @unique
-  phone        String?  @unique
-  password     String   // hashed, never plain text
-  role         Role     @default(VOLUNTEER)
-  isVerified   Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  profile      Profile?
-  otpRequests  OtpRequest[]
-}
-
-enum Role {
-  VOLUNTEER
-  ORGANIZER
-  ADMIN
-}
-
-model OtpRequest {
-  id          String   @id @default(uuid())
-  userId      String
-  code        String
-  expiresAt   DateTime
-  attempts    Int      @default(0)   // max 3 kali resend (FR-003)
-  verifiedAt  DateTime?
-  createdAt   DateTime @default(now())
-
-  user        User     @relation(fields: [userId], references: [id])
-}
-```
+- `User` — sama seperti rencana awal, plus `refreshTokens RefreshToken[]` (relasi baru). `isVerified` saat ini **selalu `true`** begitu register sukses (OTP di-skip untuk iterasi ini, lihat Status di atas) — bukan `default(false)` seperti rencana awal.
+- `OtpRequest` — sudah ada di schema (siap dipakai begitu OTP nyata diimplementasikan), tapi **belum dipakai** oleh kode manapun saat ini. Tambahan dari rencana awal: field `purpose` (enum `OtpPurpose`, default `REGISTER`) supaya tidak perlu migration baru kalau nanti ada OTP reset password.
+- `RefreshToken` — **baru, tidak ada di rencana awal**. Dibutuhkan begitu keputusan "refresh token storage" di Section 9 diambil (disimpan di DB, revocable). Simpan `tokenHash` (SHA-256), bukan token mentah.
 
 > Entity `Profile`, `Interest`, `Skill`, dll baru ditambahkan saat mulai kerjakan fitur Onboarding (FR-004, FR-023) — tidak perlu didefinisikan di tahap Register/Login ini supaya schema tidak membengkak prematur.
 
@@ -196,31 +165,34 @@ Karena PostgreSQL di-install langsung di VPS (bukan Docker), ada 3 hal yang **wa
 
 ---
 
-## 8. Urutan Implementasi Fitur Pertama (Register & Login)
+## 8. Endpoint Auth — Status Implementasi
 
-Mengikuti FR-001 s.d. FR-003 (PRD v2.0):
-
-| Urutan | Endpoint | FR | Catatan |
+| Endpoint | FR | Status | Catatan |
 |---|---|---|---|
-| 1 | `POST /auth/register` | FR-001 | Terima email/phone + password, simpan user dengan `isVerified: false` |
-| 2 | (internal) Generate & kirim OTP | FR-002 | OTP 6 digit, expiry 5 menit — simpan ke tabel `OtpRequest` |
-| 3 | `POST /auth/verify-otp` | FR-002 | Cek expiry & kecocokan kode, set `isVerified: true` |
-| 4 | `POST /auth/resend-otp` | FR-003 | Max 3 kali, rate-limited |
-| 5 | `POST /auth/login` | — | Validasi kredensial, return access + refresh token |
+| `POST /auth/register` | FR-001 | ✅ **Implemented** | Terima `firstName, lastName, email, password`. Set `isVerified: true` langsung (OTP di-skip, lihat Status di atas). Set cookie httpOnly `accessToken`+`refreshToken`. |
+| `POST /auth/login` | — | ✅ **Implemented** | Validasi kredensial via bcrypt, set cookie httpOnly sama seperti register. |
+| `GET /auth/me` | — | ✅ **Implemented** (tidak ada di rencana awal) | Baca cookie, balas `{ user }` atau 401 — dipakai frontend untuk restore session setelah refresh halaman. |
+| `POST /auth/logout` | — | ✅ **Implemented** (tidak ada di rencana awal) | Revoke `RefreshToken` row di DB, clear cookie. |
+| (internal) Generate & kirim OTP | FR-002 | ❌ Belum | Model `OtpRequest` sudah siap di schema, logikanya belum dibangun. |
+| `POST /auth/verify-otp` | FR-002 | ❌ Belum | — |
+| `POST /auth/resend-otp` | FR-003 | ❌ Belum | — |
 
-**Endpoint `/auth/login` inilah yang akan dipanggil langsung dari frontend (React)** — pastikan response-nya konsisten (`{ user, accessToken, refreshToken }`) supaya gampang diintegrasikan ke auth context/state management di sisi frontend.
+**Beda dari rencana awal:** token **tidak** dikembalikan di response body (`{ user, accessToken, refreshToken }`) — semua token jadi httpOnly cookie (lihat keputusan di Section 9), response cukup `{ user }`. Frontend tidak pernah pegang token mentah di JS.
 
 ---
 
-## 9. Yang Belum Diputuskan (Open Decisions)
+## 9. Keputusan & Open Decisions
 
-Sesuai aturan kerja di `CLAUDE.md` — hal ini **jangan diasumsikan sendiri**, konfirmasi dulu sebelum implementasi:
+**Sudah diputuskan & terimplementasi** (dikonfirmasi user 2026-06-24, lihat spec/plan di `docs/superpowers/`):
 
-- [ ] **Provider OTP**: SMS gateway (mana?) atau email (pakai apa — Resend/SendGrid/SMTP biasa)?
-- [ ] **Password policy**: minimum length, kompleksitas — belum dispesifikasi di PRD.
-- [ ] **Rate limiting** di level mana — per IP, per email/phone, atau keduanya?
-- [ ] **Refresh token storage** — di database (revocable) atau stateless saja?
-- [ ] **Strategi auth di frontend** — token disimpan di mana (memory + httpOnly cookie, atau localStorage), dan dikelola lewat Context API/Zustand/lainnya? Belum ada keputusan karena frontend ini Vite + React biasa (bukan Next.js/NextAuth).
+- ✅ **Password policy**: minimum 8 karakter, tanpa syarat kompleksitas tambahan.
+- ✅ **Refresh token storage**: di database (tabel `RefreshToken`, revocable saat logout), disimpan sebagai hash SHA-256 — bukan token mentah.
+- ✅ **Strategi auth di frontend**: kedua token (access + refresh) jadi **httpOnly cookie** yang di-set backend (bukan disimpan di localStorage/state JS). Frontend baca status login lewat `AuthContext` (React Context API) yang panggil `GET /auth/me` saat mount.
+
+**Masih belum diputuskan** — jangan diasumsikan sendiri, konfirmasi dulu sebelum implementasi:
+
+- [ ] **Provider OTP**: SMS gateway (mana?) atau email (pakai apa — Resend/SendGrid/SMTP biasa)? Blocker utama buat implementasi FR-002/FR-003.
+- [ ] **Rate limiting di production** di belakang reverse proxy/load balancer — `express-rate-limit` saat ini pakai key default (`req.ip`), tanpa `app.set('trust proxy', ...)`. Di local dev ini benar (request langsung ke Express, tidak lewat proxy), tapi begitu deploy ke VPS Hostinger (Section 7) di belakang nginx/proxy apa pun, **semua user akan terhitung sebagai 1 IP** (IP si proxy) sampai `trust proxy` dikonfigurasi sesuai topologi network yang sebenarnya. Konfirmasi dulu setup proxy-nya sebelum deploy, baru putuskan nilai `trust proxy` yang benar (ditemukan saat code review 2026-06-24, belum di-fix karena topologi production belum ada).
 
 ---
 
@@ -229,3 +201,5 @@ Sesuai aturan kerja di `CLAUDE.md` — hal ini **jangan diasumsikan sendiri**, k
 - PRD ActiVibe v2.0 (`docs/PRD-ActiVibe-v2.0.md`) — source of truth utama untuk FR & data model
 - `docs/design.md` — design system (relevan kalau backend perlu expose data yang punya representasi visual, mis. status enum untuk badge)
 - `CLAUDE.md` (root) — aturan kerja project, termasuk kapan harus tanya sebelum eksekusi
+- `docs/superpowers/specs/2026-06-24-register-login-activation-design.md` — design spec lengkap untuk fitur Register & Login yang sudah dibangun (keputusan cookie, OTP-skip, dst.)
+- `docs/superpowers/plans/2026-06-24-register-login-activation.md` — implementation plan-nya (kode per task, lengkap dengan fix yang ditemukan saat implementasi/review)
