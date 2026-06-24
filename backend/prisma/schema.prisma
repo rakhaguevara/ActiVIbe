@@ -1,0 +1,351 @@
+// ActiVibe Database Schema v2.0
+// Production-grade volunteer management system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ───────────────────────────────
+
+enum UserRole {
+  VOLUNTEER
+  ORGANIZER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum OTPType {
+  REGISTRATION
+  LOGIN
+  RESET_PASSWORD
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING_APPROVAL
+  OPEN
+  CLOSED
+  COMPLETED
+  REJECTED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+enum NotificationType {
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  EVENT_COMPLETED
+  EVENT_APPROVED
+  SYSTEM
+}
+
+// ─── CORE USERS ───────────────────────────────
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  phone     String?    @unique
+  password  String
+  role      UserRole   @default(VOLUNTEER)
+  status    UserStatus @default(ACTIVE)
+  isDeleted Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  profile           Profile?
+  otpVerifications  OTPVerification[]
+  userSkills        UserSkill[]
+  userInterests     UserInterest[]
+  eventsOrganized   Event[]           @relation("organizer")
+  eventsApproved    Event[]           @relation("approver")
+  applications      Application[]
+  feedbacks         Feedback[]
+  points            Points?
+  pointTransactions PointTransaction[]
+  certificates      Certificate[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  bio       String?
+  location  String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// ─── OTP & VERIFICATION ───────────────────────────────
+
+model OTPVerification {
+  id           String   @id @default(cuid())
+  userId       String
+  identifier   String   // email atau phone
+  code         String
+  type         OTPType
+  attemptCount Int      @default(0)
+  expiresAt    DateTime
+  verifiedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_verifications")
+}
+
+// ─── MASTER DATA: SKILLS & INTERESTS ───────────────────────────────
+
+model Skill {
+  id   String @id @default(cuid())
+  name String @unique
+  icon String? // URL atau icon name
+
+  // Relations
+  userSkills   UserSkill[]
+  eventSkills  EventSkill[]
+
+  @@map("skills")
+}
+
+model Interest {
+  id   String @id @default(cuid())
+  name String @unique
+  icon String? // URL atau icon name
+
+  // Relations
+  userInterests  UserInterest[]
+  eventInterests EventInterest[]
+
+  @@map("interests")
+}
+
+// ─── USER SKILLS & INTERESTS (JUNCTION) ───────────────────────────────
+
+model UserSkill {
+  id      String @id @default(cuid())
+  userId  String
+  skillId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@map("user_skills")
+}
+
+model UserInterest {
+  id         String @id @default(cuid())
+  userId     String
+  interestId String
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, interestId])
+  @@map("user_interests")
+}
+
+// ─── EVENTS & APPLICATIONS ───────────────────────────────
+
+model Event {
+  id            String      @id @default(cuid())
+  organizerId   String
+  title         String
+  description   String      @db.Text
+  location      String
+  quota         Int
+  capacityFilled Int        @default(0)
+  startDate     DateTime
+  endDate       DateTime
+  durationHours Int?
+  difficultyLevel String?   // beginner | intermediate | advanced
+  requirements  String?     @db.Text
+  status        EventStatus @default(DRAFT)
+  approvedBy    String?
+  approvedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  organizer      User              @relation("organizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  approver       User?             @relation("approver", fields: [approvedBy], references: [id], onDelete: SetNull)
+  eventSkills    EventSkill[]
+  eventInterests EventInterest[]
+  applications   Application[]
+  feedbacks      Feedback[]
+  pointTransactions PointTransaction[]
+  certificates   Certificate[]
+
+  @@map("events")
+}
+
+// ─── EVENT SKILLS & INTERESTS (JUNCTION) ───────────────────────────────
+
+model EventSkill {
+  id      String @id @default(cuid())
+  eventId String
+  skillId String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, skillId])
+  @@map("event_skills")
+}
+
+model EventInterest {
+  id         String @id @default(cuid())
+  eventId    String
+  interestId String
+
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, interestId])
+  @@map("event_interests")
+}
+
+// ─── APPLICATIONS ───────────────────────────────
+
+model Application {
+  id            String            @id @default(cuid())
+  userId        String
+  eventId       String
+  status        ApplicationStatus @default(PENDING)
+  rejectionReason String?
+  rejectedBy    String?
+  appliedAt     DateTime          @default(now())
+  completedAt   DateTime?
+  rejectedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("applications")
+}
+
+// ─── FEEDBACKS & RATINGS ───────────────────────────────
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  rating    Int      // 1-5
+  review    String   @db.Text
+  images    String?  // JSON array of URLs
+  helpfulCount Int   @default(0)
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+// ─── POINTS & GAMIFICATION ───────────────────────────────
+
+model Points {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  totalPoints Int     @default(0)
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("points")
+}
+
+model PointTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String?
+  amount    Int      // positif = tambah, negatif = kurang
+  reason    String   // event_completion | bonus | penalty
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@map("point_transactions")
+}
+
+// ─── CERTIFICATES ───────────────────────────────
+
+model Certificate {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  fileUrl   String
+  issuedAt  DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("certificates")
+}
+
+// ─── NOTIFICATIONS ───────────────────────────────
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  title      String
+  message    String           @db.Text
+  type       NotificationType
+  entityType String?          // event | application | system
+  entityId   String?
+  isRead     Boolean          @default(false)
+  readAt     DateTime?
+  priority   String           @default("normal") // normal | high | urgent
+  deletedAt  DateTime?
+  createdAt  DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ─── AUDIT LOGS ───────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String   // event.approve | application.accept | user.suspend
+  entityType String
+  entityId   String
+  metadata   String?  @db.Text // JSON string
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
