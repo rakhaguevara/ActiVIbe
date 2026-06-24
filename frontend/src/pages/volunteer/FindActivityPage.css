@@ -1,0 +1,8 @@
+.find-activity-page {
+  padding: 48px;
+}
+
+.find-activity-page__placeholder {
+  font-size: 18px;
+  color: var(--color-text-body);
+}

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { BrowserRouter } from 'react-router-dom'
-import Navbar from './components/Navbar'
 import AuthModal, { type AuthMode } from './components/AuthModal'
 import AppRoutes from './routes/AppRoutes'
 import { AuthProvider } from './contexts/AuthContext'
@@ -11,11 +10,10 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Navbar
+        <AppRoutes
           onLoginClick={() => setAuthMode('login')}
           onSignupClick={() => setAuthMode('signup')}
         />
-        <AppRoutes onSignupClick={() => setAuthMode('signup')} />
 
         {authMode && (
           <AuthModal
