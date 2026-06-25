@@ -86,7 +86,11 @@
 html,
 body {
   margin: 0;
-  overflow-x: hidden; /* prevent horizontal scrollbar from edge-bleeding deco SVGs */
+  /* clip (not hidden) — hidden forces the paired overflow-y to compute as
+     auto per the CSS spec, which turns body into a scroll container and
+     breaks position: sticky for any descendant (e.g. the apply form on
+     the Event Detail page) */
+  overflow-x: clip;
 }
 
 body, p, button, input, label, textarea, select {
