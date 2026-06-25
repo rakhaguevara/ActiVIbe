@@ -1,0 +1,72 @@
+.organizer-profile-card h3 {
+  font-size: var(--text-body-md);
+  margin: 0 0 14px;
+}
+
+.organizer-profile-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.organizer-profile-card__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-display);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.organizer-profile-card__name {
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 4px;
+}
+
+.organizer-profile-card__badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-success);
+  background: var(--color-success-soft);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.organizer-profile-card__stats {
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+  margin: 0 0 10px;
+}
+
+.organizer-profile-card__bio {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  line-height: var(--leading-normal);
+  margin: 0 0 14px;
+}
+
+.organizer-profile-card__contact-button {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-body-sm);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.organizer-profile-card__contact-button:hover {
+  opacity: 0.85;
+}
