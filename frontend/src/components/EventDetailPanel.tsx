@@ -5,6 +5,7 @@ import { getMatchTier } from '../utils/matchScore'
 import EventGalleryHero from './EventGalleryHero'
 import EventOrganizerStrip from './EventOrganizerStrip'
 import EventHighlights from './EventHighlights'
+import EventAmenities from './EventAmenities'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -60,6 +61,8 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
           {showFullDescription ? 'Tampilkan lebih sedikit' : 'Tampilkan lebih banyak'}
         </button>
       </div>
+
+      <EventAmenities provisions={event.provisions} />
 
       <div className="event-detail-panel__skills">
         <h3>Skill yang Dibutuhkan</h3>
