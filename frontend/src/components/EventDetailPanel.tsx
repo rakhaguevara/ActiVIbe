@@ -9,6 +9,7 @@ import EventAmenities from './EventAmenities'
 import EventScheduleCalendar from './EventScheduleCalendar'
 import EventRatingSummary from './EventRatingSummary'
 import EventReviewList from './EventReviewList'
+import EventLocationMap from './EventLocationMap'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -85,6 +86,8 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
       />
 
       <EventReviewList reviews={event.reviews} />
+
+      <EventLocationMap location={event.location} />
     </div>
   )
 }
