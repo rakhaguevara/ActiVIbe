@@ -3,6 +3,7 @@ import { FiShare2, FiBookmark } from 'react-icons/fi'
 import type { Event } from '../types/event'
 import { getMatchTier } from '../utils/matchScore'
 import EventGalleryHero from './EventGalleryHero'
+import EventOrganizerStrip from './EventOrganizerStrip'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -33,6 +34,8 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
         {event.category} · {event.location} · {slotsLeft} dari {event.quota} slot · ★ {event.rating.toFixed(1)} ·{' '}
         <a href="#reviews">{event.reviewCount} ulasan</a>
       </p>
+
+      <EventOrganizerStrip event={event} />
 
       <div className="event-detail-panel__badges">
         <span className={`event-detail-panel__match-badge event-detail-panel__match-badge--${getMatchTier(event.matchScore)}`}>
