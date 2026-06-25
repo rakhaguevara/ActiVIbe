@@ -4,6 +4,7 @@ import type { Event } from '../types/event'
 import { getMatchTier } from '../utils/matchScore'
 import EventGalleryHero from './EventGalleryHero'
 import EventOrganizerStrip from './EventOrganizerStrip'
+import EventHighlights from './EventHighlights'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -44,6 +45,8 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
         <span className="event-detail-panel__fit-badge">✨ {event.fitBadgeLabel}</span>
       </div>
       <p className="event-detail-panel__match-reasoning">{event.matchReasoning}</p>
+
+      <EventHighlights />
 
       <div className="event-detail-panel__description-block">
         <p className={`event-detail-panel__desc${showFullDescription ? '' : ' event-detail-panel__desc--clamped'}`}>

@@ -1,0 +1,31 @@
+.event-highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.event-highlights__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.event-highlights__icon {
+  font-size: 22px;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.event-highlights__title {
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 2px;
+}
+
+.event-highlights__desc {
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
