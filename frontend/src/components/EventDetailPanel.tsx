@@ -8,6 +8,7 @@ import EventHighlights from './EventHighlights'
 import EventAmenities from './EventAmenities'
 import EventScheduleCalendar from './EventScheduleCalendar'
 import EventRatingSummary from './EventRatingSummary'
+import EventReviewList from './EventReviewList'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -82,6 +83,8 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
         reviewCount={event.reviewCount}
         ratingBreakdown={event.ratingBreakdown}
       />
+
+      <EventReviewList reviews={event.reviews} />
     </div>
   )
 }
