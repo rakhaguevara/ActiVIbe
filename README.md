@@ -62,4 +62,5 @@ Project menggunakan `pnpm`, jalankan command dari dalam `frontend/` (bukan dari 
 - [x] Register & Login end-to-end (`/auth/register`, `/auth/login`, `/auth/me`, `/auth/logout`, httpOnly cookie, `AuthModal` & `Navbar` terhubung ke API asli) — OTP (FR-002/003) masih ditunda
 - [x] Bangun layout nav-body — `PublicLayout`/`DashboardLayout` (nested routes via `<Outlet />`)
 - [x] Halaman Find Activity (`/dashboard`) — list/detail/form 3 kolom kegiatan volunteer dengan Match Score, search & filter; data masih dummy (`mockEvents.ts`), backend `Event` model menyusul
+- [x] Event Detail diperluas jadi halaman 15-section ala listing Airbnb (galeri kategori, organizer, amenities, kalender, rating & review, lokasi, profil organizer, kebijakan) — list menyusut jadi sidebar tipis, form pendaftaran sticky
 
