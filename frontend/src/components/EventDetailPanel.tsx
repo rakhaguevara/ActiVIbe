@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FiShare2, FiBookmark } from 'react-icons/fi'
 import type { Event } from '../types/event'
 import { getMatchTier } from '../utils/matchScore'
+import EventGalleryHero from './EventGalleryHero'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -14,6 +15,8 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
 
   return (
     <div className="event-detail-panel">
+      <EventGalleryHero category={event.category} />
+
       <div className="event-detail-panel__title-row">
         <h2 className="event-detail-panel__title">{event.title}</h2>
         <div className="event-detail-panel__title-actions">
