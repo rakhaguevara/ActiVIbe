@@ -20,7 +20,7 @@ Monorepo dengan 3 bagian utama:
 
 Lihat [README.md](README.md) dan [docs/PRD-ActiVibe-v2.0.md](docs/PRD-ActiVibe-v2.0.md) untuk detail produk lengkap.
 
-**Routing:** sejak halaman "Tentang Kami", `frontend/` pakai `react-router-dom` (dikonfigurasi di `frontend/src/routes/AppRoutes.tsx`, dibungkus `<BrowserRouter>` di `App.tsx`). `Navbar` dan `AuthModal` dirender di luar `<Routes>` supaya tetap tampil di semua halaman. Kalau menambah halaman baru, daftarkan route-nya di `AppRoutes.tsx`, jangan render langsung di `App.tsx`.
+**Routing:** `frontend/` pakai `react-router-dom` (dikonfigurasi di `frontend/src/routes/AppRoutes.tsx`, dibungkus `<BrowserRouter>` di `App.tsx`). Sejak halaman Find Activity (`/dashboard`), routing terbagi 2 grup nested route lewat layout wrapper (`<Outlet />`): `PublicLayout` (render `Navbar` marketing, dipakai `/` dan `/tentang-kami`) dan `DashboardLayout` (header berbeda — logo + nama user + Logout, tanpa link marketing — dipakai `/dashboard`, dan jadi pola yang akan dipakai ulang untuk dashboard Organizer/Admin nanti). `AuthModal` tetap di `App.tsx` di luar kedua layout (state modal lintas-halaman). Kalau menambah halaman publik baru, daftarkan di bawah `PublicLayout` di `AppRoutes.tsx`; kalau halaman dashboard baru, di bawah `DashboardLayout` (atau layout dashboard role lain kalau sudah dibuat).
 
 ## Git Commit & Push
 

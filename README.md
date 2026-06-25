@@ -60,5 +60,6 @@ Project menggunakan `pnpm`, jalankan command dari dalam `frontend/` (bukan dari 
 - [x] Routing pertama di project (`react-router-dom`) — Halaman "Tentang Kami" (`/tentang-kami`) berisi cerita, timeline, visi-misi, dan tim
 - [x] Inisialisasi `backend/` — Express + Prisma + PostgreSQL, lihat [backend/README.md](backend/README.md)
 - [x] Register & Login end-to-end (`/auth/register`, `/auth/login`, `/auth/me`, `/auth/logout`, httpOnly cookie, `AuthModal` & `Navbar` terhubung ke API asli) — OTP (FR-002/003) masih ditunda
-- [ ] Bangun layout nav-body
+- [x] Bangun layout nav-body — `PublicLayout`/`DashboardLayout` (nested routes via `<Outlet />`)
+- [x] Halaman Find Activity (`/dashboard`) — list/detail/form 3 kolom kegiatan volunteer dengan Match Score, search & filter; data masih dummy (`mockEvents.ts`), backend `Event` model menyusul
 
