@@ -13,6 +13,7 @@ export interface ReviewEntry {
 export interface Event {
   id: string
   title: string
+  imageUrl: string
   description: string
   category: string
   location: string

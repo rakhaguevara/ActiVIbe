@@ -1,9 +1,12 @@
 import type { Event } from '../types/event'
+import pic1 from '../assets/png/pic1 1.png'
+import pic2 from '../assets/png/pic2 1.png'
 
 export const mockEvents: Event[] = [
   {
     id: 'evt-1',
     title: 'Bersih Pantai Parangtritis',
+    imageUrl: pic1,
     description:
       'Aksi bersih-bersih sampah plastik di sepanjang Pantai Parangtritis bersama komunitas pesisir, dilanjutkan edukasi pengelolaan sampah untuk warga sekitar.',
     category: 'Lingkungan',
@@ -42,6 +45,7 @@ export const mockEvents: Event[] = [
   {
     id: 'evt-2',
     title: 'Mengajar Baca Tulis Anak Pesisir',
+    imageUrl: pic2,
     description:
       'Program belajar baca-tulis untuk anak-anak nelayan di pesisir selatan Gunungkidul, 2 jam tiap akhir pekan selama satu bulan.',
     category: 'Pendidikan',
@@ -80,6 +84,7 @@ export const mockEvents: Event[] = [
   {
     id: 'evt-3',
     title: 'Posyandu Keliling Desa Sehat',
+    imageUrl: pic1,
     description: 'Membantu tenaga medis menjalankan posyandu keliling untuk ibu dan anak di desa-desa terpencil Bantul.',
     category: 'Kesehatan',
     location: 'Dlingo, Bantul',
@@ -117,6 +122,7 @@ export const mockEvents: Event[] = [
   {
     id: 'evt-4',
     title: 'Dapur Umum Tanggap Bencana',
+    imageUrl: pic2,
     description: 'Bergabung dengan tim dapur umum untuk menyiapkan logistik makanan bagi korban terdampak banjir di Sleman.',
     category: 'Bencana & Sosial',
     location: 'Sleman',
@@ -154,6 +160,7 @@ export const mockEvents: Event[] = [
   {
     id: 'evt-5',
     title: 'Donor Darah & Edukasi Kesehatan Kampus',
+    imageUrl: pic1,
     description: 'Membantu penyelenggaraan acara donor darah dan booth edukasi kesehatan di area kampus.',
     category: 'Kesehatan',
     location: 'Yogyakarta',
@@ -191,6 +198,7 @@ export const mockEvents: Event[] = [
   {
     id: 'evt-6',
     title: 'Taman Bacaan Komunitas Malioboro',
+    imageUrl: pic2,
     description: 'Mengelola dan menjaga taman bacaan komunitas, termasuk mendongeng untuk anak-anak setiap Sabtu sore.',
     category: 'Pendidikan',
     location: 'Malioboro, Yogyakarta',
@@ -228,6 +236,7 @@ export const mockEvents: Event[] = [
   {
     id: 'evt-7',
     title: 'Penghijauan Lereng Merapi',
+    imageUrl: pic1,
     description: 'Penanaman pohon di area resapan air lereng Merapi sebagai bagian dari program konservasi jangka panjang.',
     category: 'Lingkungan',
     location: 'Cangkringan, Sleman',
@@ -265,6 +274,7 @@ export const mockEvents: Event[] = [
   {
     id: 'evt-8',
     title: 'Pendampingan Lansia Panti Wreda',
+    imageUrl: pic2,
     description: 'Menemani dan mendampingi aktivitas harian lansia di panti wreda, termasuk sesi senam ringan dan bercerita.',
     category: 'Bencana & Sosial',
     location: 'Bantul',
