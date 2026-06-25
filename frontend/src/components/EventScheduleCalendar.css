@@ -1,0 +1,58 @@
+.event-schedule-calendar h3 {
+  font-size: var(--text-body-md);
+  margin: 0 0 10px;
+}
+
+.event-schedule-calendar__months {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.event-schedule-calendar__month {
+  flex: 1;
+  min-width: 220px;
+}
+
+.event-schedule-calendar__month-label {
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.event-schedule-calendar__weekdays,
+.event-schedule-calendar__week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.event-schedule-calendar__weekdays span {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding-bottom: 4px;
+}
+
+.event-schedule-calendar__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  font-size: var(--text-body-xs);
+  color: var(--color-text-body);
+  border-radius: 50%;
+}
+
+.event-schedule-calendar__day--highlighted {
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .event-schedule-calendar__months {
+    flex-direction: column;
+  }
+}

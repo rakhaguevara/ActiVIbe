@@ -6,6 +6,7 @@ import EventGalleryHero from './EventGalleryHero'
 import EventOrganizerStrip from './EventOrganizerStrip'
 import EventHighlights from './EventHighlights'
 import EventAmenities from './EventAmenities'
+import EventScheduleCalendar from './EventScheduleCalendar'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -72,6 +73,8 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
           ))}
         </div>
       </div>
+
+      <EventScheduleCalendar startDate={event.startDate} endDate={event.endDate} />
     </div>
   )
 }
