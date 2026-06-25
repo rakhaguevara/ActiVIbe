@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import EventCard from '../../components/EventCard'
+import EventListSidebar from '../../components/EventListSidebar'
 import EventDetailPanel from '../../components/EventDetailPanel'
 import EventApplyForm from '../../components/EventApplyForm'
 import VolunteerSearchBar, { type EventFilters } from '../../components/VolunteerSearchBar'
@@ -118,19 +118,15 @@ export default function FindActivityPage() {
       </div>
 
       <div className="find-activity-page__columns">
-        <div className="find-activity-page__list">
-          {sortedEvents.length === 0 && (
-            <p className="find-activity-page__empty">Tidak ada kegiatan yang cocok dengan filter ini.</p>
-          )}
-          {sortedEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              isSelected={event.id === selectedEventId}
-              onSelect={setSelectedEventId}
-            />
-          ))}
-        </div>
+        {sortedEvents.length === 0 ? (
+          <p className="find-activity-page__empty">Tidak ada kegiatan yang cocok dengan filter ini.</p>
+        ) : (
+          <EventListSidebar
+            events={sortedEvents}
+            selectedEventId={selectedEventId}
+            onSelect={setSelectedEventId}
+          />
+        )}
 
         {selectedEvent ? (
           <>

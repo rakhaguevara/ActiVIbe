@@ -53,18 +53,16 @@
 
 .find-activity-page__columns {
   display: grid;
-  grid-template-columns: minmax(320px, 380px) 1fr minmax(320px, 380px);
+  grid-template-columns: minmax(220px, 260px) 1fr minmax(320px, 380px);
   gap: 24px;
   padding: 24px 48px;
   align-items: start;
 }
 
-.find-activity-page__list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-height: calc(100vh - 280px);
-  overflow-y: auto;
+.find-activity-page__columns > .event-apply-form {
+  position: sticky;
+  top: 24px;
+  align-self: start;
 }
 
 @media (max-width: 1024px) {
@@ -72,9 +70,8 @@
     grid-template-columns: 1fr;
   }
 
-  .find-activity-page__list {
-    max-height: none;
-    overflow-y: visible;
+  .find-activity-page__columns > .event-apply-form {
+    position: static;
   }
 }
 
