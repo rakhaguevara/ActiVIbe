@@ -11,6 +11,7 @@ import EventRatingSummary from './EventRatingSummary'
 import EventReviewList from './EventReviewList'
 import EventLocationMap from './EventLocationMap'
 import OrganizerProfileCard from './OrganizerProfileCard'
+import EventPolicies from './EventPolicies'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -91,6 +92,8 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
       <EventLocationMap location={event.location} />
 
       <OrganizerProfileCard event={event} />
+
+      <EventPolicies event={event} />
     </div>
   )
 }
