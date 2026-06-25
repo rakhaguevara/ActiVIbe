@@ -7,6 +7,7 @@ import EventOrganizerStrip from './EventOrganizerStrip'
 import EventHighlights from './EventHighlights'
 import EventAmenities from './EventAmenities'
 import EventScheduleCalendar from './EventScheduleCalendar'
+import EventRatingSummary from './EventRatingSummary'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -75,6 +76,12 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
       </div>
 
       <EventScheduleCalendar startDate={event.startDate} endDate={event.endDate} />
+
+      <EventRatingSummary
+        rating={event.rating}
+        reviewCount={event.reviewCount}
+        ratingBreakdown={event.ratingBreakdown}
+      />
     </div>
   )
 }
