@@ -31,6 +31,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 24px 48px 0;
 }
 
@@ -41,7 +43,15 @@
   margin: 0;
 }
 
-.find-activity-page__sort {
+.find-activity-page__results-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.find-activity-page__sort,
+.find-activity-page__skill {
   font-family: var(--font-body);
   font-size: var(--text-body-sm);
   color: var(--color-text-body);
@@ -49,6 +59,16 @@
   border-radius: 10px;
   padding: 8px 14px;
   background: var(--color-bg-true);
+}
+
+.find-activity-page__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  white-space: nowrap;
 }
 
 .find-activity-page__columns {

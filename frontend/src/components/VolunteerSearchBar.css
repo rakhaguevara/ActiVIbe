@@ -1,16 +1,23 @@
 .volunteer-search-bar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 12px;
   padding: 16px 48px;
   background: var(--color-bg-true);
   border-bottom: 1px solid var(--color-border-light);
+  flex-wrap: wrap;
 }
 
-.volunteer-search-bar__row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+.volunteer-search-bar__type {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  border: 1px solid var(--color-border-medium);
+  border-radius: 10px;
+  padding: 10px 16px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .volunteer-search-bar__input-group {
@@ -18,7 +25,7 @@
   align-items: center;
   gap: 8px;
   flex: 1;
-  min-width: 220px;
+  min-width: 200px;
   border: 1px solid var(--color-border-medium);
   border-radius: 10px;
   padding: 10px 14px;
@@ -34,33 +41,47 @@
   color: var(--color-text-body);
 }
 
-.volunteer-search-bar__pills {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.volunteer-search-bar__pills select {
+.volunteer-search-bar__category {
   font-family: var(--font-body);
   font-size: var(--text-body-sm);
   color: var(--color-text-body);
   border: 1px solid var(--color-border-medium);
-  border-radius: 999px;
-  padding: 8px 16px;
+  border-radius: 10px;
+  padding: 10px 14px;
   background: var(--color-bg-true);
+  flex-shrink: 0;
 }
 
-.volunteer-search-bar__toggle {
+.volunteer-search-bar__submit {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-body);
   font-size: var(--text-body-sm);
-  color: var(--color-text-body);
+  font-weight: 600;
+  color: var(--color-text-on-accent);
+  background: var(--color-primary);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.volunteer-search-bar__submit:hover {
+  background: var(--color-primary-hover);
 }
 
 @media (max-width: 600px) {
   .volunteer-search-bar {
     padding: 16px 20px;
+  }
+
+  .volunteer-search-bar__type,
+  .volunteer-search-bar__input-group,
+  .volunteer-search-bar__category,
+  .volunteer-search-bar__submit {
+    width: 100%;
   }
 }

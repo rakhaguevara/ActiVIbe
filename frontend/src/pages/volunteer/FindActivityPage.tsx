@@ -93,6 +93,8 @@ export default function FindActivityPage() {
 
   return (
     <main className="find-activity-page">
+      <VolunteerSearchBar filters={filters} onChange={setFilters} categories={categories} />
+
       <section className="find-activity-page__banner">
         <img src={banner} alt="" className="find-activity-page__banner-img" aria-hidden="true" />
         <p className="find-activity-page__greeting">
@@ -100,21 +102,41 @@ export default function FindActivityPage() {
         </p>
       </section>
 
-      <VolunteerSearchBar filters={filters} onChange={setFilters} categories={categories} skills={skills} />
-
       <div className="find-activity-page__results-row">
         <p className="find-activity-page__results-count">
           Kegiatan Volunteer | Total {sortedEvents.length} hasil
         </p>
 
-        <select
-          className="find-activity-page__sort"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as SortOption)}
-        >
-          <option value="matchScore">Match Score Tertinggi</option>
-          <option value="dateAsc">Tanggal Terdekat</option>
-        </select>
+        <div className="find-activity-page__results-filters">
+          <select
+            className="find-activity-page__skill"
+            value={filters.skill}
+            onChange={(e) => setFilters({ ...filters, skill: e.target.value })}
+          >
+            <option value="">Semua Skill</option>
+            {skills.map((skill) => (
+              <option key={skill} value={skill}>{skill}</option>
+            ))}
+          </select>
+
+          <label className="find-activity-page__toggle">
+            <input
+              type="checkbox"
+              checked={filters.oneDayOnly}
+              onChange={(e) => setFilters({ ...filters, oneDayOnly: e.target.checked })}
+            />
+            Hanya 1 hari
+          </label>
+
+          <select
+            className="find-activity-page__sort"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+          >
+            <option value="matchScore">Match Score Tertinggi</option>
+            <option value="dateAsc">Tanggal Terdekat</option>
+          </select>
+        </div>
       </div>
 
       <div className="find-activity-page__columns">
