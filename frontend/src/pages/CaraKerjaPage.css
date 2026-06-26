@@ -163,3 +163,253 @@
 .cara-kerja-page__cta-button:active {
   transform: scale(0.97);
 }
+
+/* ── Alur Detail Volunteer ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cara-kerja-page__flow {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-true);
+  padding: 80px 40px 96px;
+}
+
+.cara-kerja-page__flow-deco {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  left: -24px;
+  bottom: 32px;
+  width: 130px;
+  opacity: 0.9;
+  transform: rotate(-8deg);
+}
+
+.cara-kerja-page__flow-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.cara-kerja-page__flow-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.cara-kerja-page__flow-eyebrow {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  letter-spacing: 0.2px;
+}
+
+.cara-kerja-page__flow-eyebrow-line {
+  display: inline-block;
+  width: 48px;
+  height: 1px;
+  background: var(--color-border-medium);
+}
+
+.cara-kerja-page__flow-title {
+  font-size: clamp(22px, 2.8vw, 32px);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.3px;
+  max-width: 640px;
+  margin: 0 0 48px;
+}
+
+.cara-kerja-page__flow-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 380px) 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.cara-kerja-page__flow-nav-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+}
+
+.cara-kerja-page__flow-counter {
+  flex-shrink: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cara-kerja-page__flow-rail {
+  flex-shrink: 0;
+  width: 2px;
+  background: var(--color-border-medium);
+  border-radius: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cara-kerja-page__flow-rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--progress, 0%);
+  background: var(--color-accent-orange);
+  border-radius: 1px;
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cara-kerja-page__flow-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.cara-kerja-page__flow-nav-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cara-kerja-page__flow-nav-item--active {
+  background: var(--color-accent-orange);
+  color: var(--color-text-on-accent);
+}
+
+.cara-kerja-page__flow-nav-item--active:hover {
+  background: var(--color-accent-orange);
+}
+
+.cara-kerja-page__flow-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cara-kerja-page__flow-image-wrap {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.cara-kerja-page__flow-image {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+  animation: fadeInUp 0.4s ease both;
+}
+
+.cara-kerja-page__flow-desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.cara-kerja-page__flow-nav-wrap,
+.cara-kerja-page__flow-content {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cara-kerja-page__flow--visible .cara-kerja-page__flow-nav-wrap {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cara-kerja-page__flow--visible .cara-kerja-page__flow-content {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.1s;
+}
+
+@media (max-width: 900px) {
+  .cara-kerja-page__flow {
+    padding: 64px 32px 72px;
+  }
+
+  .cara-kerja-page__flow-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .cara-kerja-page__flow-image {
+    height: 260px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cara-kerja-page__flow {
+    padding: 48px 20px 64px;
+  }
+
+  .cara-kerja-page__flow-title {
+    margin-bottom: 32px;
+  }
+
+  .cara-kerja-page__flow-nav-item {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .cara-kerja-page__flow-image {
+    height: 200px;
+  }
+
+  .cara-kerja-page__flow-deco {
+    width: 90px;
+    left: -12px;
+    bottom: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cara-kerja-page__flow-nav-wrap,
+  .cara-kerja-page__flow-content {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .cara-kerja-page__flow-image {
+    animation: none;
+  }
+}
