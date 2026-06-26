@@ -340,6 +340,14 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
+    if (window.location.hash !== '#cara-kerja') return
+    const t = setTimeout(() => {
+      document.getElementById('cara-kerja')?.scrollIntoView({ behavior: 'smooth' })
+    }, 120)
+    return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
     const el = statsRef.current
     if (!el) return
     const observer = new IntersectionObserver(
@@ -534,6 +542,7 @@ export default function HomePage() {
 
       {/* ═══ How It Works ═══ */}
       <section
+        id="cara-kerja"
         ref={howReveal.ref as React.RefObject<HTMLElement>}
         className={`how${howReveal.visible ? ' how--visible' : ''}`}
       >
