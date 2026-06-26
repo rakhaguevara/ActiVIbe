@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import EventListSidebar from '../../components/EventListSidebar'
 import EventDetailPanel from '../../components/EventDetailPanel'
@@ -22,11 +22,16 @@ const EMPTY_FILTERS: EventFilters = {
 export default function FindActivityPage() {
   const { user, isLoading } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS)
   const [sortBy, setSortBy] = useState<SortOption>('matchScore')
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(
-    () => [...mockEvents].sort((a, b) => b.matchScore - a.matchScore)[0]?.id ?? null
-  )
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(() => {
+    const sharedEventId = searchParams.get('event')
+    if (sharedEventId && mockEvents.some((event) => event.id === sharedEventId)) {
+      return sharedEventId
+    }
+    return [...mockEvents].sort((a, b) => b.matchScore - a.matchScore)[0]?.id ?? null
+  })
 
   useEffect(() => {
     if (!isLoading && !user) {
