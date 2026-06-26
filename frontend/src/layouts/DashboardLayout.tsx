@@ -11,6 +11,7 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const topbarRef = useRef<HTMLElement>(null)
 
   const toggleMenu = (menu: OpenMenu) => {
@@ -184,7 +185,61 @@ export default function DashboardLayout() {
             </div>
           </div>
         )}
+
+        <button
+          type="button"
+          className={`dashboard-layout__hamburger${isMobileMenuOpen ? ' is-open' : ''}`}
+          onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+          aria-label={isMobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
+          aria-expanded={isMobileMenuOpen}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        {isMobileMenuOpen && (
+          <div className="dashboard-layout__mobile-menu">
+            <Link
+              to="/dashboard"
+              className="dashboard-layout__mobile-link"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Semua Kegiatan Volunteer
+            </Link>
+            <div className="dashboard-layout__mobile-link dashboard-layout__mobile-link--disabled">
+              Kegiatan Match Tertinggi
+              <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+            </div>
+            <div className="dashboard-layout__mobile-link dashboard-layout__mobile-link--disabled">
+              Semua Organisasi
+              <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+            </div>
+            <div className="dashboard-layout__mobile-link dashboard-layout__mobile-link--disabled">
+              Organisasi Terverifikasi
+              <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+            </div>
+            <Link
+              to="/#cara-kerja"
+              className="dashboard-layout__mobile-link"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Cara Kerja
+            </Link>
+            <Link
+              to="/tentang-kami"
+              className="dashboard-layout__mobile-link"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Tentang Kami
+            </Link>
+          </div>
+        )}
       </header>
+
+      {isMobileMenuOpen && (
+        <div className="dashboard-layout__backdrop" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
 
       <Outlet />
     </div>
