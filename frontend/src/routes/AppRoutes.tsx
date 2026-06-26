@@ -3,6 +3,7 @@ import PublicLayout from '../layouts/PublicLayout'
 import DashboardLayout from '../layouts/DashboardLayout'
 import HomePage from '../pages/HomePage'
 import AboutPage from '../pages/AboutPage'
+import CaraKerjaPage from '../pages/CaraKerjaPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import FindActivityPage from '../pages/volunteer/FindActivityPage'
 
@@ -17,6 +18,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
       <Route element={<PublicLayout onLoginClick={onLoginClick} onSignupClick={onSignupClick} />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/tentang-kami" element={<AboutPage onSignupClick={onSignupClick} />} />
+        <Route path="/cara-kerja" element={<CaraKerjaPage onSignupClick={onSignupClick} />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

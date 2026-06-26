@@ -7,7 +7,7 @@ import './Navbar.css'
 const NAV_LINKS = [
   { label: 'Cari Aktivitas', href: '#' },
   { label: 'Cari Organisasi', href: '#' },
-  { label: 'Cara Kerja', href: '#' },
+  { label: 'Cara Kerja', href: '#', to: '/cara-kerja' },
   { label: 'Tentang Kami', href: '#', to: '/tentang-kami' },
 ]
 

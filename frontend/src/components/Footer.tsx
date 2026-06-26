@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import newsletterBg from '../assets/svg/background-1.svg'
 import {
   FaYoutube,
@@ -96,7 +97,11 @@ export default function Footer() {
             <ul className="footer__column-list">
               {links.map((link) => (
                 <li key={link}>
-                  <a href="#" className="footer__column-link">{link}</a>
+                  {link === 'Cara Kerja' ? (
+                    <Link to="/cara-kerja" className="footer__column-link">{link}</Link>
+                  ) : (
+                    <a href="#" className="footer__column-link">{link}</a>
+                  )}
                 </li>
               ))}
             </ul>

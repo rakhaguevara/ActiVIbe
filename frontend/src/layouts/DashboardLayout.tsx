@@ -144,7 +144,7 @@ export default function DashboardLayout() {
             )}
           </div>
 
-          <Link to="/#cara-kerja" className="dashboard-layout__link">Cara Kerja</Link>
+          <Link to="/cara-kerja" className="dashboard-layout__link">Cara Kerja</Link>
           <Link to="/tentang-kami" className="dashboard-layout__link">Tentang Kami</Link>
         </nav>
 
@@ -220,7 +220,7 @@ export default function DashboardLayout() {
               <span className="dashboard-layout__mega-badge">Segera Hadir</span>
             </div>
             <Link
-              to="/#cara-kerja"
+              to="/cara-kerja"
               className="dashboard-layout__mobile-link"
               onClick={() => setIsMobileMenuOpen(false)}
             >
