@@ -28,6 +28,11 @@
   grid-template-columns: repeat(7, 1fr);
 }
 
+.event-schedule-calendar__week {
+  margin-top: var(--space-2xs);
+  margin-bottom: var(--space-2xs);
+}
+
 .event-schedule-calendar__weekdays span {
   font-size: 11px;
   color: var(--color-text-muted);
@@ -39,10 +44,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
   height: 28px;
+  margin: 0 auto;
   font-size: var(--text-body-xs);
   color: var(--color-text-body);
-  border-radius: 50%;
+  border-radius: 999px;
 }
 
 .event-schedule-calendar__day--highlighted {
