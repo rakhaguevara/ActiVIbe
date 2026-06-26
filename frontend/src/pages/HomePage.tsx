@@ -22,32 +22,40 @@ import pic1 from '../assets/png/pic1 1.png'
 import pic2 from '../assets/png/pic2 1.png'
 // ── About Section assets
 import aboutIllustration from '../assets/svg/logo-utama.svg'
+// ── Symbols Carousel assets (makna tiap elemen logo)
+import iconMatahari from '../assets/svg/seperate-logo/Sun.svg'
+import iconBurung from '../assets/svg/seperate-logo/air.svg'
+import iconManusia from '../assets/svg/seperate-logo/Natural.svg'
+import iconMusik from '../assets/svg/seperate-logo/Musical.svg'
+import iconDaun from '../assets/svg/seperate-logo/Forest.svg'
+import iconOmbak from '../assets/svg/seperate-logo/Water-env.svg'
+import iconKotak from '../assets/svg/seperate-logo/Charity.svg'
 import ScrollStack, { ScrollStackItem } from '../components/ScrollStack'
 import Footer from '../components/Footer'
 import './HomePage.css'
 
 /* ── Static data ── */
 const STATS = [
-  { icon: iconVolunteer, value: 13231, label: 'Volunteer' },
-  { icon: iconOrganisasi, value: 13231, label: 'Organisasi' },
-  { icon: iconAktivitas,  value: 13231, label: 'Aktivitas' },
+  { icon: iconVolunteer, value: 12847, label: 'Volunteer' },
+  { icon: iconOrganisasi, value: 348,   label: 'Organisasi' },
+  { icon: iconAktivitas,  value: 1053,  label: 'Aktivitas' },
 ]
 
 const FEATURES = [
   {
     icon: guitarIcon,
-    title: 'Social-Impact Activity',
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    title: 'Kegiatan Sosial Terverifikasi',
+    desc: 'Jelajahi ratusan kegiatan volunteer yang sudah diverifikasi tim ActiVibe. AI kami mencocokkannya dengan minat, skill, dan jadwalmu — bukan sekadar daftar acak.',
   },
   {
     icon: fireworkIcon,
-    title: 'Social-Impact Activity',
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    title: 'Daftarkan Organisasimu',
+    desc: 'Bergabunglah bersama ratusan NGO dan komunitas yang menggunakan ActiVibe untuk merekrut volunteer tepat, mengelola event, dan melacak dampak secara real-time.',
   },
   {
     icon: medalIcon,
-    title: 'Social-Impact Activity',
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    title: 'Impact Passport Digital',
+    desc: 'Setiap kontribusimu otomatis jadi portofolio sosial lengkap dengan sertifikat AI personal. Bagikan ke LinkedIn, IG Story, atau WhatsApp — siap untuk CV dan beasiswa.',
   },
 ]
 
@@ -56,16 +64,16 @@ const JOIN_SLIDES = [
   {
     img:     pic1,
     alt:     'Volunteer group',
-    eyebrow: 'Bergabung dan Berdampak',
-    title:   'Bergabung Bersama Activibe',
-    desc:    'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    eyebrow: 'Untuk Volunteer',
+    title:   'Temukan Kegiatan yang Benar-Benar Cocok',
+    desc:    'AI ActiVibe mencocokkan profilmu dengan ratusan event sosial berdasarkan minat, skill, dan jadwalmu. Tidak ada lagi scroll panjang — cukup buka dan daftar.',
   },
   {
     img:     pic2,
     alt:     'Volunteer individual',
-    eyebrow: 'Bergabung dan Berdampak',
-    title:   'Jadilah Relawan Berdampak',
-    desc:    'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    eyebrow: 'Untuk Organisasi & NGO',
+    title:   'Rekrut Volunteer yang Tepat, Lebih Cepat',
+    desc:    'Publikasikan event, atur role dan shift, lalu terima pendaftar lengkap dengan AI Match Score. Hemat waktu seleksi hingga 50% dibanding cara konvensional.',
   },
 ]
 
@@ -80,14 +88,13 @@ const HOW_IT_WORKS_STEPS = [
 
 /* ── Symbols carousel (titles = real symbols inside logo-utama.svg; desc still placeholder) ── */
 const LOGO_SYMBOLS = [
-  { title: 'Matahari', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
-  { title: 'Burung', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
-  { title: 'Manusia', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
-  { title: 'Pohon', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
-  { title: 'Musik', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
-  { title: 'Daun', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
-  { title: 'Ombak', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
-  { title: 'Kotak', desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.' },
+  { title: 'Matahari', icon: iconMatahari, desc: 'Energi yang menyalakan semangat volunteer untuk terus kembali berkontribusi — hari demi hari, kegiatan demi kegiatan, bukan sekadar sekali ikut lalu berhenti. Konsistensi inilah yang kami rayakan lewat tracking partisipasi dan badge pencapaian, supaya setiap volunteer punya alasan untuk terus menyala dan kembali memberi dampak.' },
+  { title: 'Burung', icon: iconBurung, desc: 'Kebebasan menjangkau yang jauh — Smart AI Matching kami menghubungkan volunteer dengan kegiatan yang paling sesuai, di mana pun mereka berada, tanpa batas wilayah maupun latar belakang. Algoritma kami terus belajar dari minat dan riwayat partisipasimu, sehingga rekomendasi kegiatan yang muncul kian relevan setiap kali kamu kembali membuka ActiVibe.' },
+  { title: 'Manusia', icon: iconManusia, desc: 'Volunteer adalah inti ActiVibe. Lewat Conversational Onboarding Agent, kami kenali minat dan skill setiap individu hanya dalam hitungan menit, supaya kontribusimu tepat sasaran sejak hari pertama. Proses ini dirancang terasa seperti ngobrol biasa, bukan mengisi formulir panjang, karena kami percaya setiap orang berhak mendapat pengalaman onboarding yang personal dan manusiawi.' },
+  { title: 'Musik', icon: iconMusik, desc: 'Harmoni dalam keberagaman — setiap minat, skill, dan latar belakang dicocokkan lewat sistem rekomendasi AI kami, besar maupun kecil, semua punya tempatnya di ActiVibe. Sama seperti nada-nada berbeda yang menyatu jadi melodi, perbedaan latar belakang volunteer justru memperkaya setiap kegiatan yang berjalan di platform kami.' },
+  { title: 'Daun', icon: iconDaun, desc: 'Kepedulian terhadap alam adalah nilai yang kami jaga bersama. Setiap aksi lingkunganmu tercatat dan dihargai dalam Impact Passport-mu, mulai dari bersih pantai sampai penanaman pohon. Dengan begitu, kontribusi hijaumu tidak hanya berhenti jadi kenangan, tapi jadi catatan dampak yang bisa kamu tunjukkan kapan saja.' },
+  { title: 'Ombak', icon: iconOmbak, desc: 'Gerakan sosial yang terus mengalir — satu aksi kecilmu bisa menjadi gelombang perubahan yang menyentuh ribuan kehidupan lewat komunitas ActiVibe yang terus tumbuh. Setiap volunteer yang bergabung menambah momentum, menarik lebih banyak orang untuk ikut bergerak bersama menuju dampak yang lebih besar.' },
+  { title: 'Kotak', icon: iconKotak, desc: 'Struktur kuat di balik dampak yang nyata — dari kegiatan terverifikasi sampai Impact Passport yang tercatat rapi, kami pastikan setiap misi volunteer berjalan lancar dari awal hingga akhir. Fondasi yang solid ini memastikan kepercayaan volunteer, organizer, dan mitra tetap terjaga di setiap langkah perjalanan kontribusi.' },
 ]
 
 /* ── Activities (mock data — frontend-only for now, will be replaced by backend event listing) ── */
@@ -101,7 +108,7 @@ const ACTIVITIES = [
     participants: 40,
     dateRange: '12 - 28 Juli 2026',
     quota: 15,
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    desc: 'Bergabunglah membersihkan sampah di pesisir pantai bersama puluhan relawan. Setiap sampah yang kamu angkat membuat ekosistem laut lebih sehat untuk generasi mendatang.',
   },
   {
     title: 'Mengajar Anak-anak Pedesaan',
@@ -110,7 +117,7 @@ const ACTIVITIES = [
     participants: 11,
     dateRange: '1 - 20 Agustus 2026',
     quota: 8,
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    desc: 'Dampingi anak-anak di daerah terpencil dengan pelajaran dasar, literasi, dan kreativitas. Satu jam mengajarmu bisa mengubah cara pandang seorang anak terhadap masa depannya.',
   },
   {
     title: 'Donor Darah Massal',
@@ -119,7 +126,7 @@ const ACTIVITIES = [
     participants: 234,
     dateRange: '5 Juli 2026',
     quota: 50,
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    desc: 'Satu kantong darahmu bisa menyelamatkan hingga tiga nyawa. Bergabunglah dalam aksi donor massal bersama ratusan relawan terverifikasi ActiVibe dan PMI.',
   },
   {
     title: 'Penanaman 1000 Pohon Mangrove',
@@ -128,7 +135,7 @@ const ACTIVITIES = [
     participants: 342,
     dateRange: '15 - 30 Juli 2026',
     quota: 20,
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    desc: 'Tanam bibit mangrove bersama untuk menjaga pesisir dari abrasi. Setiap bibit yang kamu tanam adalah warisan nyata untuk alam dan generasi berikutnya.',
   },
   {
     title: 'Bantu Panti Asuhan Ceria',
@@ -137,7 +144,7 @@ const ACTIVITIES = [
     participants: 28,
     dateRange: '8 - 22 Agustus 2026',
     quota: 12,
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    desc: 'Luangkan waktumu untuk mengunjungi dan menemani anak-anak panti asuhan. Kehadiranmu membawa keceriaan dan semangat yang berarti lebih dari yang bisa dibayangkan.',
   },
   {
     title: 'Edukasi Kesehatan Remaja',
@@ -146,7 +153,7 @@ const ACTIVITIES = [
     participants: 19,
     dateRange: '3 - 17 Agustus 2026',
     quota: 25,
-    desc: 'Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.',
+    desc: 'Dampingi remaja memahami pentingnya kesehatan diri, pola makan sehat, dan kesehatan mental. Jadilah panutan dan inspirasi nyata bagi generasi muda Indonesia.',
   },
 ]
 
@@ -171,12 +178,12 @@ const TRUST_BADGES = [
 
 /* ── Gallery (placeholder photos — reusing pic1/pic2 until real activity photos exist) ── */
 const GALLERY_MOMENTS = [
-  { tab: 'Pantai', img: pic1, title: 'Bersih Pantai Bersama', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Lingkungan', volunteers: 40, likes: 128, comments: 24 },
-  { tab: 'Mangrove', img: pic2, title: 'Penanaman 1000 Pohon Mangrove', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Lingkungan', volunteers: 342, likes: 256, comments: 51 },
-  { tab: 'Edukasi', img: pic1, title: 'Mengajar Anak-anak Pedesaan', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Pendidikan', volunteers: 11, likes: 89, comments: 12 },
-  { tab: 'Donor Darah', img: pic2, title: 'Donor Darah Massal', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Kesehatan', volunteers: 234, likes: 310, comments: 64 },
-  { tab: 'Panti Asuhan', img: pic1, title: 'Bantu Panti Asuhan Ceria', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Sosial', volunteers: 28, likes: 142, comments: 19 },
-  { tab: 'Remaja', img: pic2, title: 'Edukasi Kesehatan Remaja', desc: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.', tag: 'Kesehatan', volunteers: 19, likes: 77, comments: 9 },
+  { tab: 'Pantai', img: pic1, title: 'Bersih Pantai Bersama', desc: 'Lebih dari 40 relawan bergotong royong selama 6 jam. Hasilnya: ratusan kilogram sampah terangkat dari pesisir — ekosistem laut kembali bernapas.', tag: 'Lingkungan', volunteers: 40, likes: 128, comments: 24 },
+  { tab: 'Mangrove', img: pic2, title: 'Penanaman 1000 Pohon Mangrove', desc: 'Bersama Yayasan Alam Nusantara, tim kami berhasil menanam 1.000 bibit mangrove untuk memulihkan ekosistem pesisir yang terancam abrasi parah.', tag: 'Lingkungan', volunteers: 342, likes: 256, comments: 51 },
+  { tab: 'Edukasi', img: pic1, title: 'Mengajar Anak-anak Pedesaan', desc: 'Selama tiga minggu, 11 volunteer mendampingi 45 anak di desa terpencil Jawa Barat. Setiap senyum mereka adalah bukti nyata kekuatan volunteer.', tag: 'Pendidikan', volunteers: 11, likes: 89, comments: 12 },
+  { tab: 'Donor Darah', img: pic2, title: 'Donor Darah Massal', desc: 'Dalam satu hari aksi, 234 relawan berhasil mendonorkan darah. Estimasi: lebih dari 700 pasien di Jabodetabek mendapatkan harapan baru dari aksi ini.', tag: 'Kesehatan', volunteers: 234, likes: 310, comments: 64 },
+  { tab: 'Panti Asuhan', img: pic1, title: 'Bantu Panti Asuhan Ceria', desc: 'Kunjungan rutin 28 volunteer membawa keceriaan, buku bacaan baru, dan perlengkapan belajar untuk 60 anak Panti Asuhan Ceria di Bandung.', tag: 'Sosial', volunteers: 28, likes: 142, comments: 19 },
+  { tab: 'Remaja', img: pic2, title: 'Edukasi Kesehatan Remaja', desc: 'Program edukasi ini menjangkau 200+ remaja di 5 sekolah menengah. Terima kasih kepada 19 volunteer yang tulus mengabdikan waktu dan ilmunya.', tag: 'Kesehatan', volunteers: 19, likes: 77, comments: 9 },
 ]
 
 /* ── Rating / testimonials ── */
@@ -403,7 +410,7 @@ export default function HomePage() {
         <img src={sunDeco}    alt="" className="features__deco features__deco--sun"    aria-hidden="true" />
 
         <h2 className="features__title">
-          Find or post jobs and volunteer opportunities around the world
+          Temukan cara terbaik untuk memberi dampak nyata
         </h2>
 
         <div className="features__grid">
@@ -454,9 +461,9 @@ export default function HomePage() {
 
           <div className="join__content">
             <p  className="join__eyebrow">Bergabung dan Berdampak</p>
-            <h2 className="join__title">Bergabung Bersama Activibe</h2>
+            <h2 className="join__title">Satu Platform, Ribuan Cara untuk Memberi Dampak</h2>
             <p  className="join__desc">
-              Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.
+              Sebagai volunteer, ActiVibe mencocokan profilmu dengan kegiatan sosial yang paling relevan menggunakan AI — bukan pencarian manual yang membuang waktu.
             </p>
 
             <div className="join__photo-right">
@@ -464,7 +471,7 @@ export default function HomePage() {
             </div>
 
             <p className="join__desc join__desc--sm">
-              Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas.
+              Sebagai organisasi, kelola seluruh siklus volunteer dari satu dashboard — publikasi event, seleksi pendaftar berbasis Match Score AI, hingga distribusi sertifikat otomatis.
             </p>
 
             <a href="#" className="join__cta">Mengenal Program</a>
@@ -529,10 +536,10 @@ export default function HomePage() {
 
             <div className="about__content">
               <p className="about__desc">
-                Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas. Quis diam sed scelerisque aliquam imperdiet egestas.
+                ActiVibe adalah platform volunteer berbasis AI pertama di Indonesia yang menghubungkan individu dengan kegiatan sosial sesuai minat, skill, dan jadwal mereka secara personal — bukan daftar generik yang tidak relevan.
               </p>
               <p className="about__desc">
-                Lorem ipsum dolor sit amet consectetur. Quis diam sed scelerisque aliquam imperdiet egestas. Quis diam sed scelerisque aliquam imperdiet egestas.
+                Kami percaya setiap orang punya kapasitas untuk membuat perubahan nyata. Bersama ActiVibe, kontribusimu tidak hanya berdampak — tapi juga tercatat, diakui, dan dibagikan melalui Impact Passport digital yang unik milikmu.
               </p>
               <Link to="/tentang-kami" className="about__cta">More About Us..</Link>
             </div>
@@ -564,7 +571,11 @@ export default function HomePage() {
               <span className="how__counter" aria-hidden="true">
                 {String(activeStep + 1).padStart(2, '0')}/{String(HOW_IT_WORKS_STEPS.length).padStart(2, '0')}
               </span>
-              <span className="how__rail" aria-hidden="true" />
+              <span
+                className="how__rail"
+                aria-hidden="true"
+                style={{ '--progress': `${Math.round(((activeStep + 1) / HOW_IT_WORKS_STEPS.length) * 100)}%` } as React.CSSProperties}
+              />
 
               <ul className="how__nav">
                 {HOW_IT_WORKS_STEPS.map(({ label }, i) => (
@@ -614,8 +625,11 @@ export default function HomePage() {
             ref={symbolsTrackRef}
             onScroll={handleSymbolsScroll}
           >
-            {LOGO_SYMBOLS.map(({ title, desc }, i) => (
+            {LOGO_SYMBOLS.map(({ title, icon, desc }, i) => (
               <article key={title} className={`symbols__card symbols__card--${i % 4}`}>
+                <div className="symbols__card-icon-wrap">
+                  <img src={icon} alt="" className="symbols__card-icon" />
+                </div>
                 <h3 className="symbols__card-title">{title}</h3>
                 <p className="symbols__card-desc">{desc}</p>
                 <a href="#" className="symbols__card-link">Pelajari Lebih Lanjut →</a>
@@ -626,17 +640,15 @@ export default function HomePage() {
           {/* ── MOBILE: ScrollStack stacking animation (hidden on desktop via CSS) ── */}
           <div className="symbols__stack-mobile">
             <ScrollStack
-              itemDistance={80}
-              itemScale={0.04}
-              itemStackDistance={24}
-              stackPosition="25%"
-              scaleEndPosition="12%"
-              baseScale={0.88}
-              rotationAmount={0}
-              blurAmount={0}
+              itemDistance={120}
+              itemStackDistance={16}
+              stackPosition="15vh"
             >
-              {LOGO_SYMBOLS.map(({ title, desc }, i) => (
+              {LOGO_SYMBOLS.map(({ title, icon, desc }, i) => (
                 <ScrollStackItem key={title} itemClassName={`scroll-stack-card--${i % 4}`}>
+                  <div className="scroll-stack-card__icon-wrap">
+                    <img src={icon} alt="" className="scroll-stack-card__icon" />
+                  </div>
                   <h3 className="scroll-stack-card__title">{title}</h3>
                   <p className="scroll-stack-card__desc">{desc}</p>
                   <a href="#" className="scroll-stack-card__link">Pelajari Lebih Lanjut →</a>
