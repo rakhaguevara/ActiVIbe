@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/logo.svg'
-import { FiChevronDown, FiLogOut, FiBell } from 'react-icons/fi'
+import { FiChevronDown, FiLogOut, FiBell, FiBookOpen, FiHeart, FiClipboard } from 'react-icons/fi'
 import './DashboardLayout.css'
 
-type OpenMenu = 'user' | 'notif' | null
+type OpenMenu = 'cari-aktivitas' | 'cari-organisasi' | 'user' | 'notif' | null
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth()
@@ -48,6 +48,101 @@ export default function DashboardLayout() {
         </Link>
 
         <nav className="dashboard-layout__nav">
+          <div className="dashboard-layout__menu-wrap">
+            <button
+              type="button"
+              className="dashboard-layout__link"
+              onClick={() => toggleMenu('cari-aktivitas')}
+            >
+              Cari Aktivitas <FiChevronDown className="dashboard-layout__link-chevron" />
+            </button>
+            {openMenu === 'cari-aktivitas' && (
+              <div className="dashboard-layout__mega">
+                <div className="dashboard-layout__mega-col">
+                  <p className="dashboard-layout__mega-eyebrow">AKTIVITAS</p>
+                  <Link
+                    to="/dashboard"
+                    className="dashboard-layout__mega-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    Semua Kegiatan Volunteer
+                  </Link>
+                  <div className="dashboard-layout__mega-item dashboard-layout__mega-item--disabled">
+                    Kegiatan Match Tertinggi
+                    <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+                  </div>
+                </div>
+                <div className="dashboard-layout__mega-col">
+                  <p className="dashboard-layout__mega-eyebrow">RESOURCES</p>
+                  <div className="dashboard-layout__mega-card dashboard-layout__mega-card--disabled">
+                    <FiBookOpen className="dashboard-layout__mega-card-icon" />
+                    <div className="dashboard-layout__mega-card-text">
+                      <p className="dashboard-layout__mega-card-title">
+                        Tips Jadi Volunteer
+                        <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+                      </p>
+                      <p className="dashboard-layout__mega-card-desc">
+                        Tips dan inspirasi menemukan kegiatan volunteer yang cocok.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="dashboard-layout__mega-card dashboard-layout__mega-card--disabled">
+                    <FiHeart className="dashboard-layout__mega-card-icon" />
+                    <div className="dashboard-layout__mega-card-text">
+                      <p className="dashboard-layout__mega-card-title">
+                        Cerita Dampak Komunitas
+                        <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+                      </p>
+                      <p className="dashboard-layout__mega-card-desc">
+                        Kumpulan cerita dampak nyata dari komunitas volunteer ActiVibe.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="dashboard-layout__menu-wrap">
+            <button
+              type="button"
+              className="dashboard-layout__link"
+              onClick={() => toggleMenu('cari-organisasi')}
+            >
+              Cari Organisasi <FiChevronDown className="dashboard-layout__link-chevron" />
+            </button>
+            {openMenu === 'cari-organisasi' && (
+              <div className="dashboard-layout__mega">
+                <div className="dashboard-layout__mega-col">
+                  <p className="dashboard-layout__mega-eyebrow">ORGANISASI</p>
+                  <div className="dashboard-layout__mega-item dashboard-layout__mega-item--disabled">
+                    Semua Organisasi
+                    <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+                  </div>
+                  <div className="dashboard-layout__mega-item dashboard-layout__mega-item--disabled">
+                    Organisasi Terverifikasi
+                    <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+                  </div>
+                </div>
+                <div className="dashboard-layout__mega-col">
+                  <p className="dashboard-layout__mega-eyebrow">RESOURCES</p>
+                  <div className="dashboard-layout__mega-card dashboard-layout__mega-card--disabled">
+                    <FiClipboard className="dashboard-layout__mega-card-icon" />
+                    <div className="dashboard-layout__mega-card-text">
+                      <p className="dashboard-layout__mega-card-title">
+                        Panduan untuk Organisasi
+                        <span className="dashboard-layout__mega-badge">Segera Hadir</span>
+                      </p>
+                      <p className="dashboard-layout__mega-card-desc">
+                        Panduan lengkap mendaftarkan organisasimu di ActiVibe.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <Link to="/#cara-kerja" className="dashboard-layout__link">Cara Kerja</Link>
           <Link to="/tentang-kami" className="dashboard-layout__link">Tentang Kami</Link>
         </nav>

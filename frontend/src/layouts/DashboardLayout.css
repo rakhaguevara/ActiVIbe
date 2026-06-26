@@ -150,6 +150,117 @@
   background: var(--color-primary-soft);
 }
 
+.dashboard-layout__link-chevron {
+  font-size: 14px;
+}
+
+.dashboard-layout__mega {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  gap: 32px;
+  min-width: 420px;
+  background: var(--color-bg-true);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 20px 24px;
+  z-index: 110;
+}
+
+.dashboard-layout__mega-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.dashboard-layout__mega-eyebrow {
+  margin: 0 0 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.dashboard-layout__mega-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.dashboard-layout__mega-item:hover {
+  background: var(--color-primary-soft);
+}
+
+.dashboard-layout__mega-item--disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.dashboard-layout__mega-item--disabled:hover {
+  background: none;
+}
+
+.dashboard-layout__mega-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-border-light);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.dashboard-layout__mega-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: not-allowed;
+}
+
+.dashboard-layout__mega-card-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 20px;
+  color: var(--color-accent-yellow);
+}
+
+.dashboard-layout__mega-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-layout__mega-card-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.dashboard-layout__mega-card-desc {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
 @media (max-width: 768px) {
   .dashboard-layout__topbar {
     padding: 0 20px;
