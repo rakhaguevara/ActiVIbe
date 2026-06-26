@@ -3,6 +3,25 @@
   background: var(--color-bg-surface);
 }
 
+@media (min-width: 1025px) {
+  .dashboard-layout {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .dashboard-layout__topbar {
+    flex-shrink: 0;
+  }
+
+  .dashboard-layout > main {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 .dashboard-layout__topbar {
   position: relative;
   z-index: 100;

@@ -2,23 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: calc(100vh - 280px);
-  overflow-y: auto;
-  scrollbar-color: var(--color-primary) var(--color-primary-soft);
-}
-
-.event-list-sidebar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.event-list-sidebar::-webkit-scrollbar-track {
-  background: var(--color-primary-soft);
-  border-radius: 8px;
-}
-
-.event-list-sidebar::-webkit-scrollbar-thumb {
-  background: var(--color-primary);
-  border-radius: 8px;
 }
 
 .event-list-sidebar__item {

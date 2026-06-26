@@ -4,9 +4,9 @@ import { useAuth } from '../../contexts/AuthContext'
 import EventListSidebar from '../../components/EventListSidebar'
 import EventDetailPanel from '../../components/EventDetailPanel'
 import EventApplyForm from '../../components/EventApplyForm'
+import ScrollPane from '../../components/ScrollPane'
 import VolunteerSearchBar, { type EventFilters } from '../../components/VolunteerSearchBar'
 import { mockEvents } from '../../data/mockEvents'
-import banner from '../../assets/svg/background-1.svg'
 import './FindActivityPage.css'
 
 type SortOption = 'matchScore' | 'dateAsc'
@@ -100,13 +100,6 @@ export default function FindActivityPage() {
     <main className="find-activity-page">
       <VolunteerSearchBar filters={filters} onChange={setFilters} categories={categories} />
 
-      <section className="find-activity-page__banner">
-        <img src={banner} alt="" className="find-activity-page__banner-img" aria-hidden="true" />
-        <p className="find-activity-page__greeting">
-          Halo, {user.name.split(' ')[0]}! Yuk temukan kegiatan volunteer yang cocok buatmu.
-        </p>
-      </section>
-
       <div className="find-activity-page__results-row">
         <p className="find-activity-page__results-count">
           Kegiatan Volunteer | Total {sortedEvents.length} hasil
@@ -148,17 +141,23 @@ export default function FindActivityPage() {
         {sortedEvents.length === 0 ? (
           <p className="find-activity-page__empty">Tidak ada kegiatan yang cocok dengan filter ini.</p>
         ) : (
-          <EventListSidebar
-            events={sortedEvents}
-            selectedEventId={selectedEventId}
-            onSelect={setSelectedEventId}
-          />
+          <ScrollPane>
+            <EventListSidebar
+              events={sortedEvents}
+              selectedEventId={selectedEventId}
+              onSelect={setSelectedEventId}
+            />
+          </ScrollPane>
         )}
 
         {selectedEvent ? (
           <>
-            <EventDetailPanel event={selectedEvent} />
-            <EventApplyForm event={selectedEvent} />
+            <ScrollPane>
+              <EventDetailPanel event={selectedEvent} />
+            </ScrollPane>
+            <ScrollPane>
+              <EventApplyForm event={selectedEvent} />
+            </ScrollPane>
           </>
         ) : (
           <p className="find-activity-page__empty find-activity-page__empty--panel">
