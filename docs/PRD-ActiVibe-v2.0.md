@@ -11,7 +11,7 @@
 | **Status** | Draft — Pending Review |
 | **Basis** | v1.0 (05/05/2026) + Iterasi Strategis |
 
-> ⚠️ **Catatan untuk Claude Code:** Dokumen ini adalah **single source of truth** project ActiVibe. FR terakhir adalah **FR-027**. Saat menambah FR baru, lanjutkan dari nomor ini. Jangan menimpa/mengubah nomor FR yang sudah ada tanpa konfirmasi.
+> ⚠️ **Catatan untuk Claude Code:** Dokumen ini adalah **single source of truth** project ActiVibe. FR terakhir di dokumen ini adalah **FR-027**, tapi project juga punya [PRD-ActiVibe-v2.1-Organizer-Addendum.md](PRD-ActiVibe-v2.1-Organizer-Addendum.md) yang memperluas FR Organizer sampai **FR-052**. Saat menambah FR baru, cek kedua dokumen dan lanjutkan dari nomor tertinggi (saat ini FR-052). Jangan menimpa/mengubah nomor FR yang sudah ada tanpa konfirmasi.
 
 ---
 
