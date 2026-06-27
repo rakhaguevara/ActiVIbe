@@ -5,7 +5,6 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  margin-top: 72px;
   padding: var(--space-section-gap) var(--space-lg);
   gap: var(--space-xs);
 }

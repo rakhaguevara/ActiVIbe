@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import Navbar from '../components/Navbar'
 import AppTopbar from '../components/AppTopbar'
+import './PublicLayout.css'
 
 interface PublicLayoutProps {
   onLoginClick: () => void
@@ -16,7 +17,10 @@ export default function PublicLayout({ onLoginClick, onSignupClick }: PublicLayo
       {user ? (
         <AppTopbar logoTo="/" />
       ) : (
-        <Navbar onLoginClick={onLoginClick} onSignupClick={onSignupClick} />
+        <>
+          <Navbar onLoginClick={onLoginClick} onSignupClick={onSignupClick} />
+          <div className="public-layout__navbar-spacer" />
+        </>
       )}
       <Outlet />
     </>
