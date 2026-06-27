@@ -244,6 +244,46 @@ export default function CaraKerjaPage({ onSignupClick }: CaraKerjaPageProps) {
         </div>
       </section>
 
+      <section className="cara-kerja-page__preview">
+        <div className="cara-kerja-page__preview-inner">
+          <div className="cara-kerja-page__preview-text">
+            <p className="cara-kerja-page__preview-eyebrow">Intip Tampilannya</p>
+            <h2 className="cara-kerja-page__preview-title">
+              Satu dashboard, semua kegiatan yang relevan untukmu.
+            </h2>
+            <p className="cara-kerja-page__preview-desc">
+              Cari kegiatan, baca detailnya, dan daftar — semua dalam satu tampilan, tanpa pindah
+              halaman atau mengisi form berlapis. Setiap kegiatan yang muncul sudah disaring AI
+              Matching kami, jadi yang kamu lihat memang relevan dengan minat dan jadwalmu.
+            </p>
+          </div>
+
+          <div className="cara-kerja-page__preview-mockup">
+            <div className="cara-kerja-page__preview-mockup-tag-row">
+              <span className="cara-kerja-page__preview-mockup-tag">Contoh ilustrasi</span>
+            </div>
+
+            <div className="cara-kerja-page__preview-browser">
+              <div className="cara-kerja-page__preview-browser-bar">
+                <span className="cara-kerja-page__preview-browser-dot" />
+                <span className="cara-kerja-page__preview-browser-dot" />
+                <span className="cara-kerja-page__preview-browser-dot" />
+                <span className="cara-kerja-page__preview-browser-url">activibe.id/dashboard</span>
+              </div>
+
+              <div className="cara-kerja-page__preview-browser-body">
+                <div className="cara-kerja-page__preview-placeholder-bar" />
+                <div className="cara-kerja-page__preview-placeholder-row">
+                  <div className="cara-kerja-page__preview-placeholder-card" />
+                  <div className="cara-kerja-page__preview-placeholder-card" />
+                  <div className="cara-kerja-page__preview-placeholder-card" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="cara-kerja-page__cta">
         <h2 className="cara-kerja-page__cta-title">Siap mulai perjalanan volunteering-mu?</h2>
         <p className="cara-kerja-page__cta-desc">
