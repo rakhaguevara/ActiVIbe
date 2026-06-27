@@ -1,5 +1,7 @@
 import { Outlet } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import Navbar from '../components/Navbar'
+import AppTopbar from '../components/AppTopbar'
 
 interface PublicLayoutProps {
   onLoginClick: () => void
@@ -7,9 +9,15 @@ interface PublicLayoutProps {
 }
 
 export default function PublicLayout({ onLoginClick, onSignupClick }: PublicLayoutProps) {
+  const { user } = useAuth()
+
   return (
     <>
-      <Navbar onLoginClick={onLoginClick} onSignupClick={onSignupClick} />
+      {user ? (
+        <AppTopbar logoTo="/" />
+      ) : (
+        <Navbar onLoginClick={onLoginClick} onSignupClick={onSignupClick} />
+      )}
       <Outlet />
     </>
   )
