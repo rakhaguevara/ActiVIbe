@@ -57,6 +57,30 @@ const VOLUNTEER_FLOW_STEPS = [
   },
 ]
 
+const PASSPORT_FEATURES = [
+  { title: 'Tagline AI Personal', desc: 'Headline unik dari AI berdasarkan total kontribusi dan dampak nyatamu — bukan template generik.' },
+  { title: 'Statistik Dampak', desc: 'Total jam kontribusi, jumlah kegiatan selesai, jumlah NGO berbeda, dan metrik spesifik per event (mis. "240 bibit ditanam").' },
+  { title: 'Skill Progress Tracker', desc: 'XP bar per skill yang naik otomatis setiap kali kamu menyelesaikan kegiatan terkait skill itu.' },
+  { title: 'Timeline Kronologis', desc: 'Riwayat semua kegiatanmu berurutan waktu, lengkap dengan narasi dampak per event.' },
+  { title: 'Share 1-Klik', desc: 'Bagikan ke IG Story, LinkedIn, atau WhatsApp — kontennya otomatis disesuaikan tone per platform oleh AI.' },
+  { title: 'URL Publik', desc: 'Diakses tanpa login lewat activivibe.id/passport/{username} — siap dilampirkan ke CV atau portofolio beasiswa.' },
+]
+
+const PASSPORT_MOCKUP = {
+  name: 'Abiem Nugroho',
+  avatar: pic1,
+  tagline: '"Telah berkontribusi menanam 240 bibit mangrove bersama Yayasan Alam Nusantara."',
+  stats: [
+    { label: 'Jam Kontribusi', value: '86' },
+    { label: 'Kegiatan Selesai', value: '12' },
+    { label: 'NGO Berbeda', value: '5' },
+  ],
+  skills: [
+    { label: 'Lingkungan', xp: 80 },
+    { label: 'Pendidikan', xp: 45 },
+  ],
+}
+
 export default function CaraKerjaPage({ onSignupClick }: CaraKerjaPageProps) {
   const flowReveal = useRevealOnScroll(0.1)
   const [activeStep, setActiveStep] = useState(0)
@@ -150,6 +174,71 @@ export default function CaraKerjaPage({ onSignupClick }: CaraKerjaPageProps) {
               <p key={`desc-${activeStep}`} className="cara-kerja-page__flow-desc">
                 {VOLUNTEER_FLOW_STEPS[activeStep].desc}
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="cara-kerja-page__passport">
+        <div className="cara-kerja-page__passport-inner">
+          <div className="cara-kerja-page__passport-header">
+            <p className="cara-kerja-page__passport-eyebrow">Fitur Andalan</p>
+            <h2 className="cara-kerja-page__passport-title">
+              Impact Passport — portofolio dampakmu, siap dibagikan kapan saja.
+            </h2>
+            <p className="cara-kerja-page__passport-desc">
+              Setiap kontribusi yang kamu beri lewat ActiVibe tidak berhenti jadi kenangan. Semuanya
+              terkumpul otomatis jadi satu halaman portofolio publik yang bisa kamu lampirkan ke CV,
+              bagikan ke media sosial, atau tunjukkan ke kampus dan lembaga beasiswa — tanpa perlu
+              login untuk membukanya.
+            </p>
+          </div>
+
+          <div className="cara-kerja-page__passport-body">
+            <ul className="cara-kerja-page__passport-features">
+              {PASSPORT_FEATURES.map((feature) => (
+                <li key={feature.title} className="cara-kerja-page__passport-feature">
+                  <h3 className="cara-kerja-page__passport-feature-title">{feature.title}</h3>
+                  <p className="cara-kerja-page__passport-feature-desc">{feature.desc}</p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="cara-kerja-page__passport-mockup">
+              <span className="cara-kerja-page__passport-mockup-tag">Contoh ilustrasi</span>
+              <img
+                src={PASSPORT_MOCKUP.avatar}
+                alt={PASSPORT_MOCKUP.name}
+                className="cara-kerja-page__passport-mockup-avatar"
+              />
+              <p className="cara-kerja-page__passport-mockup-name">{PASSPORT_MOCKUP.name}</p>
+              <p className="cara-kerja-page__passport-mockup-tagline">{PASSPORT_MOCKUP.tagline}</p>
+
+              <div className="cara-kerja-page__passport-mockup-stats">
+                {PASSPORT_MOCKUP.stats.map((stat) => (
+                  <div key={stat.label} className="cara-kerja-page__passport-mockup-stat">
+                    <span className="cara-kerja-page__passport-mockup-stat-value">{stat.value}</span>
+                    <span className="cara-kerja-page__passport-mockup-stat-label">{stat.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="cara-kerja-page__passport-mockup-skills">
+                {PASSPORT_MOCKUP.skills.map((skill) => (
+                  <div key={skill.label} className="cara-kerja-page__passport-mockup-skill">
+                    <div className="cara-kerja-page__passport-mockup-skill-row">
+                      <span>{skill.label}</span>
+                      <span>{skill.xp} XP</span>
+                    </div>
+                    <div className="cara-kerja-page__passport-mockup-skill-bar">
+                      <div
+                        className="cara-kerja-page__passport-mockup-skill-fill"
+                        style={{ width: `${skill.xp}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

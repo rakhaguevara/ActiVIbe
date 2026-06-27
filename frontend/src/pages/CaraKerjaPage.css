@@ -413,3 +413,192 @@
     animation: none;
   }
 }
+
+/* ── Impact Passport ── */
+.cara-kerja-page__passport {
+  background: var(--color-bg-true);
+  padding: 64px 40px 88px;
+}
+
+.cara-kerja-page__passport-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.cara-kerja-page__passport-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 48px;
+}
+
+.cara-kerja-page__passport-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.cara-kerja-page__passport-title {
+  font-size: clamp(22px, 3vw, 32px);
+  color: var(--color-text-heading);
+  margin: 0 0 16px;
+}
+
+.cara-kerja-page__passport-desc {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.cara-kerja-page__passport-body {
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 360px);
+  gap: 48px;
+  align-items: start;
+}
+
+.cara-kerja-page__passport-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.cara-kerja-page__passport-feature-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 6px;
+}
+
+.cara-kerja-page__passport-feature-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.cara-kerja-page__passport-mockup {
+  position: relative;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.cara-kerja-page__passport-mockup-tag {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: var(--color-bg-true);
+  border: 1px solid var(--color-border-light);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.cara-kerja-page__passport-mockup-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 12px;
+  display: block;
+}
+
+.cara-kerja-page__passport-mockup-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 8px;
+}
+
+.cara-kerja-page__passport-mockup-tagline {
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--color-text-body);
+  margin: 0 0 24px;
+}
+
+.cara-kerja-page__passport-mockup-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 24px;
+}
+
+.cara-kerja-page__passport-mockup-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cara-kerja-page__passport-mockup-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.cara-kerja-page__passport-mockup-stat-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.cara-kerja-page__passport-mockup-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.cara-kerja-page__passport-mockup-skill-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  margin-bottom: 4px;
+}
+
+.cara-kerja-page__passport-mockup-skill-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border-light);
+  overflow: hidden;
+}
+
+.cara-kerja-page__passport-mockup-skill-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+@media (max-width: 900px) {
+  .cara-kerja-page__passport-body {
+    grid-template-columns: 1fr;
+  }
+
+  .cara-kerja-page__passport-features {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .cara-kerja-page__passport {
+    padding: 48px 20px 64px;
+  }
+}
