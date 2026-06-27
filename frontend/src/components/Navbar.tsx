@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/logo.svg'
 import './Navbar.css'
 
 const NAV_LINKS = [
-  { label: 'Cari Aktivitas', href: '#' },
-  { label: 'Cari Organisasi', href: '#' },
-  { label: 'Cara Kerja', href: '#', to: '/cara-kerja' },
-  { label: 'Tentang Kami', href: '#', to: '/tentang-kami' },
+  { label: 'Cari Aktivitas', href: '#', accent: 'primary' },
+  { label: 'Cari Organisasi', href: '#', accent: 'secondary' },
+  { label: 'Cara Kerja', href: '#', to: '/cara-kerja', accent: 'orange' },
+  { label: 'Tentang Kami', href: '#', to: '/tentang-kami', accent: 'yellow' },
 ]
 
 interface NavbarProps {
@@ -64,13 +64,21 @@ export default function Navbar({ onLoginClick, onSignupClick }: NavbarProps) {
         </Link>
 
         <nav className="navbar__links">
-          {NAV_LINKS.map(({ label, href, to }) => (
+          {NAV_LINKS.map(({ label, href, to, accent }) => (
             to ? (
-              <Link key={label} to={to} className="navbar__link">
+              <NavLink
+                key={label}
+                to={to}
+                className={({ isActive }) =>
+                  ['navbar__link', `navbar__link--${accent}`, isActive ? 'is-active' : '']
+                    .filter(Boolean)
+                    .join(' ')
+                }
+              >
                 {label}
-              </Link>
+              </NavLink>
             ) : (
-              <a key={label} href={href} className="navbar__link">
+              <a key={label} href={href} className={`navbar__link navbar__link--${accent}`}>
                 {label}
               </a>
             )
@@ -110,21 +118,25 @@ export default function Navbar({ onLoginClick, onSignupClick }: NavbarProps) {
 
         {isMenuOpen && (
           <div className="navbar__mobile-menu">
-            {NAV_LINKS.map(({ label, href, to }) => (
+            {NAV_LINKS.map(({ label, href, to, accent }) => (
               to ? (
-                <Link
+                <NavLink
                   key={label}
                   to={to}
-                  className="navbar__mobile-link"
+                  className={({ isActive }) =>
+                    ['navbar__mobile-link', `navbar__mobile-link--${accent}`, isActive ? 'is-active' : '']
+                      .filter(Boolean)
+                      .join(' ')
+                  }
                   onClick={closeMenu}
                 >
                   {label}
-                </Link>
+                </NavLink>
               ) : (
                 <a
                   key={label}
                   href={href}
-                  className="navbar__mobile-link"
+                  className={`navbar__mobile-link navbar__mobile-link--${accent}`}
                   onClick={closeMenu}
                 >
                   {label}
