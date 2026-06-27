@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/logo.svg'
 import { FiChevronDown, FiLogOut, FiBell, FiBookOpen, FiHeart, FiClipboard } from 'react-icons/fi'
 import './AppTopbar.css'
 
 type OpenMenu = 'cari-aktivitas' | 'cari-organisasi' | 'user' | 'notif' | null
+
+// Belum ada rute nyata untuk "Cari Organisasi" — isi array ini begitu ada,
+// jangan tulis ulang logic isOrganisasiActive di bawah.
+const ORGANISASI_ROUTES: string[] = []
 
 interface AppTopbarProps {
   logoTo: string
@@ -14,6 +18,9 @@ interface AppTopbarProps {
 export default function AppTopbar({ logoTo }: AppTopbarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const isAktivitasActive = location.pathname.startsWith('/dashboard')
+  const isOrganisasiActive = ORGANISASI_ROUTES.some((route) => location.pathname.startsWith(route))
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const topbarRef = useRef<HTMLElement>(null)
@@ -56,7 +63,9 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
           <div className="app-topbar__menu-wrap">
             <button
               type="button"
-              className="app-topbar__link"
+              className={['app-topbar__link', 'app-topbar__link--primary', isAktivitasActive ? 'is-active' : '']
+                .filter(Boolean)
+                .join(' ')}
               onClick={() => toggleMenu('cari-aktivitas')}
             >
               Cari Aktivitas <FiChevronDown className="app-topbar__link-chevron" />
@@ -111,7 +120,9 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
           <div className="app-topbar__menu-wrap">
             <button
               type="button"
-              className="app-topbar__link"
+              className={['app-topbar__link', 'app-topbar__link--secondary', isOrganisasiActive ? 'is-active' : '']
+                .filter(Boolean)
+                .join(' ')}
               onClick={() => toggleMenu('cari-organisasi')}
             >
               Cari Organisasi <FiChevronDown className="app-topbar__link-chevron" />
@@ -148,8 +159,26 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
             )}
           </div>
 
-          <Link to="/cara-kerja" className="app-topbar__link">Cara Kerja</Link>
-          <Link to="/tentang-kami" className="app-topbar__link">Tentang Kami</Link>
+          <NavLink
+            to="/cara-kerja"
+            className={({ isActive }) =>
+              ['app-topbar__link', 'app-topbar__link--orange', isActive ? 'is-active' : '']
+                .filter(Boolean)
+                .join(' ')
+            }
+          >
+            Cara Kerja
+          </NavLink>
+          <NavLink
+            to="/tentang-kami"
+            className={({ isActive }) =>
+              ['app-topbar__link', 'app-topbar__link--yellow', isActive ? 'is-active' : '']
+                .filter(Boolean)
+                .join(' ')
+            }
+          >
+            Tentang Kami
+          </NavLink>
         </nav>
 
         {user && (
@@ -204,13 +233,17 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
 
         {isMobileMenuOpen && (
           <div className="app-topbar__mobile-menu">
-            <Link
+            <NavLink
               to="/dashboard"
-              className="app-topbar__mobile-link"
+              className={({ isActive }) =>
+                ['app-topbar__mobile-link', 'app-topbar__mobile-link--primary', isActive ? 'is-active' : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Semua Kegiatan Volunteer
-            </Link>
+            </NavLink>
             <div className="app-topbar__mobile-link app-topbar__mobile-link--disabled">
               Kegiatan Match Tertinggi
               <span className="app-topbar__mega-badge">Segera Hadir</span>
@@ -223,20 +256,28 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
               Organisasi Terverifikasi
               <span className="app-topbar__mega-badge">Segera Hadir</span>
             </div>
-            <Link
+            <NavLink
               to="/cara-kerja"
-              className="app-topbar__mobile-link"
+              className={({ isActive }) =>
+                ['app-topbar__mobile-link', 'app-topbar__mobile-link--orange', isActive ? 'is-active' : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Cara Kerja
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               to="/tentang-kami"
-              className="app-topbar__mobile-link"
+              className={({ isActive }) =>
+                ['app-topbar__mobile-link', 'app-topbar__mobile-link--yellow', isActive ? 'is-active' : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Tentang Kami
-            </Link>
+            </NavLink>
           </div>
         )}
       </header>
