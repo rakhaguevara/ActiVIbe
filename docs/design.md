@@ -37,7 +37,10 @@ Semua warna didefinisikan sebagai CSS custom property di `:root`. **Jangan hardc
   /* ============================================
      2. BRAND PRIMARY — Ungu
      Dipakai di: CTA button utama, logo "Vibe", link aktif,
-     active state navigasi, tombol Subscribe
+     tombol Subscribe. Untuk active-state nav link (underline
+     bar di Navbar/AppTopbar) lihat subsection "Active State
+     Nav Link" di bawah — tiap link punya accent sendiri
+     (ungu/biru/orange/kuning), bukan cuma ungu.
      ============================================ */
   --color-primary: #6D50A3;
   --color-primary-hover: #5E4490;   /* -10% lightness, dipakai saat :hover button primary */
@@ -111,6 +114,12 @@ Semua warna didefinisikan sebagai CSS custom property di `:root`. **Jangan hardc
 2. **Tombol CTA utama = selalu `--color-primary`.** Tombol CTA kedua dalam satu section yang sama = `--color-accent-orange`. Jangan pernah dua tombol primary-color berdampingan di section yang sama (akan terlihat tidak ada hirarki).
 3. Kalau butuh warna baru yang **tidak ada di list ini** (misal butuh warna ke-7 untuk kategori baru) — **STOP, tanya dulu ke Rakha**, jangan generate hex sembarang. Sertakan rekomendasi 1-2 opsi yang masih selaras (saturasi & lightness mirip palet existing) sebagai starting point diskusi.
 4. Kalau ada dua warna brand dipakai berdampingan dan terasa "bertabrakan" (misal orange+kuning solid bersisian tanpa spacing/border), **laporkan dulu sebelum lanjut coding**, beri rekomendasi: kasih `--color-bg-true` sebagai pemisah, atau ubah satu jadi versi `-soft`.
+
+### Active State Nav Link (Navbar & AppTopbar)
+
+Tiap nav link (`Cari Aktivitas`, `Cari Organisasi`, `Cara Kerja`, `Tentang Kami`) punya accent warna tetap, urutan sesuai urutan link di nav: ungu (`--color-primary`), biru (`--color-secondary`), orange (`--color-accent-orange`), kuning (`--color-accent-yellow`). Saat halaman yang sedang dibuka cocok dengan link itu, link dapat underline bar 3px (mobile: border-left 4px) berwarna accent-nya + `font-weight: 600`.
+
+**Teks link aktif TIDAK ikut berubah warna** (tetap `--color-text-heading`) — karena poin 1 di atas melarang `--color-secondary`/`--color-accent-yellow` jadi warna teks, dan supaya treatment ke-4 link konsisten satu sama lain (bukan 2 link ganti warna teks, 2 tidak). Implementasi: lihat `Navbar.tsx`/`Navbar.css` dan `AppTopbar.tsx`/`AppTopbar.css`.
 
 ---
 
