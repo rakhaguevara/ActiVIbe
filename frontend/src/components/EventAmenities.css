@@ -1,0 +1,23 @@
+.event-amenities h3 {
+  font-size: var(--text-body-md);
+  margin: 0 0 10px;
+}
+
+.event-amenities__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.event-amenities__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+}
+
+.event-amenities__icon {
+  color: var(--color-success);
+  flex-shrink: 0;
+}

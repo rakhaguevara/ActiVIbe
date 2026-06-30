@@ -1,0 +1,106 @@
+.find-activity-page {
+  padding-bottom: 64px;
+}
+
+@media (min-width: 1025px) {
+  .find-activity-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .find-activity-page > .volunteer-search-bar,
+  .find-activity-page__results-row {
+    flex-shrink: 0;
+  }
+}
+
+.find-activity-page__results-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 24px 48px 0;
+}
+
+.find-activity-page__results-count {
+  font-size: var(--text-body-md);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.find-activity-page__results-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.find-activity-page__sort,
+.find-activity-page__skill {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  border: 1px solid var(--color-border-medium);
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--color-bg-true);
+}
+
+.find-activity-page__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  white-space: nowrap;
+}
+
+.find-activity-page__columns {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) 1fr minmax(320px, 380px);
+  gap: 24px;
+  padding: 24px 48px;
+}
+
+@media (min-width: 1025px) {
+  .find-activity-page__columns {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .find-activity-page__columns > * {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .find-activity-page__columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .find-activity-page__results-row,
+  .find-activity-page__columns {
+    padding-inline: 20px;
+  }
+}
+
+.find-activity-page__empty {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  padding: 24px;
+}
+
+.find-activity-page__empty--panel {
+  grid-column: span 2;
+  text-align: center;
+}

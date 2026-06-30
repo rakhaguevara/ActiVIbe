@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FiX, FiChevronDown } from 'react-icons/fi'
 import { FcGoogle } from 'react-icons/fc'
 import { FaFacebookF, FaApple } from 'react-icons/fa'
 import logo from '../assets/svg/logo.svg'
+import { useAuth } from '../contexts/AuthContext'
 import './AuthModal.css'
 
 export type AuthMode = 'login' | 'signup'
@@ -17,6 +19,10 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
   const isLogin = mode === 'login'
   const bodyRef = useRef<HTMLDivElement>(null)
   const [canScrollDown, setCanScrollDown] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle')
+  const navigate = useNavigate()
+  const { login, register } = useAuth()
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
@@ -54,8 +60,42 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
     }
   }, [mode])
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    setError(null)
+    setStatus('idle')
+  }, [mode])
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setError(null)
+    setStatus('submitting')
+
+    const formData = new FormData(e.currentTarget)
+
+    try {
+      if (isLogin) {
+        await login({
+          email: String(formData.get('email')),
+          password: String(formData.get('password')),
+        })
+      } else {
+        await register({
+          firstName: String(formData.get('firstName')),
+          lastName: String(formData.get('lastName')),
+          email: String(formData.get('email')),
+          password: String(formData.get('password')),
+        })
+      }
+
+      setStatus('success')
+      setTimeout(() => {
+        onClose()
+        navigate('/dashboard')
+      }, 1200)
+    } catch (err) {
+      setStatus('idle')
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi.')
+    }
   }
 
   return (
@@ -108,50 +148,58 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
             <span>atau</span>
           </div>
 
-          <form className="auth-modal__form" onSubmit={handleSubmit}>
-            {!isLogin && (
-              <div className="auth-modal__row">
-                <div className="auth-modal__field">
-                  <label htmlFor="firstName">Nama Depan</label>
-                  <input id="firstName" name="firstName" type="text" placeholder="Casey" required />
+          {status === 'success' ? (
+            <p className="auth-modal__success">
+              {isLogin ? 'Berhasil masuk!' : 'Berhasil daftar!'}
+            </p>
+          ) : (
+            <form className="auth-modal__form" onSubmit={handleSubmit}>
+              {!isLogin && (
+                <div className="auth-modal__row">
+                  <div className="auth-modal__field">
+                    <label htmlFor="firstName">Nama Depan</label>
+                    <input id="firstName" name="firstName" type="text" placeholder="Casey" required />
+                  </div>
+                  <div className="auth-modal__field">
+                    <label htmlFor="lastName">Nama Belakang</label>
+                    <input id="lastName" name="lastName" type="text" placeholder="Smith" required />
+                  </div>
                 </div>
-                <div className="auth-modal__field">
-                  <label htmlFor="lastName">Nama Belakang</label>
-                  <input id="lastName" name="lastName" type="text" placeholder="Smith" required />
-                </div>
-              </div>
-            )}
+              )}
 
-            <div className="auth-modal__field">
-              <label htmlFor="email">Email</label>
-              <input id="email" name="email" type="email" placeholder="casey.smith@example.com" required />
-            </div>
-
-            <div className="auth-modal__field">
-              <label htmlFor="password">Password</label>
-              <input id="password" name="password" type="password" placeholder="••••••••" required />
-            </div>
-
-            {!isLogin && (
               <div className="auth-modal__field">
-                <label htmlFor="location">Lokasi</label>
-                <input id="location" name="location" type="text" placeholder="Yogyakarta, Indonesia" required />
+                <label htmlFor="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="casey.smith@example.com" required />
               </div>
-            )}
 
-            {isLogin ? (
-              <a href="#" className="auth-modal__forgot">Lupa password?</a>
-            ) : (
-              <label className="auth-modal__checkbox">
-                <input type="checkbox" required />
-                <span>Saya bukan robot</span>
-              </label>
-            )}
+              <div className="auth-modal__field">
+                <label htmlFor="password">Password</label>
+                <input id="password" name="password" type="password" placeholder="••••••••" required />
+              </div>
 
-            <button type="submit" className="auth-modal__submit">
-              {isLogin ? 'Masuk' : 'Daftar'}
-            </button>
-          </form>
+              {!isLogin && (
+                <div className="auth-modal__field">
+                  <label htmlFor="location">Lokasi</label>
+                  <input id="location" name="location" type="text" placeholder="Yogyakarta, Indonesia" required />
+                </div>
+              )}
+
+              {error && <p className="auth-modal__error">{error}</p>}
+
+              {isLogin ? (
+                <a href="#" className="auth-modal__forgot">Lupa password?</a>
+              ) : (
+                <label className="auth-modal__checkbox">
+                  <input type="checkbox" required />
+                  <span>Saya bukan robot</span>
+                </label>
+              )}
+
+              <button type="submit" className="auth-modal__submit" disabled={status === 'submitting'}>
+                {status === 'submitting' ? 'Memproses...' : (isLogin ? 'Masuk' : 'Daftar')}
+              </button>
+            </form>
+          )}
 
           <p className="auth-modal__terms">
             Dengan melanjutkan, kamu menyetujui{' '}

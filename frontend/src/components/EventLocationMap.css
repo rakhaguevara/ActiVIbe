@@ -1,0 +1,25 @@
+.event-location-map h3 {
+  font-size: var(--text-body-md);
+  margin: 0 0 8px;
+}
+
+.event-location-map__address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  margin: 0 0 12px;
+}
+
+.event-location-map__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  border-radius: 14px;
+  background: var(--color-bg-surface);
+  border: 1px dashed var(--color-border-medium);
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+}

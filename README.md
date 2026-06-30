@@ -9,7 +9,7 @@ Lihat [docs/PRD-ActiVibe-v2.0.md](docs/PRD-ActiVibe-v2.0.md) untuk detail produk
 Monorepo dengan 3 bagian utama:
 
 - `frontend/` — Web app (React 19 + TypeScript + Vite)
-- `backend/` — API & services (belum diinisialisasi — rencana arsitektur sudah ada di [backend/README.md](backend/README.md): Express.js + PostgreSQL + Prisma + JWT)
+- `backend/` — API & services (Express.js + PostgreSQL + Prisma + JWT, lihat [backend/README.md](backend/README.md)). Register & Login sudah berfungsi end-to-end; OTP belum.
 - `docs/` — Dokumentasi product (PRD, dst.)
 
 ### Struktur `frontend/src`
@@ -58,6 +58,9 @@ Project menggunakan `pnpm`, jalankan command dari dalam `frontend/` (bukan dari 
 - [x] Landing Page — Join section "Bergabung Bersama Activibe" (background biru #63C2E0, wave top/bottom, ikon dekoratif SVG, 2 foto PNG, tombol CTA oranye)
 - [x] Modal Login & Sign Up (`AuthModal`), dipicu dari tombol Masuk/Daftar di Navbar
 - [x] Routing pertama di project (`react-router-dom`) — Halaman "Tentang Kami" (`/tentang-kami`) berisi cerita, timeline, visi-misi, dan tim
-- [ ] Bangun layout nav-body
-- [ ] Inisialisasi `backend/`
+- [x] Inisialisasi `backend/` — Express + Prisma + PostgreSQL, lihat [backend/README.md](backend/README.md)
+- [x] Register & Login end-to-end (`/auth/register`, `/auth/login`, `/auth/me`, `/auth/logout`, httpOnly cookie, `AuthModal` & `Navbar` terhubung ke API asli) — OTP (FR-002/003) masih ditunda
+- [x] Bangun layout nav-body — `PublicLayout`/`DashboardLayout` (nested routes via `<Outlet />`)
+- [x] Halaman Find Activity (`/dashboard`) — list/detail/form 3 kolom kegiatan volunteer dengan Match Score, search & filter; data masih dummy (`mockEvents.ts`), backend `Event` model menyusul
+- [x] Event Detail diperluas jadi halaman 15-section ala listing Airbnb (galeri kategori, organizer, amenities, kalender, rating & review, lokasi, profil organizer, kebijakan) — list menyusut jadi sidebar tipis, form pendaftaran sticky
 
