@@ -672,4 +672,189 @@ Sebelum menambahkan style baru ke aplikasi (oleh siapapun — AI atau developer)
 
 ---
 
+## 10. Onboarding Modal — Profile Setup Wizard (pendukung FR-023)
+
+> **Konteks:** PRD menyebut FR-023 sebagai "Conversational Onboarding Agent" berbentuk chat ≤ 60 detik. Implementasi UI-nya **bukan chat bubble**, tapi wizard 3 langkah bergaya card-select (referensi visual: modal "What would you like to do?" ala Idealist) — nada "conversational" dipenuhi lewat 1-pertanyaan-per-layar + copy yang ngobrol, bukan lewat literal chat UI. Ini dikonfirmasi selaras dengan kontrak backend yang sudah ada: `GET /profile/interests`, `GET /profile/skills` (masing-masing punya field `category`), dan `PATCH /profile/me` menerima `interestIds[]`, `skillIds[]`, `availability` (`WEEKDAY` \| `WEEKEND` \| `BOTH`) — lihat `backend/src/modules/profile/`.
+>
+> Modal ini muncul otomatis sekali setelah registrasi/verifikasi (belum ada OTP nyata — lihat FR-023 trigger), sebelum user masuk ke `/dashboard`.
+
+### 10.1 Struktur Wizard
+
+3 layar berurutan di dalam satu modal, satu pertanyaan per layar:
+
+| Step | Pertanyaan | Field backend | Cardinality | Aset ilustrasi |
+|---|---|---|---|---|
+| 1 | "Apa yang bikin kamu semangat volunteer?" (minat) | `interestIds[]` | Multi-select (checkbox) | `assets/svg/On1.svg` |
+| 2 | "Skill apa yang mau kamu kontribusikan?" | `skillIds[]` | Multi-select (checkbox) | `assets/svg/On2.svg` |
+| 3 | "Kapan kamu biasanya available?" | `availability` | Single-select (radio, tapi visual tetap konsisten dgn checkbox step 1-2 — lihat 10.4) | `assets/svg/On3.svg` |
+
+Opsi di Step 1 & 2 dikelompokkan per `category` (data dari taxonomy API) dengan label kategori kecil di atas tiap grup — jangan tampilkan sebagai list datar tanpa grouping, karena datanya sudah datang berkategori dari backend.
+
+**Copy per-step masih placeholder** — perlu final review sebelum implementasi (bukan keputusan visual, jadi tidak mengunci di sini).
+
+### 10.2 Modal Shell — Panel Direverensi dari `AuthModal`, Backdrop Translucent
+
+**Revisi kedua (setelah user manual-test):** backdrop opaque solid putih dari draf sebelumnya menyembunyikan `AppTopbar` total di belakangnya — user melihat itu sebagai bug ("gaada navbar atas"), bukan fitur. Diperbaiki: backdrop sekarang **translucent putih + blur**, sama pola dgn glass-effect sticky navbar di Section 5.2, jadi `AppTopbar` dari `DashboardLayout` tetap kelihatan (blur) di belakang modal — bukan disembunyikan total. Beda dari `AuthModal` cuma di warna (putih, bukan gelap `rgba(26,26,46,...)`) supaya senada tekstur doodle & tetap terang seperti referensi Idealist.
+
+Yang di-reuse dari `AuthModal`: radius panel 20px, shadow soft, animasi pop-in translateY+scale, pola `backdrop-filter: blur()` + `@supports not` fallback solid dari Section 5.2. Prefix class `.onboarding-modal`. `max-width` sedikit lebih lega (`520px`, bukan `440px`) karena ada slot ilustrasi + list opsi.
+
+Tidak ada tombol close (X) — lihat 10.7, wizard ini sengaja tidak punya exit path.
+
+### 10.3 Doodle Background Layer
+
+`assets/png/Onboarding.png` (garis tangan hitam: checklist, kertas, laptop) dipakai sebagai **tekstur dekoratif di belakang panel**, lewat pseudo-element `::before` yang mewarisi `background-image` dari elemen backdrop (supaya opacity-nya independen dari isi panel di atasnya):
+
+```css
+.onboarding-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.75);
+  background-size: cover;
+  background-position: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .onboarding-modal__backdrop {
+    background-color: rgba(255, 255, 255, 0.94);
+  }
+}
+
+.onboarding-modal__backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: inherit; /* ambil url() yang di-set inline di elemen induk */
+  background-size: cover;
+  background-position: center;
+  opacity: 0.05; /* sangat samar — efeknya jadi abu-abu pucat, senada dgn --color-border-light, bukan hitam pekat */
+  pointer-events: none;
+}
+```
+
+Implementasi: `frontend/src/components/OnboardingModal.tsx` + `.css`. `url()` di-pass lewat inline `style` di komponen (import asset via Vite) supaya path-nya tidak di-hardcode di CSS.
+
+### 10.4 Option-Select Item (komponen baru)
+
+Satu baris per opsi (interest/skill/availability), dipakai di ketiga step. Visual sama utk checkbox (multi) & radio (single) — hanya `input[type]` & `border-radius` kontrol yang beda, biar Step 3 tidak terasa seperti komponen asing dibanding Step 1-2.
+
+```css
+.option-select-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 12px;
+  background: var(--color-bg-true);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.option-select-item:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.option-select-item--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.option-select-item input[type='checkbox'],
+.option-select-item input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary); /* radio otomatis jadi bulat, checkbox jadi kotak — browser native, tanpa styling custom tambahan */
+  flex-shrink: 0;
+}
+
+.option-select-item__label {
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  color: var(--color-text-heading);
+}
+
+.option-select-item__category-heading {
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: var(--space-md) 0 var(--space-xs);
+}
+.option-select-item__category-heading:first-child { margin-top: 0; }
+```
+
+### 10.5 Ilustrasi per Step
+
+Satu ilustrasi (`On1`/`On2`/`On3.svg`) ditaruh di header tiap layar, ukuran ~96-120px, posisi center-top (bukan pojok kanan seperti reference Idealist — biar konsisten dengan `AuthModal` yang logo-nya center-top juga).
+
+```css
+.onboarding-modal__illustration {
+  display: block;
+  height: 96px;
+  width: auto;
+  margin: 0 auto var(--space-md);
+}
+```
+
+### 10.6 Step Indicator
+
+Dot-stepper horizontal kecil di atas judul — **bukan** vertical stepper Section 6.5 (itu untuk daftar langkah panjang bertahap seperti Close Event Flow, bukan progress 3-step modal singkat ini).
+
+```css
+.onboarding-modal__dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.onboarding-modal__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border-medium);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+
+.onboarding-modal__dot--done,
+.onboarding-modal__dot--active {
+  background: var(--color-primary);
+}
+
+.onboarding-modal__dot--active {
+  width: 20px;
+  border-radius: 999px; /* jadi pill memanjang saat active, dot biasa saat done/upcoming */
+}
+```
+
+### 10.7 Footer Navigasi
+
+```css
+.onboarding-modal__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+```
+
+- Step 1: hanya tombol `.btn--primary` "Lanjut" (full width atau align-right — tidak ada "Kembali" karena ini layar pertama).
+- Step 2: `.btn--outline` "Kembali" (kiri) + `.btn--primary` "Lanjut" (kanan).
+- Step 3: `.btn--outline` "Kembali" (kiri) + `.btn--primary` "Selesai" (kanan) — submit `PATCH /profile/me` dengan payload gabungan 3 step, lalu redirect `/dashboard`.
+- **Belum ada tombol "Lewati"** di desain ini — beda dari `AuthModal` yang punya close (X) sbg exit eksplisit. Asumsi: profil kosong menurunkan kualitas rekomendasi AI (lihat risk table PRD Section 8), jadi wizard ini tidak dibuat mudah di-skip. Kalau butuh opsi skip, ini keputusan produk yang perlu dikonfirmasi dulu, bukan default styling.
+
+### 10.8 Checklist Tambahan Sebelum Implementasi
+
+- [ ] Konfirmasi copy final tiap step (judul pertanyaan + label opsi) — masih placeholder di 10.1.
+- [ ] Konfirmasi apakah wizard wajib (no-skip) sesuai asumsi 10.7, atau butuh exit path.
+- [ ] Pastikan komponen `.option-select-item` dipakai lewat 1 file shared (bukan diduplikasi per step), karena dipakai identik di 3 tempat.
+- [ ] Checklist umum Section 9 tetap berlaku (semua warna dari Section 1, gap section 40-48px kalau relevan, kontras teks AA).
+
+---
+
 *Dokumen ini hidup berdampingan dengan `CLAUDE.md` dan `PRD-ActiVibe-v2.0.md` — kalau ada keputusan desain baru yang signifikan diambil di chat manapun, update file ini juga supaya tidak hilang konteksnya di sesi berikutnya.*

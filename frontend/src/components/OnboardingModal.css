@@ -1,0 +1,261 @@
+/* ── Backdrop ──
+   Translucent + blur (bukan opaque solid) supaya AppTopbar dari
+   DashboardLayout tetap kelihatan (blur) di belakang modal — konsisten
+   dgn glass-effect sticky navbar di Section 5.2 design.md, cuma versi
+   putih (bukan gelap ala AuthModal) senada tekstur doodle. */
+.onboarding-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+
+  background-color: rgba(255, 255, 255, 0.75);
+  background-size: cover;
+  background-position: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: onboardingModalFadeIn 0.2s ease;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .onboarding-modal__backdrop {
+    background-color: rgba(255, 255, 255, 0.94);
+  }
+}
+
+/* Doodle di-render lewat ::before (bukan langsung di background-image
+   elemen) supaya opacity-nya independen dari isi modal di atasnya */
+.onboarding-modal__backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: inherit;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.05; /* sangat samar — efeknya abu-abu pucat, senada --color-border-light */
+  pointer-events: none;
+}
+
+@keyframes onboardingModalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal panel ── */
+.onboarding-modal {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  background: var(--color-bg-true);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(26, 26, 46, 0.16);
+  padding: var(--space-xl) var(--space-lg);
+
+  animation: onboardingModalPopIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes onboardingModalPopIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.onboarding-modal__step {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ── Step dots ── */
+.onboarding-modal__dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.onboarding-modal__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border-medium);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+
+.onboarding-modal__dot--done,
+.onboarding-modal__dot--active {
+  background: var(--color-primary);
+}
+
+.onboarding-modal__dot--active {
+  width: 20px;
+  border-radius: 999px;
+}
+
+/* ── Illustration & copy ── */
+.onboarding-modal__illustration {
+  display: block;
+  height: 96px;
+  width: auto;
+  margin: 0 auto var(--space-md);
+}
+
+.onboarding-modal__title {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  color: var(--color-text-heading);
+  text-align: center;
+  margin: 0 0 var(--space-xs);
+}
+
+.onboarding-modal__subtitle {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0 0 var(--space-lg);
+}
+
+.onboarding-modal__hint {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ── Options list ── */
+.onboarding-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  overflow-y: auto;
+  padding-right: var(--space-2xs);
+  margin-bottom: var(--space-md);
+}
+
+.option-select-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 12px;
+  background: var(--color-bg-true);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  margin-bottom: var(--space-2xs);
+}
+
+.option-select-item:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.option-select-item--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.option-select-item input[type='checkbox'],
+.option-select-item input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.option-select-item__label {
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  color: var(--color-text-heading);
+}
+
+.option-select-item__category-heading {
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: var(--space-md) 0 var(--space-xs);
+}
+.option-select-item__category-heading:first-child {
+  margin-top: 0;
+}
+
+/* ── Error ── */
+.onboarding-modal__error {
+  margin: 0 0 var(--space-md);
+  font-size: var(--text-body-sm);
+  color: var(--color-danger);
+  text-align: center;
+}
+
+/* ── Footer ── */
+.onboarding-modal__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.onboarding-modal__footer--single {
+  justify-content: flex-end;
+}
+
+.onboarding-modal__btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-body-md);
+  padding: 14px var(--space-lg);
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.onboarding-modal__btn:active {
+  transform: scale(0.97);
+}
+
+.onboarding-modal__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.onboarding-modal__btn--primary {
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+}
+.onboarding-modal__btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+.onboarding-modal__btn--primary:active:not(:disabled) {
+  background: var(--color-primary-active);
+}
+
+.onboarding-modal__btn--outline {
+  background: transparent;
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
+}
+.onboarding-modal__btn--outline:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+
+/* ── Responsive ── */
+@media (max-width: 420px) {
+  .onboarding-modal {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .onboarding-modal__illustration {
+    height: 72px;
+  }
+}

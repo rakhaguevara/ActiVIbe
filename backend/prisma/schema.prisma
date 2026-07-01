@@ -20,6 +20,9 @@ model User {
 
   otpRequests   OtpRequest[]
   refreshTokens RefreshToken[]
+  profile       Profile?
+  userInterests UserInterest[]
+  userSkills    UserSkill[]
 }
 
 enum Role {
@@ -58,4 +61,86 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// FR-004: profil pengguna (minat, keahlian) — lihat PRD v2.0 Section 7.1
+model Profile {
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  bio          String?
+  location     String?
+  avatarUrl    String?
+  // Ketersediaan volunteer — dikumpulkan lewat Conversational Onboarding Agent
+  // (FR-023) tapi tidak ada di data dictionary PRD Section 7.1, ditambahkan
+  // di sini supaya jawaban pertanyaan ketiga agent punya tempat disimpan.
+  availability Availability?
+  // Jurusan/pendidikan — metadata portofolio & filter organizer (FR-016),
+  // sengaja TIDAK dipakai di Predictive Match Score (taksonomi jurusan
+  // terlalu beragam untuk dipetakan otomatis ke tag event).
+  education    String?
+  // Motivasi volunteering, disederhanakan dari Volunteer Functions Inventory
+  // (Clary et al.) — dicocokkan ke Event.motivationTag di Predictive Match
+  // Score (FR-005), bobot 15%.
+  motivation   Motivation?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Availability {
+  WEEKDAY
+  WEEKEND
+  BOTH
+}
+
+enum Motivation {
+  CAREER
+  SOCIAL
+  VALUES
+  SKILL_GROWTH
+}
+
+model Interest {
+  id       String @id @default(uuid())
+  name     String @unique
+  category String
+
+  userInterests UserInterest[]
+}
+
+model UserInterest {
+  id         String   @id @default(uuid())
+  userId     String
+  interestId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, interestId])
+  @@index([userId])
+  @@index([interestId])
+}
+
+model Skill {
+  id       String @id @default(uuid())
+  name     String @unique
+  category String
+
+  userSkills UserSkill[]
+}
+
+model UserSkill {
+  id        String   @id @default(uuid())
+  userId    String
+  skillId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
 }
