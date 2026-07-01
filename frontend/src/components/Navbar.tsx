@@ -4,7 +4,9 @@ import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/logo.svg'
 import './Navbar.css'
 
-const NAV_LINKS = [
+type NavAccent = 'primary' | 'secondary' | 'orange' | 'yellow'
+
+const NAV_LINKS: { label: string; href: string; to?: string; accent: NavAccent }[] = [
   { label: 'Cari Aktivitas', href: '#', accent: 'primary' },
   { label: 'Cari Organisasi', href: '#', accent: 'secondary' },
   { label: 'Cara Kerja', href: '#', to: '/cara-kerja', accent: 'orange' },

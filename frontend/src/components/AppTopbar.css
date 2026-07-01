@@ -52,12 +52,12 @@
   bottom: 2px;
   height: 3px;
   border-radius: 999px;
-  background: transparent;
-  transition: background 0.15s ease;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
 }
 
 .app-topbar__link:hover {
-  background: var(--color-primary-soft);
   color: var(--color-primary);
 }
 
@@ -65,14 +65,19 @@
   font-weight: 600;
 }
 
-.app-topbar__link--primary.is-active::after { background: var(--color-primary); }
-.app-topbar__link--secondary.is-active::after { background: var(--color-secondary); }
-.app-topbar__link--orange.is-active::after { background: var(--color-accent-orange); }
-.app-topbar__link--yellow.is-active::after { background: var(--color-accent-yellow); }
+.app-topbar__link:hover::after,
+.app-topbar__link.is-active::after {
+  transform: scaleX(1);
+}
 
-.app-topbar__link--secondary.is-active:hover { background: var(--color-secondary-soft); }
-.app-topbar__link--orange.is-active:hover { background: var(--color-accent-orange-soft); }
-.app-topbar__link--yellow.is-active:hover { background: var(--color-accent-yellow-soft); }
+.app-topbar__link--primary::after { background: var(--color-primary); }
+.app-topbar__link--secondary::after { background: var(--color-secondary); }
+.app-topbar__link--orange::after { background: var(--color-accent-orange); }
+.app-topbar__link--yellow::after { background: var(--color-accent-yellow); }
+
+.app-topbar__link--secondary.is-active:hover { color: var(--color-text-heading); }
+.app-topbar__link--orange.is-active:hover { color: var(--color-text-heading); }
+.app-topbar__link--yellow.is-active:hover { color: var(--color-text-heading); }
 
 .app-topbar__actions {
   display: flex;
@@ -357,7 +362,6 @@
 }
 
 .app-topbar__mobile-link:hover {
-  background: var(--color-primary-soft);
   color: var(--color-primary);
 }
 
@@ -370,9 +374,9 @@
 .app-topbar__mobile-link--orange.is-active { border-left-color: var(--color-accent-orange); }
 .app-topbar__mobile-link--yellow.is-active { border-left-color: var(--color-accent-yellow); }
 
-.app-topbar__mobile-link--secondary.is-active:hover { background: var(--color-secondary-soft); }
-.app-topbar__mobile-link--orange.is-active:hover { background: var(--color-accent-orange-soft); }
-.app-topbar__mobile-link--yellow.is-active:hover { background: var(--color-accent-yellow-soft); }
+.app-topbar__mobile-link--secondary.is-active:hover { color: var(--color-text-heading); }
+.app-topbar__mobile-link--orange.is-active:hover { color: var(--color-text-heading); }
+.app-topbar__mobile-link--yellow.is-active:hover { color: var(--color-text-heading); }
 
 .app-topbar__mobile-link--disabled {
   color: var(--color-text-muted);
