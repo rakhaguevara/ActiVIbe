@@ -1,0 +1,728 @@
+/* ── Hero ── */
+.cara-kerja-page__hero {
+  position: relative;
+  padding: 40px 40px 0;
+  text-align: center;
+  overflow: hidden;
+}
+
+.cara-kerja-page__hero-eyebrow {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.cara-kerja-page__hero-title {
+  font-size: clamp(28px, 4vw, 44px);
+  margin: 0 auto 20px;
+  max-width: 720px;
+}
+
+.cara-kerja-page__hero-desc {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--color-text-body);
+  max-width: 620px;
+  margin: 0 auto 48px;
+}
+
+@media (max-width: 600px) {
+  .cara-kerja-page__hero {
+    padding: 72px 20px 0;
+  }
+}
+
+/* ── Overview Umum ── */
+.cara-kerja-page__overview {
+  background: var(--color-primary-soft);
+  padding: 64px 40px;
+}
+
+.cara-kerja-page__overview-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.cara-kerja-page__overview-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.cara-kerja-page__overview-title {
+  font-size: clamp(22px, 3vw, 30px);
+  color: var(--color-text-heading);
+  max-width: 760px;
+  margin: 0 auto 48px;
+}
+
+.cara-kerja-page__overview-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cara-kerja-page__overview-item {
+  flex: 1;
+  min-width: 220px;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.cara-kerja-page__overview-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-bg-true);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--color-primary);
+  box-shadow: 0 0 0 6px var(--color-accent-yellow-soft);
+}
+
+.cara-kerja-page__overview-item-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.cara-kerja-page__overview-item-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .cara-kerja-page__overview {
+    padding: 48px 24px;
+  }
+
+  .cara-kerja-page__overview-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* ── CTA Penutup ── */
+.cara-kerja-page__cta {
+  background: var(--color-primary);
+  padding: 64px 40px;
+  text-align: center;
+}
+
+.cara-kerja-page__cta-title {
+  color: var(--color-text-on-dark);
+  font-size: clamp(22px, 3vw, 30px);
+  margin: 0 0 16px;
+}
+
+.cara-kerja-page__cta-desc {
+  color: var(--color-text-on-dark);
+  opacity: 0.9;
+  font-size: 15px;
+  line-height: 1.7;
+  max-width: 560px;
+  margin: 0 auto 32px;
+}
+
+.cara-kerja-page__cta-button {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-bg-true);
+  border: none;
+  border-radius: 999px;
+  padding: 14px 40px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.cara-kerja-page__cta-button:hover {
+  background: var(--color-primary-soft);
+}
+
+.cara-kerja-page__cta-button:active {
+  transform: scale(0.97);
+}
+
+/* ── Alur Detail Volunteer ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cara-kerja-page__flow {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-true);
+  padding: 80px 40px 96px;
+}
+
+.cara-kerja-page__flow-deco {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  left: -24px;
+  bottom: 32px;
+  width: 130px;
+  opacity: 0.9;
+  transform: rotate(-8deg);
+}
+
+.cara-kerja-page__flow-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.cara-kerja-page__flow-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.cara-kerja-page__flow-eyebrow {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  letter-spacing: 0.2px;
+}
+
+.cara-kerja-page__flow-eyebrow-line {
+  display: inline-block;
+  width: 48px;
+  height: 1px;
+  background: var(--color-border-medium);
+}
+
+.cara-kerja-page__flow-title {
+  font-size: clamp(22px, 2.8vw, 32px);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.3px;
+  max-width: 640px;
+  margin: 0 0 48px;
+}
+
+.cara-kerja-page__flow-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 380px) 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.cara-kerja-page__flow-nav-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+}
+
+.cara-kerja-page__flow-counter {
+  flex-shrink: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cara-kerja-page__flow-rail {
+  flex-shrink: 0;
+  width: 2px;
+  background: var(--color-border-medium);
+  border-radius: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cara-kerja-page__flow-rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--progress, 0%);
+  background: var(--color-accent-orange);
+  border-radius: 1px;
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cara-kerja-page__flow-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.cara-kerja-page__flow-nav-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cara-kerja-page__flow-nav-item--active {
+  background: var(--color-accent-orange);
+  color: var(--color-text-on-accent);
+}
+
+.cara-kerja-page__flow-nav-item--active:hover {
+  background: var(--color-accent-orange);
+}
+
+.cara-kerja-page__flow-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cara-kerja-page__flow-image-wrap {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.cara-kerja-page__flow-image {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+  animation: fadeInUp 0.4s ease both;
+}
+
+.cara-kerja-page__flow-desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.cara-kerja-page__flow-nav-wrap,
+.cara-kerja-page__flow-content {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cara-kerja-page__flow--visible .cara-kerja-page__flow-nav-wrap {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cara-kerja-page__flow--visible .cara-kerja-page__flow-content {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.1s;
+}
+
+@media (max-width: 900px) {
+  .cara-kerja-page__flow {
+    padding: 64px 32px 72px;
+  }
+
+  .cara-kerja-page__flow-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .cara-kerja-page__flow-image {
+    height: 260px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cara-kerja-page__flow {
+    padding: 48px 20px 64px;
+  }
+
+  .cara-kerja-page__flow-title {
+    margin-bottom: 32px;
+  }
+
+  .cara-kerja-page__flow-nav-item {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .cara-kerja-page__flow-image {
+    height: 200px;
+  }
+
+  .cara-kerja-page__flow-deco {
+    width: 90px;
+    left: -12px;
+    bottom: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cara-kerja-page__flow-nav-wrap,
+  .cara-kerja-page__flow-content {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .cara-kerja-page__flow-image {
+    animation: none;
+  }
+}
+
+/* ── Impact Passport ── */
+.cara-kerja-page__passport {
+  background: var(--color-bg-true);
+  padding: 64px 40px 88px;
+}
+
+.cara-kerja-page__passport-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.cara-kerja-page__passport-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 48px;
+}
+
+.cara-kerja-page__passport-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.cara-kerja-page__passport-title {
+  font-size: clamp(22px, 3vw, 32px);
+  color: var(--color-text-heading);
+  margin: 0 0 16px;
+}
+
+.cara-kerja-page__passport-desc {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.cara-kerja-page__passport-body {
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 360px);
+  gap: 48px;
+  align-items: start;
+}
+
+.cara-kerja-page__passport-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.cara-kerja-page__passport-feature-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 6px;
+}
+
+.cara-kerja-page__passport-feature-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.cara-kerja-page__passport-mockup {
+  position: relative;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.cara-kerja-page__passport-mockup-tag {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: var(--color-bg-true);
+  border: 1px solid var(--color-border-light);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.cara-kerja-page__passport-mockup-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 12px;
+  display: block;
+}
+
+.cara-kerja-page__passport-mockup-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 8px;
+}
+
+.cara-kerja-page__passport-mockup-tagline {
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--color-text-body);
+  margin: 0 0 24px;
+}
+
+.cara-kerja-page__passport-mockup-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 24px;
+}
+
+.cara-kerja-page__passport-mockup-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cara-kerja-page__passport-mockup-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.cara-kerja-page__passport-mockup-stat-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.cara-kerja-page__passport-mockup-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.cara-kerja-page__passport-mockup-skill-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  margin-bottom: 4px;
+}
+
+.cara-kerja-page__passport-mockup-skill-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border-light);
+  overflow: hidden;
+}
+
+.cara-kerja-page__passport-mockup-skill-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+@media (max-width: 900px) {
+  .cara-kerja-page__passport-body {
+    grid-template-columns: 1fr;
+  }
+
+  .cara-kerja-page__passport-features {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .cara-kerja-page__passport {
+    padding: 48px 20px 64px;
+  }
+}
+
+/* ── Intip Tampilannya (Dashboard Preview) ── */
+.cara-kerja-page__preview {
+  background: var(--color-bg-true);
+  padding: 64px 40px 88px;
+}
+
+.cara-kerja-page__preview-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 360px);
+  gap: 48px;
+  align-items: center;
+}
+
+.cara-kerja-page__preview-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.cara-kerja-page__preview-title {
+  font-size: clamp(22px, 3vw, 32px);
+  color: var(--color-text-heading);
+  margin: 0 0 16px;
+}
+
+.cara-kerja-page__preview-desc {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.cara-kerja-page__preview-mockup-tag-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.cara-kerja-page__preview-mockup-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.cara-kerja-page__preview-browser {
+  border-radius: 16px;
+  border: 1px solid var(--color-border-light);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.cara-kerja-page__preview-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-bg-surface);
+  padding: 10px 16px;
+}
+
+.cara-kerja-page__preview-browser-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border-medium);
+  flex-shrink: 0;
+}
+
+.cara-kerja-page__preview-browser-url {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-true);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.cara-kerja-page__preview-browser-body {
+  background: var(--color-bg-true);
+  padding: 24px;
+}
+
+.cara-kerja-page__preview-placeholder-bar {
+  height: 28px;
+  width: 40%;
+  border-radius: 8px;
+  background: var(--color-primary-soft);
+  margin-bottom: 20px;
+}
+
+.cara-kerja-page__preview-placeholder-row {
+  display: flex;
+  gap: 16px;
+}
+
+.cara-kerja-page__preview-placeholder-card {
+  flex: 1;
+  height: 90px;
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+}
+
+@media (max-width: 900px) {
+  .cara-kerja-page__preview-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .cara-kerja-page__preview {
+    padding: 48px 20px 64px;
+  }
+}

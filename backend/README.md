@@ -90,8 +90,11 @@ Entity yang **benar-benar terimplementasi** ada di `prisma/schema.prisma` (sourc
 - `User` — sama seperti rencana awal, plus `refreshTokens RefreshToken[]` (relasi baru). `isVerified` saat ini **selalu `true`** begitu register sukses (OTP di-skip untuk iterasi ini, lihat Status di atas) — bukan `default(false)` seperti rencana awal.
 - `OtpRequest` — sudah ada di schema (siap dipakai begitu OTP nyata diimplementasikan), tapi **belum dipakai** oleh kode manapun saat ini. Tambahan dari rencana awal: field `purpose` (enum `OtpPurpose`, default `REGISTER`) supaya tidak perlu migration baru kalau nanti ada OTP reset password.
 - `RefreshToken` — **baru, tidak ada di rencana awal**. Dibutuhkan begitu keputusan "refresh token storage" di Section 9 diambil (disimpan di DB, revocable). Simpan `tokenHash` (SHA-256), bukan token mentah.
-
-> Entity `Profile`, `Interest`, `Skill`, dll baru ditambahkan saat mulai kerjakan fitur Onboarding (FR-004, FR-023) — tidak perlu didefinisikan di tahap Register/Login ini supaya schema tidak membengkak prematur.
+- `Profile` — **baru** (FR-004/FR-023). 1-1 dengan `User`. Tambahan dari rencana awal PRD Section 7.1, semua belum ada di data dictionary PRD — PRD perlu diupdate untuk mencerminkan ini:
+  - `availability` (enum `Availability`: `WEEKDAY` | `WEEKEND` | `BOTH`) — dibutuhkan karena workflow 5.1 (Conversational Onboarding Agent) eksplisit menanyakan ketersediaan volunteer.
+  - `education` (String, opsional, free text) — metadata portofolio & filter organizer (FR-016). **Sengaja tidak dipakai di Predictive Match Score** — taksonomi jurusan terlalu beragam untuk dipetakan otomatis ke tag event tanpa rubric yang jelas.
+  - `motivation` (enum `Motivation`: `CAREER` | `SOCIAL` | `VALUES` | `SKILL_GROWTH`) — motivasi volunteering, disederhanakan dari kerangka riset **Volunteer Functions Inventory** (Clary et al.). Dicocokkan ke `Event.motivationTag` (belum ada — menyusul saat schema `Event` dibangun) di algoritma Predictive Match Score (FR-005), bobot 15% — lihat rancangan bobot lengkap di spec onboarding/matching kalau sudah ditulis.
+- `Interest` / `UserInterest`, `Skill` / `UserSkill` — **baru**, sama seperti rencana PRD (`User_Interests`, `User_Skills_Actual`) tapi dinamai `UserInterest`/`UserSkill` di Prisma (tanpa suffix historis `_Actual`). Master data (`Interest.category`, `Skill.category`) **belum di-seed** — tabel kosong sampai taksonomi minat/skill diputuskan.
 
 ---
 
@@ -181,6 +184,21 @@ Karena PostgreSQL di-install langsung di VPS (bukan Docker), ada 3 hal yang **wa
 
 ---
 
+## 8b. Endpoint Profile — Status Implementasi
+
+Modul `modules/profile/` (FR-004, FR-023). Semua endpoint butuh sesi login (cookie `accessToken`, lewat middleware `requireAuth`) — balas 401 kalau tidak ada/invalid.
+
+| Endpoint | FR | Status | Catatan |
+|---|---|---|---|
+| `GET /profile/me` | FR-004 | ✅ **Implemented** | Balas `{ profile }` — `bio/location/avatarUrl/availability/education/motivation` bernilai `null` dan `interests/skills` array kosong kalau user belum pernah isi profil (tidak 404). |
+| `PATCH /profile/me` | FR-004, FR-023 | ✅ **Implemented** | **Partial update** — body cuma perlu berisi field yang mau diisi (`bio`, `location`, `avatarUrl`, `availability`, `education`, `motivation`, `interestIds[]`, `skillIds[]`), field lain tidak disentuh. Ini yang dipakai alur Conversational Onboarding Agent untuk simpan jawaban satu per satu (lihat PRD workflow 5.1) — 400 kalau body kosong. `interestIds`/`skillIds` **mengganti seluruh** pilihan sebelumnya (bukan menambah), dan 400 kalau ada id yang tidak ditemukan. `education`/`motivation` sengaja ditaruh di "lengkapi profil" (progresif), bukan di fast-path onboarding ≤60 detik. |
+| `GET /profile/interests` | FR-004 | ✅ **Implemented** | List master data `Interest` (`id, name, category`), diurutkan per kategori. **Tabel masih kosong** — belum ada seed data, taksonomi minat belum diputuskan. |
+| `GET /profile/skills` | FR-004 | ✅ **Implemented** | Sama seperti di atas tapi untuk `Skill`. Tabel juga masih kosong. |
+| Conversational Onboarding Agent (chat UI + AI) | FR-023 | ❌ Belum | Endpoint di atas baru fondasi data — logika percakapan/agent-nya sendiri, dan halaman `frontend/src/pages/onboarding/`, belum dibangun. |
+| Predictive Match Score / rekomendasi | FR-005 | ❌ Belum | Butuh model `Event` dulu (belum ada sama sekali di schema) sebelum algoritma matching bisa jalan. |
+
+---
+
 ## 9. Keputusan & Open Decisions
 
 **Sudah diputuskan & terimplementasi** (dikonfirmasi user 2026-06-24, lihat spec/plan di `docs/superpowers/`):
@@ -188,11 +206,13 @@ Karena PostgreSQL di-install langsung di VPS (bukan Docker), ada 3 hal yang **wa
 - ✅ **Password policy**: minimum 8 karakter, tanpa syarat kompleksitas tambahan.
 - ✅ **Refresh token storage**: di database (tabel `RefreshToken`, revocable saat logout), disimpan sebagai hash SHA-256 — bukan token mentah.
 - ✅ **Strategi auth di frontend**: kedua token (access + refresh) jadi **httpOnly cookie** yang di-set backend (bukan disimpan di localStorage/state JS). Frontend baca status login lewat `AuthContext` (React Context API) yang panggil `GET /auth/me` saat mount.
+- ✅ **Field tambahan `Profile`** (dikonfirmasi user 2026-07-01): `availability`, `education`, `motivation` ditambahkan meski tidak ada di data dictionary resmi PRD v2.0 Section 7.1 — **PRD perlu diupdate** untuk konsisten dengan implementasi. `motivation` dipetakan ke `Event.motivationTag` (belum dibangun) di algoritma Predictive Match Score dengan bobot 15%; `education` sengaja tidak masuk hitungan skor (lihat Section 4).
 
 **Masih belum diputuskan** — jangan diasumsikan sendiri, konfirmasi dulu sebelum implementasi:
 
 - [ ] **Provider OTP**: SMS gateway (mana?) atau email (pakai apa — Resend/SendGrid/SMTP biasa)? Blocker utama buat implementasi FR-002/FR-003.
 - [ ] **Rate limiting di production** di belakang reverse proxy/load balancer — `express-rate-limit` saat ini pakai key default (`req.ip`), tanpa `app.set('trust proxy', ...)`. Di local dev ini benar (request langsung ke Express, tidak lewat proxy), tapi begitu deploy ke VPS Hostinger (Section 7) di belakang nginx/proxy apa pun, **semua user akan terhitung sebagai 1 IP** (IP si proxy) sampai `trust proxy` dikonfigurasi sesuai topologi network yang sebenarnya. Konfirmasi dulu setup proxy-nya sebelum deploy, baru putuskan nilai `trust proxy` yang benar (ditemukan saat code review 2026-06-24, belum di-fix karena topologi production belum ada).
+- [ ] **Taksonomi `Interest`/`Skill`**: field `category` sudah ada di schema tapi belum ada daftar nilai resmi (mis. kategori minat apa saja, skill apa saja) — PRD tidak mencantumkan daftar ini. Tabel `Interest`/`Skill` masih kosong sampai ini diputuskan & di-seed.
 
 ---
 
