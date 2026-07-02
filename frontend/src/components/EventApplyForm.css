@@ -94,22 +94,92 @@
   transform: scale(0.98);
 }
 
-.event-apply-form--success {
+.event-apply-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.event-apply-form__char-hint {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.event-apply-form__error {
+  font-size: var(--text-body-sm);
+  color: var(--color-danger);
+  margin: 0;
+}
+
+/* ── Tiket sukses & sudah mendaftar ── */
+.event-apply-form--ticket,
+.event-apply-form--already {
   align-items: center;
   text-align: center;
-  justify-content: center;
-  min-height: 200px;
+  gap: 10px;
 }
 
-.event-apply-form__success-text {
-  font-size: var(--text-body-md);
-  font-weight: 600;
-  color: var(--color-success);
+.event-apply-form__ticket-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-success);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.event-apply-form__ticket-badge--info {
+  background: var(--color-secondary);
+}
+
+.event-apply-form__ticket-heading {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  color: var(--color-text-heading);
   margin: 0;
 }
 
-.event-apply-form__success-event {
+.event-apply-form__ticket-event {
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 8px;
+}
+
+.event-apply-form__ticket-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--color-border-light);
+  font-size: var(--text-body-sm);
+}
+
+.event-apply-form__ticket-label {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.event-apply-form__ticket-value {
+  color: var(--color-text-body);
+  font-weight: 500;
+  text-align: right;
+}
+
+.event-apply-form__ticket-status {
+  color: var(--color-accent-orange);
+  font-weight: 600;
+}
+
+.event-apply-form__ticket-note {
   font-size: var(--text-body-sm);
   color: var(--color-text-muted);
-  margin: 0;
+  margin: 8px 0 0;
+  line-height: 1.5;
 }

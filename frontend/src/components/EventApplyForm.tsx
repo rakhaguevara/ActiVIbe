@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ChangeEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { applyToEvent, getMyApplications } from '../lib/applicationApi'
 import type { Event } from '../types/event'
 import { formatDateShort } from '../utils/formatDate'
 import './EventApplyForm.css'
@@ -8,35 +9,126 @@ interface EventApplyFormProps {
   event: Event
 }
 
+type FormState = 'idle' | 'submitting' | 'success' | 'already-applied' | 'error'
+
 export default function EventApplyForm({ event }: EventApplyFormProps) {
   const { user } = useAuth()
-  const [submitted, setSubmitted] = useState(false)
+
+  const [whatsapp, setWhatsapp] = useState('')
+  const [motivation, setMotivation] = useState('')
+  const [availability, setAvailability] = useState<string[]>([])
+
+  const [formState, setFormState] = useState<FormState>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
-    setSubmitted(false)
-  }, [event.id])
+    if (!user) return
+    setFormState('idle')
+    setWhatsapp('')
+    setMotivation('')
+    setAvailability([])
+    setErrorMsg('')
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setSubmitted(true)
+    getMyApplications()
+      .then((applications) => {
+        if (applications.some((a) => a.eventId === event.id)) {
+          setFormState('already-applied')
+        }
+      })
+      .catch(() => {
+        // gagal cek tidak harus blokir form
+      })
+  }, [event.id, user])
+
+  function toggleAvailability(value: string) {
+    setAvailability((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    )
   }
 
-  if (submitted) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (availability.length === 0) {
+      setErrorMsg('Pilih minimal satu ketersediaan.')
+      return
+    }
+
+    setFormState('submitting')
+    setErrorMsg('')
+
+    try {
+      await applyToEvent({
+        eventId: event.id,
+        whatsapp: whatsapp.trim(),
+        motivation: motivation.trim(),
+        availability,
+      })
+      setFormState('success')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan. Coba lagi.'
+      if (msg.toLowerCase().includes('sudah mendaftar')) {
+        setFormState('already-applied')
+      } else {
+        setErrorMsg(msg)
+        setFormState('error')
+      }
+    }
+  }
+
+  // ── Tiket sukses (FR-007) ────────────────────────────────────────────────────
+  if (formState === 'success') {
     return (
-      <div className="event-apply-form event-apply-form--success">
-        <p className="event-apply-form__success-text">
-          Pendaftaran tercatat! (demo, belum tersambung backend)
+      <div className="event-apply-form event-apply-form--ticket">
+        <div className="event-apply-form__ticket-badge">✓</div>
+        <p className="event-apply-form__ticket-heading">Pendaftaran Berhasil!</p>
+        <p className="event-apply-form__ticket-event">{event.title}</p>
+        <div className="event-apply-form__ticket-row">
+          <span className="event-apply-form__ticket-label">Tanggal</span>
+          <span className="event-apply-form__ticket-value">
+            {formatDateShort(event.startDate)}
+            {event.startDate !== event.endDate && ` – ${formatDateShort(event.endDate)}`}
+          </span>
+        </div>
+        <div className="event-apply-form__ticket-row">
+          <span className="event-apply-form__ticket-label">Lokasi</span>
+          <span className="event-apply-form__ticket-value">{event.location}</span>
+        </div>
+        <div className="event-apply-form__ticket-row">
+          <span className="event-apply-form__ticket-label">Penyelenggara</span>
+          <span className="event-apply-form__ticket-value">{event.organizerName}</span>
+        </div>
+        <div className="event-apply-form__ticket-row">
+          <span className="event-apply-form__ticket-label">Status</span>
+          <span className="event-apply-form__ticket-status">Menunggu konfirmasi</span>
+        </div>
+        <p className="event-apply-form__ticket-note">
+          Organizer akan menghubungimu via WhatsApp setelah pendaftaran dikonfirmasi.
         </p>
-        <p className="event-apply-form__success-event">{event.title}</p>
       </div>
     )
   }
 
+  // ── Sudah pernah daftar ──────────────────────────────────────────────────────
+  if (formState === 'already-applied') {
+    return (
+      <div className="event-apply-form event-apply-form--already">
+        <div className="event-apply-form__ticket-badge event-apply-form__ticket-badge--info">i</div>
+        <p className="event-apply-form__ticket-heading">Sudah Mendaftar</p>
+        <p className="event-apply-form__ticket-event">{event.title}</p>
+        <p className="event-apply-form__ticket-note">
+          Kamu sudah mendaftar ke kegiatan ini. Tunggu konfirmasi dari organizer via WhatsApp.
+        </p>
+      </div>
+    )
+  }
+
+  // ── Form ─────────────────────────────────────────────────────────────────────
   return (
-    <form className="event-apply-form" onSubmit={handleSubmit}>
+    <form className="event-apply-form" onSubmit={handleSubmit} noValidate>
       <p className="event-apply-form__event-title">{event.title}</p>
       <p className="event-apply-form__event-date">
-        {formatDateShort(event.startDate)} – {formatDateShort(event.endDate)}
+        {formatDateShort(event.startDate)}
+        {event.startDate !== event.endDate && ` – ${formatDateShort(event.endDate)}`}
       </p>
 
       <div className="event-apply-form__field">
@@ -51,21 +143,61 @@ export default function EventApplyForm({ event }: EventApplyFormProps) {
 
       <div className="event-apply-form__field">
         <label htmlFor="apply-whatsapp">No. WhatsApp</label>
-        <input id="apply-whatsapp" name="whatsapp" type="tel" placeholder="08xxxxxxxxxx" required />
+        <input
+          id="apply-whatsapp"
+          type="tel"
+          placeholder="08xxxxxxxxxx"
+          value={whatsapp}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setWhatsapp(e.target.value)}
+          required
+        />
       </div>
 
       <div className="event-apply-form__field">
-        <label htmlFor="apply-motivation">Motivasi mengikuti kegiatan ini</label>
-        <textarea id="apply-motivation" name="motivation" rows={3} placeholder="Ceritakan alasanmu..." required />
+        <label htmlFor="apply-motivation">
+          Motivasi mengikuti kegiatan ini
+          <span className="event-apply-form__char-hint"> ({motivation.length}/1000)</span>
+        </label>
+        <textarea
+          id="apply-motivation"
+          rows={3}
+          placeholder="Ceritakan alasanmu... (minimal 20 karakter)"
+          value={motivation}
+          maxLength={1000}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setMotivation(e.target.value)}
+          required
+        />
       </div>
 
       <fieldset className="event-apply-form__availability">
         <legend>Ketersediaan</legend>
-        <label><input type="checkbox" name="availability" value="weekday" /> Weekday</label>
-        <label><input type="checkbox" name="availability" value="weekend" /> Weekend</label>
+        <label>
+          <input
+            type="checkbox"
+            checked={availability.includes('weekday')}
+            onChange={() => toggleAvailability('weekday')}
+          />
+          Weekday
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={availability.includes('weekend')}
+            onChange={() => toggleAvailability('weekend')}
+          />
+          Weekend
+        </label>
       </fieldset>
 
-      <button type="submit" className="event-apply-form__submit">Konfirmasi Pendaftaran</button>
+      {errorMsg && <p className="event-apply-form__error">{errorMsg}</p>}
+
+      <button
+        type="submit"
+        className="event-apply-form__submit"
+        disabled={formState === 'submitting'}
+      >
+        {formState === 'submitting' ? 'Mendaftar...' : 'Konfirmasi Pendaftaran'}
+      </button>
     </form>
   )
 }
