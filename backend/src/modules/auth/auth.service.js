@@ -31,7 +31,7 @@ async function issueTokens(user) {
   return { accessToken, refreshToken }
 }
 
-export async function registerUser({ firstName, lastName, email, password }) {
+export async function registerUser({ firstName, lastName, email, password, role }) {
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     throw new AppError(409, 'Email sudah terdaftar')
@@ -46,6 +46,7 @@ export async function registerUser({ firstName, lastName, email, password }) {
         email,
         password: hashedPassword,
         isVerified: true,
+        ...(role ? { role } : {}),
       },
     })
   } catch (error) {

@@ -9,7 +9,23 @@ import { errorHandler } from './middlewares/errorHandler.js'
 
 export const app = express()
 
-app.use(cors({ origin: env.FRONTEND_URL, credentials: true }))
+// FRONTEND_URL may list multiple origins separated by commas (one per portal:
+// volunteer/organizer/admin each run on their own port), so allowlist-check
+// instead of passing the raw string straight to cors().
+const allowedOrigins = env.FRONTEND_URL.split(',').map((origin) => origin.trim())
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    },
+    credentials: true,
+  }),
+)
 app.use(cookieParser())
 app.use(express.json())
 

@@ -36,6 +36,20 @@ describe('validateRegisterInput', () => {
     })
     expect(result.valid).toBe(false)
   })
+
+  it('accepts a valid role', () => {
+    const result = validateRegisterInput({
+      firstName: 'Casey', lastName: 'Smith', email: 'casey@example.com', password: 'password123', role: 'ORGANIZER',
+    })
+    expect(result.valid).toBe(true)
+  })
+
+  it('rejects an invalid role', () => {
+    const result = validateRegisterInput({
+      firstName: 'Casey', lastName: 'Smith', email: 'casey@example.com', password: 'password123', role: 'SUPERUSER',
+    })
+    expect(result.valid).toBe(false)
+  })
 })
 
 describe('validateLoginInput', () => {

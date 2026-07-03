@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode volunteer",
+    "dev:volunteer": "vite --mode volunteer",
+    "dev:organizer": "vite --mode organizer",
+    "dev:admin": "vite --mode admin",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

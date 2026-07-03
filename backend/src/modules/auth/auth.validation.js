@@ -1,7 +1,8 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const VALID_ROLES = ['VOLUNTEER', 'ORGANIZER', 'ADMIN']
 
 export function validateRegisterInput(body) {
-  const { firstName, lastName, email, password } = body
+  const { firstName, lastName, email, password, role } = body
 
   if (!firstName || typeof firstName !== 'string' || !firstName.trim()) {
     return { valid: false, message: 'Nama depan wajib diisi' }
@@ -14,6 +15,9 @@ export function validateRegisterInput(body) {
   }
   if (!password || typeof password !== 'string' || password.length < 8) {
     return { valid: false, message: 'Password minimal 8 karakter' }
+  }
+  if (role !== undefined && !VALID_ROLES.includes(role)) {
+    return { valid: false, message: 'Role tidak valid' }
   }
 
   return { valid: true }

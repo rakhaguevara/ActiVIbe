@@ -12,6 +12,7 @@ export interface RegisterPayload {
   lastName: string
   email: string
   password: string
+  role?: AuthUser['role']
 }
 
 export interface LoginPayload {
