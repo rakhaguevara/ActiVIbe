@@ -42,6 +42,11 @@
   --color-danger: #E14B4B;
   --color-danger-soft: #FBE7E7;
   --color-info: var(--color-secondary);
+  /* PROPOSED — belum resmi di design.md, konfirmasi ke Rakha: raw --color-warning
+     (#F5C30D) hanya 1.65:1 contrast di atas putih, gagal ambang 3:1 utk mark/fill
+     grafik (beda dari badge yang latarnya --color-warning-soft + teks digelapkan).
+     Dipakai HANYA sbg fill bar/chart, bukan pengganti --color-warning di badge. */
+  --color-warning-chart: #B8890A;
 
   /* 8. Border & divider */
   --color-border-light: #ECECF1;
@@ -104,4 +109,131 @@ h1, h2, h3, h4, h5, h6, .heading {
   color: var(--color-text-heading);
   line-height: var(--leading-tight);
   margin: 0;
+}
+
+/* Visually hidden but reachable by screen readers — dipakai utk table-view
+   fallback dari chart (lihat BarChart.tsx), bukan display:none. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================
+   BASE COMPONENTS — sumber: docs/design.md Section 6
+   Dipakai lintas role (Volunteer/Organizer/Admin),
+   jangan duplikasi definisi ini di file lain.
+   ============================================ */
+
+/* -- Button (Section 6.1, radius per Revisi v1.1) -- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-body-md);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn--sm {
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-body-sm);
+  border-radius: 10px;
+}
+.btn--primary {
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+}
+.btn--primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+.btn--primary:active:not(:disabled) { background: var(--color-primary-active); }
+.btn--secondary {
+  background: var(--color-accent-orange);
+  color: var(--color-text-on-accent);
+}
+.btn--secondary:hover:not(:disabled) { background: var(--color-accent-orange-hover); }
+.btn--outline {
+  background: transparent;
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
+}
+.btn--outline:hover:not(:disabled) { background: var(--color-primary-soft); }
+.btn--danger {
+  background: var(--color-danger);
+  color: var(--color-text-on-accent);
+}
+.btn--danger:hover:not(:disabled) { background: #C93C3C; }
+
+/* -- Card (Section 6.2) -- */
+.card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: var(--space-lg);
+}
+
+/* -- Badge (Section 6.3) -- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge--success { background: var(--color-success-soft); color: var(--color-success); }
+.badge--warning { background: var(--color-warning-soft); color: #8A6D00; }
+.badge--danger  { background: var(--color-danger-soft); color: var(--color-danger); }
+.badge--info    { background: var(--color-secondary-soft); color: var(--color-secondary-dark); }
+
+/* -- Admin/Organizer table density (Section 8: radius boleh dikecilkan
+   ke 12px utk table row/cell; TIDAK mengubah .card 20px di tempat lain) -- */
+.admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 var(--space-xs);
+}
+.admin-table th {
+  text-align: left;
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: var(--space-xs) var(--space-md);
+}
+.admin-table td {
+  background: var(--color-bg-surface);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+}
+.admin-table tr td:first-child {
+  border-left: 1px solid var(--color-border-light);
+  border-radius: 12px 0 0 12px;
+}
+.admin-table tr td:last-child {
+  border-right: 1px solid var(--color-border-light);
+  border-radius: 0 12px 12px 0;
 }
