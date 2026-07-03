@@ -19,6 +19,12 @@ export async function applyToEvent({ userId, eventId, whatsapp, motivation, avai
       conflict.statusCode = 409
       throw conflict
     }
+    // P2003 = foreign key violation (eventId tidak ada di tabel Event)
+    if (err?.code === 'P2003') {
+      const notFound = new Error('Kegiatan tidak ditemukan.')
+      notFound.statusCode = 404
+      throw notFound
+    }
     throw err
   }
 }

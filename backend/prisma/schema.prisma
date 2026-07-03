@@ -24,6 +24,18 @@ model User {
   userInterests UserInterest[]
   userSkills    UserSkill[]
   applications  Application[]
+  skillProgress SkillProgress[]
+  auditLogs     AuditLog[]
+
+  // Organizer domain — dua relasi terpisah ke Event karena satu User bisa
+  // jadi organizer sekaligus (di kesempatan lain) admin yang approve event.
+  organizedEvents Event[] @relation("EventOrganizer")
+  approvedEvents  Event[] @relation("EventApprovedBy")
+
+  assignmentsMade       VolunteerAssignment[] @relation("AssignmentAssignedBy")
+  organizerNotes        OrganizerNote[]       @relation("OrganizerNoteAuthor")
+  communicationsSent    CommunicationLog[]    @relation("CommunicationSentBy")
+  attendanceChecksMade  AttendanceLog[]       @relation("AttendanceCheckedBy")
 }
 
 enum Role {
@@ -107,7 +119,8 @@ model Interest {
   name     String @unique
   category String
 
-  userInterests UserInterest[]
+  userInterests  UserInterest[]
+  eventInterests EventInterest[]
 }
 
 model UserInterest {
@@ -129,7 +142,10 @@ model Skill {
   name     String @unique
   category String
 
-  userSkills UserSkill[]
+  userSkills      UserSkill[]
+  eventSkills     EventSkill[]
+  eventRoleSkills EventRoleSkill[]
+  skillProgress   SkillProgress[]
 }
 
 model UserSkill {
@@ -146,6 +162,93 @@ model UserSkill {
   @@index([skillId])
 }
 
+// FR-027: XP per skill, bertambah tiap event selesai berdasarkan skill tag
+// event (lihat FR-017b/FR-048-049) — lihat PRD v2.0 Section 7.1 SkillProgress
+model SkillProgress {
+  id        String   @id @default(uuid())
+  userId    String
+  skillId   String
+  xpTotal   Int      @default(0)
+  level     Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+}
+
+// FR-011/012: kegiatan volunteer — lihat PRD v2.0 Section 7.1 Event
+model Event {
+  id          String      @id @default(uuid())
+  organizerId String
+  title       String
+  description String
+  location    String
+  quota       Int
+  startDate   DateTime
+  endDate     DateTime
+  status      EventStatus @default(DRAFT)
+  // impact_metric_template dari PRD — nama & satuan metrik dampak event
+  // (mis. "Jumlah bibit ditanam" / "bibit"), diisi organizer saat buat event
+  // (FR-011) dan dipakai sbg saran nilai di close event flow (FR-017/FR-048).
+  impactMetricLabel String
+  impactMetricUnit  String?
+  approvedById      String?
+  approvedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organizer  User  @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  approvedBy User? @relation("EventApprovedBy", fields: [approvedById], references: [id])
+
+  eventSkills       EventSkill[]
+  eventInterests    EventInterest[]
+  applications      Application[]
+  eventRoles        EventRole[]
+  requirements      EventRequirement[]
+  communicationLogs CommunicationLog[]
+
+  @@index([organizerId])
+  @@index([status])
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING_APPROVAL
+  PUBLISHED
+  ONGOING
+  COMPLETED
+  REJECTED
+}
+
+model EventSkill {
+  id      String @id @default(uuid())
+  eventId String
+  skillId String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, skillId])
+  @@index([eventId])
+  @@index([skillId])
+}
+
+model EventInterest {
+  id         String @id @default(uuid())
+  eventId    String
+  interestId String
+
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, interestId])
+  @@index([eventId])
+  @@index([interestId])
+}
+
 // FR-006: pendaftaran kegiatan volunteer
 model Application {
   id           String            @id @default(uuid())
@@ -154,19 +257,250 @@ model Application {
   whatsapp     String
   motivation   String
   availability String[]
-  status       ApplicationStatus @default(PENDING)
+  status       ApplicationStatus @default(APPLIED)
+  // Diisi organizer saat close event (FR-017/FR-048-049), bukan saat daftar
+  attended     Boolean?
+  impactValue  Float?
   appliedAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  impactLog           ImpactLog?
+  assignments         VolunteerAssignment[]
+  organizerNotes      OrganizerNote[]
+  requirementStatuses VolunteerRequirementStatus[]
+  attendanceLogs      AttendanceLog[]
 
   @@unique([userId, eventId])
   @@index([userId])
+  @@index([eventId])
 }
 
+// FR-032 (pipeline volunteer) + FR-045/FR-048-049 (hasil attendance/close event)
 enum ApplicationStatus {
-  PENDING
+  APPLIED
+  UNDER_REVIEW
   ACCEPTED
   REJECTED
+  WAITLISTED
+  CHECKED_IN
   COMPLETED
+  NO_SHOW
+  CANCELLED_BY_ORGANIZER
+  CANCELLED_BY_VOLUNTEER
+}
+
+// FR-009/FR-024: narasi & metrik dampak per volunteer per event
+model ImpactLog {
+  id            String   @id @default(uuid())
+  applicationId String   @unique
+  metricLabel   String
+  value         Float
+  unit          String
+  aiHeadline    String?
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// ORGANIZER DOMAIN — PRD v2.1 Addendum Section O5.1
+// Role & Shift Management (FR-029–031, FR-037)
+// ============================================
+
+model EventRole {
+  id                String   @id @default(uuid())
+  eventId           String
+  roleName          String
+  roleDescription   String?
+  maxVolunteers     Int
+  notesForVolunteer String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  event       Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  roleSkills  EventRoleSkill[]
+  shifts      EventShift[]
+  assignments VolunteerAssignment[]
+
+  @@index([eventId])
+}
+
+model EventRoleSkill {
+  id              String               @id @default(uuid())
+  eventRoleId     String
+  skillId         String
+  requirementType SkillRequirementType @default(REQUIRED)
+
+  eventRole EventRole @relation(fields: [eventRoleId], references: [id], onDelete: Cascade)
+  skill     Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([eventRoleId, skillId])
+  @@index([eventRoleId])
+}
+
+enum SkillRequirementType {
+  REQUIRED
+  OPTIONAL
+}
+
+model EventShift {
+  id                 String    @id @default(uuid())
+  eventRoleId        String
+  shiftDate          DateTime
+  startTime          DateTime
+  endTime            DateTime
+  quota              Int
+  locationPoint      String?
+  checkInWindowStart DateTime?
+  checkInWindowEnd   DateTime?
+  instructions       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  eventRole      EventRole             @relation(fields: [eventRoleId], references: [id], onDelete: Cascade)
+  assignments    VolunteerAssignment[]
+  attendanceLogs AttendanceLog[]
+
+  @@index([eventRoleId])
+}
+
+// Menghubungkan volunteer accepted ke role dan shift tertentu (FR-037)
+model VolunteerAssignment {
+  id            String   @id @default(uuid())
+  applicationId String
+  eventRoleId   String
+  eventShiftId  String
+  assignedAt    DateTime @default(now())
+  assignedById  String
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  eventRole   EventRole   @relation(fields: [eventRoleId], references: [id], onDelete: Cascade)
+  eventShift  EventShift  @relation(fields: [eventShiftId], references: [id], onDelete: Cascade)
+  assignedBy  User        @relation("AssignmentAssignedBy", fields: [assignedById], references: [id])
+
+  @@unique([applicationId, eventShiftId])
+  @@index([applicationId])
+  @@index([eventRoleId])
+  @@index([eventShiftId])
+}
+
+// Pre-Event Requirements (FR-039, FR-040)
+model EventRequirement {
+  id          String          @id @default(uuid())
+  eventId     String
+  title       String
+  type        RequirementType
+  description String?
+  isMandatory Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+
+  event    Event                         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  statuses VolunteerRequirementStatus[]
+
+  @@index([eventId])
+}
+
+enum RequirementType {
+  READ_ACKNOWLEDGE
+  CHECKLIST
+  UPLOAD_PROOF
+}
+
+model VolunteerRequirementStatus {
+  id            String            @id @default(uuid())
+  requirementId String
+  applicationId String
+  status        RequirementStatus @default(NOT_STARTED)
+  completedAt   DateTime?
+
+  requirement EventRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  application Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([requirementId, applicationId])
+  @@index([applicationId])
+}
+
+enum RequirementStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+// Catatan internal organizer per volunteer (FR-035)
+model OrganizerNote {
+  id            String   @id @default(uuid())
+  organizerId   String
+  applicationId String
+  note          String
+  createdAt     DateTime @default(now())
+
+  organizer   User        @relation("OrganizerNoteAuthor", fields: [organizerId], references: [id], onDelete: Cascade)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+// Communication Center (FR-041–043)
+model CommunicationLog {
+  id              String   @id @default(uuid())
+  eventId         String
+  title           String
+  message         String
+  targetSegment   String
+  // Tidak dibuat enum — PRD tidak mendaftar nilai channel yang baku
+  deliveryChannel String
+  sentAt          DateTime @default(now())
+  sentById        String
+
+  event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sentBy User  @relation("CommunicationSentBy", fields: [sentById], references: [id])
+
+  @@index([eventId])
+}
+
+// Attendance / Check-in (FR-044–046)
+model AttendanceLog {
+  id            String        @id @default(uuid())
+  applicationId String
+  eventRoleId   String?
+  eventShiftId  String?
+  checkedInAt   DateTime      @default(now())
+  method        CheckInMethod
+  checkedById   String?
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  eventShift  EventShift? @relation(fields: [eventShiftId], references: [id], onDelete: SetNull)
+  checkedBy   User?       @relation("AttendanceCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@index([eventShiftId])
+}
+
+enum CheckInMethod {
+  QR
+  MANUAL
+}
+
+// ============================================
+// AUDIT — dipakai bareng oleh Admin (FR-022) & Organizer (FR-052);
+// satu tabel, karena keduanya butuh "log aksi penting" dengan bentuk
+// yang sama (aktor, aksi, target, waktu), bukan dua kebutuhan berbeda.
+// ============================================
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String?
+  action      String
+  targetType  String?
+  targetId    String?
+  targetLabel String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([createdAt])
 }
