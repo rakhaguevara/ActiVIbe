@@ -30,3 +30,32 @@ export function validateApplyInput(body) {
 
   return { valid: true }
 }
+
+const APPLICANT_STATUSES = [
+  'applied', 'under_review', 'accepted', 'rejected', 'waitlisted',
+  'checked_in', 'completed', 'no_show', 'cancelled_by_organizer', 'cancelled_by_volunteer',
+]
+
+export function validateUpdateStatus(body) {
+  if (!APPLICANT_STATUSES.includes(body.status)) {
+    return { valid: false, message: 'Status tidak valid' }
+  }
+  return { valid: true }
+}
+
+export function validateAddNote(body) {
+  if (!body.note || typeof body.note !== 'string' || !body.note.trim()) {
+    return { valid: false, message: 'Catatan tidak boleh kosong' }
+  }
+  return { valid: true }
+}
+
+export function validateAssign(body) {
+  if (!body.eventRoleId || typeof body.eventRoleId !== 'string') {
+    return { valid: false, message: 'eventRoleId wajib diisi' }
+  }
+  if (!body.eventShiftId || typeof body.eventShiftId !== 'string') {
+    return { valid: false, message: 'eventShiftId wajib diisi' }
+  }
+  return { valid: true }
+}
