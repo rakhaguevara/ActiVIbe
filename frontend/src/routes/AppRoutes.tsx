@@ -15,7 +15,16 @@ import UsersPage from '../pages/admin/UsersPage'
 import EventsPage from '../pages/admin/EventsPage'
 import ParticipationExportPage from '../pages/admin/ParticipationExportPage'
 import ActivityLogPage from '../pages/admin/ActivityLogPage'
-import OrganizerDashboardPage from '../pages/organizer/OrganizerDashboardPage'
+import OrganizerOverviewPage from '../pages/organizer/OverviewPage'
+import OrganizerEventsPage from '../pages/organizer/EventsPage'
+import CreateEventPage from '../pages/organizer/CreateEventPage'
+import EventDetailPage from '../pages/organizer/EventDetailPage'
+import ApplicantsPage from '../pages/organizer/ApplicantsPage'
+import AssignmentsPage from '../pages/organizer/AssignmentsPage'
+import AttendancePage from '../pages/organizer/AttendancePage'
+import CommunicationPage from '../pages/organizer/CommunicationPage'
+import ReportsPage from '../pages/organizer/ReportsPage'
+import OrganizerSettingsPage from '../pages/organizer/SettingsPage'
 import { PORTAL } from '../config/portal'
 
 export default function AppRoutes() {
@@ -69,7 +78,16 @@ export default function AppRoutes() {
           }
         />
         <Route element={<OrganizerLayout />}>
-          <Route path="/organizer" element={<OrganizerDashboardPage />} />
+          <Route path="/organizer" element={<OrganizerOverviewPage />} />
+          <Route path="/organizer/events" element={<OrganizerEventsPage />} />
+          <Route path="/organizer/events/new" element={<CreateEventPage />} />
+          <Route path="/organizer/events/:eventId" element={<EventDetailPage />} />
+          <Route path="/organizer/applicants" element={<ApplicantsPage />} />
+          <Route path="/organizer/assignments" element={<AssignmentsPage />} />
+          <Route path="/organizer/attendance" element={<AttendancePage />} />
+          <Route path="/organizer/communication" element={<CommunicationPage />} />
+          <Route path="/organizer/reports" element={<ReportsPage />} />
+          <Route path="/organizer/settings" element={<OrganizerSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

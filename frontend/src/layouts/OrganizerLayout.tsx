@@ -1,9 +1,31 @@
 import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { FiGrid, FiLogOut } from 'react-icons/fi'
+import {
+  FiGrid,
+  FiCalendar,
+  FiUsers,
+  FiUserCheck,
+  FiCheckSquare,
+  FiMessageSquare,
+  FiBarChart2,
+  FiSettings,
+  FiLogOut,
+} from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
+import { OrganizerDataProvider } from '../contexts/OrganizerDataContext'
 import logo from '../assets/svg/logo.svg'
 import './OrganizerLayout.css'
+
+const NAV_ITEMS = [
+  { to: '/organizer', label: 'Overview', icon: FiGrid, end: true },
+  { to: '/organizer/events', label: 'Events', icon: FiCalendar, end: false },
+  { to: '/organizer/applicants', label: 'Applicants', icon: FiUsers, end: false },
+  { to: '/organizer/assignments', label: 'Assignments', icon: FiUserCheck, end: false },
+  { to: '/organizer/attendance', label: 'Attendance', icon: FiCheckSquare, end: false },
+  { to: '/organizer/communication', label: 'Communication', icon: FiMessageSquare, end: false },
+  { to: '/organizer/reports', label: 'Reports & Impact', icon: FiBarChart2, end: false },
+  { to: '/organizer/settings', label: 'Organization Settings', icon: FiSettings, end: false },
+]
 
 export default function OrganizerLayout() {
   const { user, isLoading, logout } = useAuth()
@@ -33,10 +55,19 @@ export default function OrganizerLayout() {
         </div>
 
         <nav className="organizer-layout__nav">
-          <NavLink to="/organizer" end className="organizer-layout__nav-link">
-            <FiGrid className="organizer-layout__nav-icon" />
-            Dashboard
-          </NavLink>
+          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                ['organizer-layout__nav-link', isActive ? 'is-active' : ''].filter(Boolean).join(' ')
+              }
+            >
+              <Icon className="organizer-layout__nav-icon" />
+              {label}
+            </NavLink>
+          ))}
         </nav>
 
         <div className="organizer-layout__footer">
@@ -48,7 +79,9 @@ export default function OrganizerLayout() {
       </aside>
 
       <main className="organizer-layout__content">
-        <Outlet />
+        <OrganizerDataProvider>
+          <Outlet />
+        </OrganizerDataProvider>
       </main>
     </div>
   )

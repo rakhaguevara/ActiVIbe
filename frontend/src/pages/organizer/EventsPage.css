@@ -1,0 +1,32 @@
+.organizer-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-width: var(--container-max-width);
+  height: 100%;
+}
+
+.organizer-events__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.organizer-events__header p {
+  margin-top: var(--space-2xs);
+  color: var(--color-text-muted);
+}
+
+.organizer-events__title {
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  max-width: 280px;
+}
+
+.organizer-events__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
