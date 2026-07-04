@@ -26,11 +26,16 @@ import CommunicationPage from '../pages/organizer/CommunicationPage'
 import ReportsPage from '../pages/organizer/ReportsPage'
 import OrganizerSettingsPage from '../pages/organizer/SettingsPage'
 import { PORTAL } from '../config/portal'
+import LoadingScreen from '../components/LoadingScreen'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function AppRoutes() {
   const navigate = useNavigate()
+  const { isLoading } = useAuth()
   const onLoginClick = () => navigate('/masuk')
   const onSignupClick = () => navigate('/daftar')
+
+  if (isLoading) return <LoadingScreen />
 
   if (PORTAL === 'admin') {
     return (

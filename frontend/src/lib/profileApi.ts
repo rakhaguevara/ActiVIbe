@@ -7,6 +7,7 @@ export interface TaxonomyItem {
 }
 
 export type Availability = 'WEEKDAY' | 'WEEKEND' | 'BOTH'
+export type Motivation = 'CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH'
 
 export interface ProfileData {
   userId: string
@@ -14,6 +15,7 @@ export interface ProfileData {
   location: string | null
   avatarUrl: string | null
   availability: Availability | null
+  motivation: Motivation | null
   interests: TaxonomyItem[]
   skills: TaxonomyItem[]
 }
@@ -22,6 +24,8 @@ export interface ProfileUpdatePayload {
   interestIds?: string[]
   skillIds?: string[]
   availability?: Availability
+  bio?: string
+  motivation?: Motivation
 }
 
 async function parseResponse(res: Response) {

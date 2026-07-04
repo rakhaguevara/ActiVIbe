@@ -1,0 +1,53 @@
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: var(--color-bg-true, #fff);
+  z-index: 9999;
+  animation: loadingFadeIn 0.2s ease;
+}
+
+@keyframes loadingFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.loading-screen__logo {
+  width: 120px;
+  height: 120px;
+  animation: logoSpin 1.6s linear infinite;
+  filter: drop-shadow(0 4px 20px rgba(109, 80, 163, 0.2));
+}
+
+@keyframes logoSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.loading-screen__text {
+  font-family: var(--font-body, 'Poppins', sans-serif);
+  font-size: var(--text-body-md, 16px);
+  font-weight: 600;
+  color: #6D50A3;
+  letter-spacing: 0.04em;
+}
+
+.loading-screen__text span {
+  display: inline-block;
+  opacity: 0;
+  animation: dotFade 1.5s infinite;
+}
+.loading-screen__text span:nth-child(1) { animation-delay: 0.25s; }
+.loading-screen__text span:nth-child(2) { animation-delay: 0.5s; }
+.loading-screen__text span:nth-child(3) { animation-delay: 0.75s; }
+
+@keyframes dotFade {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
