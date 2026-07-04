@@ -80,27 +80,54 @@ async function main() {
     },
   })
 
-  for (const event of events) {
-    await prisma.event.upsert({
-      where: { id: event.id },
-      update: {},
-      create: {
-        id: event.id,
-        organizerId: organizer.id,
-        title: event.title,
-        description: event.title,
-        location: event.location,
-        quota: event.quota,
-        startDate: new Date(event.startDate),
-        endDate: new Date(event.endDate),
-        status: 'PUBLISHED',
-        impactMetricLabel: event.impactMetricLabel,
-        impactMetricUnit: event.impactMetricUnit,
-      },
-    })
-  }
+  const adminPassword = await bcrypt.hash('12345678', 10)
+  await prisma.user.upsert({
+    where: { email: 'admin1@gmail.com' },
+    update: {
+      name: 'Admin ActiVibe',
+      password: adminPassword,
+      role: 'ADMIN',
+      isVerified: true,
+    },
+    create: {
+      name: 'Admin ActiVibe',
+      email: 'admin1@gmail.com',
+      password: adminPassword,
+      role: 'ADMIN',
+      isVerified: true,
+    },
+  })
+  console.log('Seeded admin account admin1@gmail.com.')
 
-  console.log(`Seeded ${events.length} events (evt-1..evt-${events.length}) milik ${organizer.email}.`)
+  try {
+    for (const event of events) {
+      await prisma.event.upsert({
+        where: { id: event.id },
+        update: {},
+        create: {
+          id: event.id,
+          organizerId: organizer.id,
+          title: event.title,
+          description: event.title,
+          location: event.location,
+          quota: event.quota,
+          startDate: new Date(event.startDate),
+          endDate: new Date(event.endDate),
+          status: 'PUBLISHED',
+          impactMetricLabel: event.impactMetricLabel,
+          impactMetricUnit: event.impactMetricUnit,
+        },
+      })
+    }
+
+    console.log(`Seeded ${events.length} events (evt-1..evt-${events.length}) milik ${organizer.email}.`)
+  } catch (err) {
+    if (err?.code === 'P2021') {
+      console.warn('Skipping event seed because the Event table is not present in this database yet.')
+    } else {
+      throw err
+    }
+  }
 }
 
 main()

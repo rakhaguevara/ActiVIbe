@@ -7,6 +7,9 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
+    "dev:volunteer": "npm --prefix ../frontend run dev:volunteer",
+    "dev:organizer": "npm --prefix ../frontend run dev:organizer",
+    "dev:admin": "npm --prefix ../frontend run dev:admin",
     "start": "node src/server.js",
     "test": "vitest run",
     "db:generate": "prisma generate",

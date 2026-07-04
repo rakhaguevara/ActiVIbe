@@ -4,7 +4,7 @@
 // Panggilan bisa memakan beberapa detik saat layer AI Claude aktif — tampilkan
 // skeleton/loading state, jangan blocking render dashboard.
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export interface MatchBreakdownComponent {
   score: number
