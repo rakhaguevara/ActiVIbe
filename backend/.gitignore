@@ -2,3 +2,10 @@ node_modules/
 .env
 .env.test
 *.log
+
+# CV yang diupload user (lihat src/modules/profile/cv.upload.js) — file fisik
+# jangan ikut commit, cuma path-nya (Profile.cvUrl) yang tersimpan di DB.
+uploads/*
+!uploads/cv/
+uploads/cv/*
+!uploads/cv/.gitkeep

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/logo.svg'
-import { FiChevronDown, FiLogOut, FiBell, FiBookOpen, FiHeart, FiClipboard } from 'react-icons/fi'
+import { FiChevronDown, FiLogOut, FiBell, FiBookOpen, FiHeart, FiClipboard, FiAward, FiSettings } from 'react-icons/fi'
 import './AppTopbar.css'
 
 type OpenMenu = 'cari-aktivitas' | 'cari-organisasi' | 'user' | 'notif' | null
@@ -160,24 +160,14 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
           </div>
 
           <NavLink
-            to="/cara-kerja"
+            to="/donasi"
             className={({ isActive }) =>
               ['app-topbar__link', 'app-topbar__link--orange', isActive ? 'is-active' : '']
                 .filter(Boolean)
                 .join(' ')
             }
           >
-            Cara Kerja
-          </NavLink>
-          <NavLink
-            to="/tentang-kami"
-            className={({ isActive }) =>
-              ['app-topbar__link', 'app-topbar__link--yellow', isActive ? 'is-active' : '']
-                .filter(Boolean)
-                .join(' ')
-            }
-          >
-            Tentang Kami
+            Donasi
           </NavLink>
         </nav>
 
@@ -210,6 +200,21 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
               </button>
               {openMenu === 'user' && (
                 <div className="app-topbar__dropdown app-topbar__dropdown--user">
+                  <Link
+                    to="/dashboard/passport"
+                    className="app-topbar__dropdown-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    <FiAward /> Impact Passport
+                  </Link>
+                  <Link
+                    to="/dashboard/settings"
+                    className="app-topbar__dropdown-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    <FiSettings /> Pengaturan
+                  </Link>
+                  <div className="app-topbar__dropdown-divider" />
                   <button type="button" className="app-topbar__dropdown-item" onClick={handleLogout}>
                     <FiLogOut /> Logout
                   </button>
@@ -257,7 +262,7 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
               <span className="app-topbar__mega-badge">Segera Hadir</span>
             </div>
             <NavLink
-              to="/cara-kerja"
+              to="/donasi"
               className={({ isActive }) =>
                 ['app-topbar__mobile-link', 'app-topbar__mobile-link--orange', isActive ? 'is-active' : '']
                   .filter(Boolean)
@@ -265,18 +270,7 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
               }
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Cara Kerja
-            </NavLink>
-            <NavLink
-              to="/tentang-kami"
-              className={({ isActive }) =>
-                ['app-topbar__mobile-link', 'app-topbar__mobile-link--yellow', isActive ? 'is-active' : '']
-                  .filter(Boolean)
-                  .join(' ')
-              }
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Tentang Kami
+              Donasi
             </NavLink>
           </div>
         )}

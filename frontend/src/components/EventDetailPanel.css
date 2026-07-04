@@ -44,6 +44,11 @@
   background: var(--color-bg-surface);
 }
 
+.event-detail-panel__icon-button--active {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
 .event-detail-panel__subtitle {
   font-size: var(--text-body-sm);
   color: var(--color-text-body);

@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import path from 'path'
 import { env } from './config/env.js'
 import authRoutes from './modules/auth/auth.routes.js'
 import profileRoutes from './modules/profile/profile.routes.js'
@@ -29,6 +30,10 @@ app.use(
 )
 app.use(cookieParser())
 app.use(express.json())
+
+// File CV yang diupload user (lihat modules/profile/cv.upload.js) — path publiknya
+// disimpan sebagai Profile.cvUrl dalam bentuk `/uploads/cv/<nama-acak>.pdf`.
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 app.use('/auth', authRoutes)
 app.use('/profile', profileRoutes)

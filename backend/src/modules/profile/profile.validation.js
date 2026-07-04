@@ -2,13 +2,27 @@ const AVAILABILITY_VALUES = ['WEEKDAY', 'WEEKEND', 'BOTH']
 const MOTIVATION_VALUES = ['CAREER', 'SOCIAL', 'VALUES', 'SKILL_GROWTH']
 const MAX_BIO_LENGTH = 500
 const MAX_EDUCATION_LENGTH = 200
+export const MAX_CUSTOM_INTERESTS = 10
+export const MAX_CUSTOM_INTEREST_LENGTH = 40
 
 function isStringIdArray(value) {
   return Array.isArray(value) && value.every((item) => typeof item === 'string' && item.length > 0)
 }
 
+// Minat "Lainnya" yang diketik bebas oleh user lewat onboarding — lihat
+// profile.service.js updateProfile untuk gimana ini di-upsert jadi Interest.
+function isCustomInterestArray(value) {
+  return (
+    Array.isArray(value) &&
+    value.length <= MAX_CUSTOM_INTERESTS &&
+    value.every(
+      (item) => typeof item === 'string' && item.trim().length > 0 && item.trim().length <= MAX_CUSTOM_INTEREST_LENGTH,
+    )
+  )
+}
+
 export function validateProfileUpdateInput(body) {
-  const { bio, location, avatarUrl, availability, education, motivation, interestIds, skillIds } = body
+  const { bio, location, avatarUrl, availability, education, motivation, interestIds, skillIds, customInterests } = body
 
   const hasAnyField =
     bio !== undefined ||
@@ -18,7 +32,8 @@ export function validateProfileUpdateInput(body) {
     education !== undefined ||
     motivation !== undefined ||
     interestIds !== undefined ||
-    skillIds !== undefined
+    skillIds !== undefined ||
+    customInterests !== undefined
 
   if (!hasAnyField) {
     return { valid: false, message: 'Tidak ada data profil yang dikirim' }
@@ -54,6 +69,13 @@ export function validateProfileUpdateInput(body) {
 
   if (skillIds !== undefined && !isStringIdArray(skillIds)) {
     return { valid: false, message: 'skillIds harus berupa array id' }
+  }
+
+  if (customInterests !== undefined && !isCustomInterestArray(customInterests)) {
+    return {
+      valid: false,
+      message: `customInterests harus berupa array teks (maks ${MAX_CUSTOM_INTERESTS} item, tiap item maks ${MAX_CUSTOM_INTEREST_LENGTH} karakter)`,
+    }
   }
 
   return { valid: true }

@@ -302,6 +302,148 @@
   text-align: center;
 }
 
+/* ── Search input (minat/skill) ── */
+.onboarding-modal__search {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-heading);
+  background: var(--color-bg-true);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.onboarding-modal__search:focus {
+  border-color: var(--color-primary);
+}
+.onboarding-modal__search::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* ── Step 4: Riwayat Pendidikan & CV ── */
+.onboarding-modal__field-label {
+  display: block;
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 var(--space-2xs);
+}
+
+.onboarding-modal__cv-section {
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.onboarding-modal__cv-upload-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px var(--space-md);
+  border: 1.5px dashed var(--color-border-light);
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.onboarding-modal__cv-upload-label:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.onboarding-modal__cv-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 12px;
+  background: var(--color-bg-true);
+}
+
+.onboarding-modal__cv-file-name {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onboarding-modal__cv-note {
+  margin: var(--space-sm) 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-heading);
+  line-height: 1.5;
+}
+
+/* ── Custom "Lainnya" interest input ── */
+.onboarding-modal__custom-interests {
+  margin-top: var(--space-md);
+}
+
+.onboarding-modal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-xs);
+}
+
+.onboarding-modal__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px var(--space-sm);
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-text-heading);
+  font-size: var(--text-body-sm);
+}
+
+.onboarding-modal__chip-remove {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.onboarding-modal__chip-remove:hover {
+  background: var(--color-bg-true);
+  color: var(--color-danger);
+}
+
+.onboarding-modal__custom-input-row {
+  display: flex;
+  gap: var(--space-xs);
+}
+.onboarding-modal__custom-input-row .onboarding-modal__search {
+  flex: 1;
+}
+
+.onboarding-modal__btn--sm {
+  padding: 8px var(--space-md);
+  font-size: var(--text-body-sm);
+  flex-shrink: 0;
+}
+
 /* ── Options list ── */
 .onboarding-modal__options {
   display: flex;
@@ -374,6 +516,7 @@
 .onboarding-modal__footer {
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-sm);
 }
 

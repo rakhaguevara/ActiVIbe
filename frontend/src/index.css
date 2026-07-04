@@ -6,6 +6,7 @@
   /* 1. Base / neutral */
   --color-bg-true: #FFFFFF;
   --color-bg-surface: #FEFEFE;
+  --color-bg-page-alt: #FBFBFB; /* dipakai utk background page dashboard yang cardnya perlu shadow lebih menonjol (lihat Settings Page) */
 
   /* 2. Brand primary — ungu */
   --color-primary: #6D50A3;
@@ -91,11 +92,17 @@
 html,
 body {
   margin: 0;
+  height: 100%;
   /* clip (not hidden) — hidden forces the paired overflow-y to compute as
      auto per the CSS spec, which turns body into a scroll container and
      breaks position: sticky for any descendant (e.g. the apply form on
      the Event Detail page) */
   overflow-x: clip;
+}
+
+/* Root app container ikut tinggi penuh */
+#root {
+  height: 100%;
 }
 
 body, p, button, input, label, textarea, select {
@@ -182,10 +189,10 @@ h1, h2, h3, h4, h5, h6, .heading {
 .btn--danger:hover:not(:disabled) { background: #C93C3C; }
 
 /* -- Card (Section 6.2) -- */
+/* border-radius sengaja tidak di sini — tiap section mengatur radius-nya sendiri di CSS masing-masing */
 .card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-light);
-  border-radius: 20px;
   padding: var(--space-lg);
 }
 

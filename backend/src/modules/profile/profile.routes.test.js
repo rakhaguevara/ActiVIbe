@@ -1,7 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import request from 'supertest'
+import fs from 'fs'
+import path from 'path'
 import { app } from '../../app.js'
 import { prisma } from '../../config/prisma.js'
+import { CV_UPLOAD_DIR } from './cv.upload.js'
 
 let outdoorInterest
 let designSkill
@@ -18,6 +21,14 @@ beforeEach(async () => {
 
   outdoorInterest = await prisma.interest.create({ data: { name: 'Outdoor', category: 'Lingkungan' } })
   designSkill = await prisma.skill.create({ data: { name: 'Desain', category: 'Kreatif' } })
+})
+
+// File CV yang ke-upload selama test disimpan sungguhan ke disk (multer diskStorage)
+// — bersihkan supaya tidak menumpuk di backend/uploads/cv/ tiap kali test jalan.
+afterEach(() => {
+  for (const name of fs.readdirSync(CV_UPLOAD_DIR)) {
+    if (name !== '.gitkeep') fs.rmSync(path.join(CV_UPLOAD_DIR, name), { force: true })
+  }
 })
 
 async function registerAndGetCookie() {
@@ -110,6 +121,132 @@ describe('PATCH /profile/me', () => {
     expect(res.status).toBe(200)
     expect(res.body.profile.interests).toHaveLength(1)
     expect(res.body.profile.interests[0].id).toBe(indoorInterest.id)
+  })
+
+  it('creates a "Lainnya" interest from customInterests and links it to the user', async () => {
+    const cookie = await registerAndGetCookie()
+
+    const res = await request(app)
+      .patch('/profile/me')
+      .set('Cookie', cookie)
+      .send({ interestIds: [outdoorInterest.id], customInterests: ['Panjat Tebing'] })
+
+    expect(res.status).toBe(200)
+    expect(res.body.profile.interests).toHaveLength(2)
+    const created = res.body.profile.interests.find((i) => i.name === 'Panjat Tebing')
+    expect(created).toBeDefined()
+    expect(created.category).toBe('Lainnya')
+
+    const stored = await prisma.interest.findUnique({ where: { name: 'Panjat Tebing' } })
+    expect(stored).not.toBeNull()
+  })
+
+  it('reuses an existing interest when customInterests matches an existing name', async () => {
+    const cookie = await registerAndGetCookie()
+
+    const res = await request(app)
+      .patch('/profile/me')
+      .set('Cookie', cookie)
+      .send({ customInterests: ['Outdoor'] })
+
+    expect(res.status).toBe(200)
+    expect(res.body.profile.interests).toHaveLength(1)
+    expect(res.body.profile.interests[0].id).toBe(outdoorInterest.id)
+
+    const count = await prisma.interest.count({ where: { name: 'Outdoor' } })
+    expect(count).toBe(1)
+  })
+
+  it('returns 400 when customInterests exceeds the max item length', async () => {
+    const cookie = await registerAndGetCookie()
+    const res = await request(app)
+      .patch('/profile/me')
+      .set('Cookie', cookie)
+      .send({ customInterests: ['x'.repeat(41)] })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('POST /profile/me/cv', () => {
+  it('returns 401 without a session cookie', async () => {
+    const res = await request(app).post('/profile/me/cv').attach('cv', Buffer.from('%PDF-1.4'), 'cv.pdf')
+    expect(res.status).toBe(401)
+  })
+
+  it('uploads a valid PDF and stores it on disk', async () => {
+    const cookie = await registerAndGetCookie()
+    const res = await request(app)
+      .post('/profile/me/cv')
+      .set('Cookie', cookie)
+      .attach('cv', Buffer.from('%PDF-1.4 fake cv content'), 'Riwayat-Hidup.pdf')
+
+    expect(res.status).toBe(200)
+    expect(res.body.profile.cvFileName).toBe('Riwayat-Hidup.pdf')
+    expect(res.body.profile.cvUrl).toMatch(/^\/uploads\/cv\/.+\.pdf$/)
+
+    const storedPath = path.join(CV_UPLOAD_DIR, path.basename(res.body.profile.cvUrl))
+    expect(fs.existsSync(storedPath)).toBe(true)
+  })
+
+  it('replaces the previous file when a new CV is uploaded', async () => {
+    const cookie = await registerAndGetCookie()
+    const first = await request(app)
+      .post('/profile/me/cv')
+      .set('Cookie', cookie)
+      .attach('cv', Buffer.from('%PDF-1.4 v1'), 'v1.pdf')
+    const firstPath = path.join(CV_UPLOAD_DIR, path.basename(first.body.profile.cvUrl))
+
+    const second = await request(app)
+      .post('/profile/me/cv')
+      .set('Cookie', cookie)
+      .attach('cv', Buffer.from('%PDF-1.4 v2'), 'v2.pdf')
+
+    expect(second.status).toBe(200)
+    expect(second.body.profile.cvFileName).toBe('v2.pdf')
+    expect(fs.existsSync(firstPath)).toBe(false)
+  })
+
+  it('returns 400 for a non-PDF file', async () => {
+    const cookie = await registerAndGetCookie()
+    const res = await request(app)
+      .post('/profile/me/cv')
+      .set('Cookie', cookie)
+      .attach('cv', Buffer.from('not a pdf'), 'cv.txt')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when the file exceeds 5MB', async () => {
+    const cookie = await registerAndGetCookie()
+    const res = await request(app)
+      .post('/profile/me/cv')
+      .set('Cookie', cookie)
+      .attach('cv', Buffer.alloc(6 * 1024 * 1024), 'big.pdf')
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('DELETE /profile/me/cv', () => {
+  it('clears the CV fields and removes the file from disk', async () => {
+    const cookie = await registerAndGetCookie()
+    const uploadRes = await request(app)
+      .post('/profile/me/cv')
+      .set('Cookie', cookie)
+      .attach('cv', Buffer.from('%PDF-1.4'), 'cv.pdf')
+    const storedPath = path.join(CV_UPLOAD_DIR, path.basename(uploadRes.body.profile.cvUrl))
+
+    const res = await request(app).delete('/profile/me/cv').set('Cookie', cookie)
+
+    expect(res.status).toBe(200)
+    expect(res.body.profile.cvUrl).toBeNull()
+    expect(res.body.profile.cvFileName).toBeNull()
+    expect(fs.existsSync(storedPath)).toBe(false)
+  })
+
+  it('is a no-op when there is no CV yet', async () => {
+    const cookie = await registerAndGetCookie()
+    const res = await request(app).delete('/profile/me/cv').set('Cookie', cookie)
+    expect(res.status).toBe(200)
+    expect(res.body.profile.cvUrl).toBeNull()
   })
 })
 

@@ -1,0 +1,78 @@
+@import './admin-shared.css';
+
+.organizers-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-width: var(--container-max-width);
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   COMING SOON STATE
+   ============================================ */
+.organizers-page__coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--color-bg-true);
+  border: 1px solid var(--color-border-light);
+  border-radius: 16px;
+  margin-top: var(--space-md);
+}
+
+.organizers-page__icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--color-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.organizers-page__coming-soon h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.organizers-page__coming-soon p {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-relaxed);
+  max-width: 400px;
+  margin: 0;
+}
+
+.organizers-page__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.organizers-page__back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.organizers-page__back-link:hover {
+  color: var(--color-primary);
+}

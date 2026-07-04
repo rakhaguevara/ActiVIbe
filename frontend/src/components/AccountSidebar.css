@@ -1,0 +1,102 @@
+.account-sidebar {
+  position: sticky;
+  top: 88px;
+  flex-shrink: 0;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.account-sidebar__greeting {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--color-text-heading);
+}
+
+.account-sidebar__nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.account-sidebar__nav-heading {
+  margin: 0 0 4px;
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.account-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.account-sidebar__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-left: 3px solid transparent;
+  background: none;
+  padding: 12px 12px 12px 13px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  cursor: default;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+a.account-sidebar__nav-item {
+  cursor: pointer;
+}
+
+a.account-sidebar__nav-item:hover {
+  color: var(--color-primary);
+}
+
+.account-sidebar__nav-item.is-active {
+  border-left-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.account-sidebar__nav-item.is-disabled {
+  cursor: not-allowed;
+  justify-content: space-between;
+}
+
+.account-sidebar__soon-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-border-light);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.account-sidebar__nav-item--action {
+  cursor: pointer;
+  color: var(--color-danger);
+  margin-top: 4px;
+}
+
+.account-sidebar__nav-item--action:hover {
+  border-left-color: var(--color-danger);
+}
+
+@media (max-width: 1024px) {
+  .account-sidebar {
+    position: static;
+    width: 100%;
+  }
+}

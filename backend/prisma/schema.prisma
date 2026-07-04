@@ -95,6 +95,10 @@ model Profile {
   // (Clary et al.) — dicocokkan ke Event.motivationTag di Predictive Match
   // Score (FR-005), bobot 15%.
   motivation   Motivation?
+  // CV terupload (FR-023 step 4, opsional) — file fisiknya di backend/uploads/cv/,
+  // cvUrl cuma path publik (`/uploads/cv/...`), cvFileName nama asli buat ditampilkan di UI.
+  cvUrl        String?
+  cvFileName   String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 

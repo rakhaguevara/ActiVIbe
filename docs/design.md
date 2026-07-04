@@ -33,6 +33,7 @@ Semua warna didefinisikan sebagai CSS custom property di `:root`. **Jangan hardc
      ============================================ */
   --color-bg-true: #FFFFFF;       /* true white — dipakai utk page background utama */
   --color-bg-surface: #FEFEFE;    /* off-white — dipakai utk card/surface DI ATAS true white, biar ada depth tipis tanpa shadow berat */
+  --color-bg-page-alt: #FBFBFB;   /* abu sangat muda — dipakai KHUSUS di background halaman dashboard yang card-nya perlu shadow lebih menonjol (bukan pengganti --color-bg-true, cuma dipakai di halaman spesifik seperti Settings, keputusan Rakha) */
 
   /* ============================================
      2. BRAND PRIMARY — Ungu
@@ -432,7 +433,11 @@ window.addEventListener('scroll', () => {
   transform: translateY(-4px); /* micro-interaction lift saat hover */
   box-shadow: 0 12px 24px rgba(26, 26, 46, 0.08);
 }
+```
 
+**Exception (keputusan Rakha, halaman Settings):** di halaman dengan background `--color-bg-page-alt`, card boleh punya shadow permanen (bukan cuma on-hover) supaya lebih menonjol dari background abu — lihat `.settings-page__section` di `SettingsPage.css`. Ini exception scoped ke halaman itu saja, BUKAN perubahan ke `.card` base di seluruh aplikasi.
+
+```css
 /* ============================================
    CARD ACCENT TOP — strip warna tipis di atas card,
    dipakai utk membedakan kategori (cth: kategori
@@ -674,23 +679,45 @@ Sebelum menambahkan style baru ke aplikasi (oleh siapapun — AI atau developer)
 
 ## 10. Onboarding Modal — Profile Setup Wizard (pendukung FR-023)
 
-> **Konteks:** PRD menyebut FR-023 sebagai "Conversational Onboarding Agent" berbentuk chat ≤ 60 detik. Implementasi UI-nya **bukan chat bubble**, tapi wizard 3 langkah bergaya card-select (referensi visual: modal "What would you like to do?" ala Idealist) — nada "conversational" dipenuhi lewat 1-pertanyaan-per-layar + copy yang ngobrol, bukan lewat literal chat UI. Ini dikonfirmasi selaras dengan kontrak backend yang sudah ada: `GET /profile/interests`, `GET /profile/skills` (masing-masing punya field `category`), dan `PATCH /profile/me` menerima `interestIds[]`, `skillIds[]`, `availability` (`WEEKDAY` \| `WEEKEND` \| `BOTH`) — lihat `backend/src/modules/profile/`.
+> **Konteks:** PRD menyebut FR-023 sebagai "Conversational Onboarding Agent" berbentuk chat ≤ 60 detik. Implementasi UI-nya **bukan chat bubble** di semua step, tapi wizard bergaya card-select (referensi visual: modal "What would you like to do?" ala Idealist) — nada "conversational" dipenuhi lewat 1-pertanyaan-per-layar + copy yang ngobrol, kecuali step 0 yang memang chat bubble literal multi-turn (lihat 10.1). Ini dikonfirmasi selaras dengan kontrak backend yang sudah ada: `GET /profile/interests`, `GET /profile/skills` (masing-masing punya field `category`), `PATCH /profile/me` menerima `interestIds[]`, `skillIds[]`, `availability` (`WEEKDAY` \| `WEEKEND` \| `BOTH`), `bio`, `location`, `education`, `motivation`, `customInterests[]`, serta `POST /profile/me/cv` / `DELETE /profile/me/cv` (multipart, PDF only, maks 5MB) — lihat `backend/src/modules/profile/`.
 >
 > Modal ini muncul otomatis sekali setelah registrasi/verifikasi (belum ada OTP nyata — lihat FR-023 trigger), sebelum user masuk ke `/dashboard`.
 
 ### 10.1 Struktur Wizard
 
-3 layar berurutan di dalam satu modal, satu pertanyaan per layar:
+5 layar berurutan di dalam satu modal (step 0 = chat multi-turn, step 1-4 = card-select satu pertanyaan per layar):
 
 | Step | Pertanyaan | Field backend | Cardinality | Aset ilustrasi |
 |---|---|---|---|---|
-| 1 | "Apa yang bikin kamu semangat volunteer?" (minat) | `interestIds[]` | Multi-select (checkbox) | `assets/svg/On1.svg` |
+| 0 | Chat 5-turn: cerita diri → asal → pendidikan → hobi → motivasi (lihat 10.1a) | `bio`, `location`, `education`, `motivation` | Free text (4x) + single-select quick-reply (motivasi) | `assets/svg/together 1.svg` |
+| 1 | "Apa yang bikin kamu semangat volunteer?" (minat) | `interestIds[]`, `customInterests[]` | Multi-select (checkbox) + search + input "Lainnya" bebas (lihat 10.4a) | `assets/svg/On1.svg` |
 | 2 | "Skill apa yang mau kamu kontribusikan?" | `skillIds[]` | Multi-select (checkbox) | `assets/svg/On2.svg` |
 | 3 | "Kapan kamu biasanya available?" | `availability` | Single-select (radio, tapi visual tetap konsisten dgn checkbox step 1-2 — lihat 10.4) | `assets/svg/On3.svg` |
+| 4 | "Ada CV yang mau kamu unggah?" (opsional) | CV via `POST /profile/me/cv` | File upload only, **skippable** (klik "Selesai" tanpa upload) | `assets/svg/together 1.svg` (reuse — belum ada aset ilustrasi dedicated utk step ini) |
 
 Opsi di Step 1 & 2 dikelompokkan per `category` (data dari taxonomy API) dengan label kategori kecil di atas tiap grup — jangan tampilkan sebagai list datar tanpa grouping, karena datanya sudah datang berkategori dari backend.
 
 **Copy per-step masih placeholder** — perlu final review sebelum implementasi (bukan keputusan visual, jadi tidak mengunci di sini).
+
+#### 10.1a Step 0 — chat 5-turn, kenapa pendidikan/asal/hobi ikut masuk sini
+
+Awalnya step 0 cuma 2 turn (cerita diri + motivasi). Ditambah 3 pertanyaan lagi supaya alur pengumpulan "cerita tentang diri" (termasuk latar pendidikan) selesai dalam satu percakapan ngobrol, bukan dipecah jadi card form terpisah — konsisten dengan semangat FR-023 "conversational", dan `location`/`education` toh sama-sama free text (bukan pilihan taksonomi) jadi natural ditanya lewat chat, bukan lewat `.option-select-item`. Urutan turn-nya (lihat `CHAT_TEXT_STEPS` di `OnboardingModal.tsx`):
+
+1. "Ceritakan tentang dirimu — apa yang bikin tertarik jadi volunteer?" → `bio`
+2. "Asal kamu dari mana?" → `location`
+3. "Riwayat pendidikanmu apa?" → `education`
+4. "Kesukaan/hobimu apa?" → digabung ke `bio` (dipisah newline) karena tidak ada field khusus utk ini di schema — bio memang narasi bebas ttg diri user
+5. "Apa motivasi utamamu volunteer?" → `motivation` (satu-satunya quick-reply, sisanya textarea bebas)
+
+Semua textarea di step 0 wajib diisi buat lanjut turn berikutnya (tombol "Kirim" disabled kalau kosong) — beda dari step 4 yang opsional (lihat 10.1b).
+
+#### 10.1b Step 4 — satu-satunya step yang skippable
+
+Step 0-3 wajib diisi (tombol "Lanjut"/"Kirim" disabled sampai ada isian) karena datanya dipakai langsung di Predictive Match Score / rekomendasi kegiatan, atau jadi bagian cerita profil (bio/lokasi/pendidikan di step 0). Step 4 beda: CV adalah fitur baru yang belum tentu dipunya semua user saat pertama daftar, jadi kartu-nya berdiri sendiri khusus CV (bukan digabung ke field lain) dan "Selesai" bisa langsung diklik tanpa upload apa pun — itu jalur skip-nya, tidak perlu tombol "Lewati" terpisah.
+
+Ada catatan kecil (`.onboarding-modal__cv-note`, background `--color-primary-soft`) di bawah upload control yang menjelaskan value proposition CV: begitu user menyelesaikan kegiatan volunteer, ActiVibe bisa bantu otomatis menambahkan prestasi & pengalaman itu ke CV yang diupload — ini alasan utama kenapa CV worth diupload dari awal, bukan cuma "penyimpanan file biasa".
+
+CV disimpan sebagai file fisik di disk backend (`backend/uploads/cv/`, nama file diacak — lihat `cv.upload.js`), bukan cloud storage, karena project belum ada integrasi itu. Field yang sama (`education`, CV) juga bisa diubah lagi lewat halaman Pengaturan Volunteer (`SettingsPage.tsx`, section "Pendidikan & CV") — pola reuse profileApi yang sama dengan minat/skill/ketersediaan.
 
 ### 10.2 Modal Shell — Panel Direverensi dari `AuthModal`, Backdrop Translucent
 
@@ -790,7 +817,7 @@ Satu baris per opsi (interest/skill/availability), dipakai di ketiga step. Visua
 
 ### 10.5 Ilustrasi per Step
 
-Satu ilustrasi (`On1`/`On2`/`On3.svg`) ditaruh di header tiap layar, ukuran ~96-120px, posisi center-top (bukan pojok kanan seperti reference Idealist — biar konsisten dengan `AuthModal` yang logo-nya center-top juga).
+Satu ilustrasi (`On1`/`On2`/`On3.svg`, step 0 & 4 reuse `together 1.svg` — belum ada aset dedicated utk step 4, lihat 10.1a) ditaruh di header tiap layar, ukuran ~96-120px, posisi center-top (bukan pojok kanan seperti reference Idealist — biar konsisten dengan `AuthModal` yang logo-nya center-top juga).
 
 ```css
 .onboarding-modal__illustration {
@@ -803,7 +830,7 @@ Satu ilustrasi (`On1`/`On2`/`On3.svg`) ditaruh di header tiap layar, ukuran ~96-
 
 ### 10.6 Step Indicator
 
-Dot-stepper horizontal kecil di atas judul — **bukan** vertical stepper Section 6.5 (itu untuk daftar langkah panjang bertahap seperti Close Event Flow, bukan progress 3-step modal singkat ini).
+Dot-stepper horizontal kecil di atas judul (5 dot, satu per step 0-4) — **bukan** vertical stepper Section 6.5 (itu untuk daftar langkah panjang bertahap seperti Close Event Flow, bukan progress modal singkat ini).
 
 ```css
 .onboarding-modal__dots {
@@ -844,15 +871,14 @@ Dot-stepper horizontal kecil di atas judul — **bukan** vertical stepper Sectio
 ```
 
 - Step 1: hanya tombol `.btn--primary` "Lanjut" (full width atau align-right — tidak ada "Kembali" karena ini layar pertama).
-- Step 2: `.btn--outline` "Kembali" (kiri) + `.btn--primary` "Lanjut" (kanan).
-- Step 3: `.btn--outline` "Kembali" (kiri) + `.btn--primary` "Selesai" (kanan) — submit `PATCH /profile/me` dengan payload gabungan 3 step, lalu redirect `/dashboard`.
-- **Belum ada tombol "Lewati"** di desain ini — beda dari `AuthModal` yang punya close (X) sbg exit eksplisit. Asumsi: profil kosong menurunkan kualitas rekomendasi AI (lihat risk table PRD Section 8), jadi wizard ini tidak dibuat mudah di-skip. Kalau butuh opsi skip, ini keputusan produk yang perlu dikonfirmasi dulu, bukan default styling.
+- Step 2-4: `.btn--outline` "Kembali" (kiri) + `.btn--primary` "Lanjut"/"Selesai" (kanan) — footer 2-tombol konsisten di semua step, termasuk step 4.
+- **Tidak ada tombol "Lewati" terpisah di mana pun** — beda dari `AuthModal` yang punya close (X) sbg exit eksplisit. Step 0-3 memang wajib diisi (tombol disabled sampai ada isian). Step 4 (CV) "skip"-nya bukan tombol khusus — user cukup klik "Selesai" tanpa upload apa pun, lihat 10.1b.
 
 ### 10.8 Checklist Tambahan Sebelum Implementasi
 
 - [ ] Konfirmasi copy final tiap step (judul pertanyaan + label opsi) — masih placeholder di 10.1.
-- [ ] Konfirmasi apakah wizard wajib (no-skip) sesuai asumsi 10.7, atau butuh exit path.
-- [ ] Pastikan komponen `.option-select-item` dipakai lewat 1 file shared (bukan diduplikasi per step), karena dipakai identik di 3 tempat.
+- [x] Konfirmasi apakah wizard wajib (no-skip) — step 0-3 wajib, step 4 (CV) opsional lewat "Selesai" tanpa tombol skip terpisah, lihat 10.1b.
+- [ ] Pastikan komponen `.option-select-item` dipakai lewat 1 file shared (bukan diduplikasi per step), karena dipakai identik di beberapa tempat.
 - [ ] Checklist umum Section 9 tetap berlaku (semua warna dari Section 1, gap section 40-48px kalau relevan, kontras teks AA).
 
 ---

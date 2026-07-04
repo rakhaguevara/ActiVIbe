@@ -11,6 +11,7 @@ export interface AdminUser {
 export interface AdminEvent {
   id: string
   title: string
+  category?: string
   organizerName: string
   location: string
   quota: number

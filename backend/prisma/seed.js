@@ -5,16 +5,30 @@ const prisma = new PrismaClient()
 
 // Data taxonomy placeholder — dipakai supaya onboarding wizard (FR-023)
 // punya opsi buat ditampilkan di dev/lokal. Bukan copy final, cuma cukup
-// buat testing end-to-end sampai ada daftar resmi dari produk.
+// buat testing end-to-end sampai ada daftar resmi dari produk. Kalau butuh
+// tambah/ubah minat, edit array ini lalu jalankan ulang `prisma db seed`
+// (upsert by name, jadi aman dijalankan berkali-kali).
 const interests = [
   ['Lingkungan', 'Lingkungan'],
   ['Konservasi Satwa', 'Lingkungan'],
+  ['Daur Ulang & Zero Waste', 'Lingkungan'],
   ['Bencana Alam', 'Kemanusiaan'],
   ['Kesehatan Masyarakat', 'Kemanusiaan'],
+  ['Bantuan Pengungsi', 'Kemanusiaan'],
   ['Edukasi Anak', 'Sosial'],
   ['Pemberdayaan Komunitas', 'Sosial'],
+  ['Pengentasan Kemiskinan', 'Sosial'],
+  ['Kesetaraan & Inklusi', 'Sosial'],
   ['Fotografi', 'Kreatif'],
   ['Desain Grafis', 'Kreatif'],
+  ['Menulis & Konten Kreatif', 'Kreatif'],
+  ['Musik & Pertunjukan', 'Kreatif'],
+  ['Teknologi untuk Sosial', 'Teknologi'],
+  ['Literasi Digital', 'Teknologi'],
+  ['Kesejahteraan Hewan', 'Hewan'],
+  ['Olahraga & Kebugaran', 'Olahraga'],
+  ['Seni & Budaya Lokal', 'Seni & Budaya'],
+  ['Kegiatan Keagamaan', 'Keagamaan'],
 ]
 
 const skills = [

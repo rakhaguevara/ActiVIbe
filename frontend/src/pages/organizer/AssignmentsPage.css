@@ -22,6 +22,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  border-radius: 20px;
 }
 
 .assignments-page__role h2 {
@@ -74,6 +75,10 @@
   padding: var(--space-2xs) var(--space-sm);
   font-family: var(--font-body);
   font-size: var(--text-body-sm);
+}
+
+.assignments-page__pending {
+  border-radius: 20px;
 }
 
 .assignments-page__pending ul {

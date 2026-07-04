@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import PublicLayout from '../layouts/PublicLayout'
 import DashboardLayout from '../layouts/DashboardLayout'
 import AdminLayout from '../layouts/AdminLayout'
@@ -6,8 +6,13 @@ import OrganizerLayout from '../layouts/OrganizerLayout'
 import HomePage from '../pages/HomePage'
 import AboutPage from '../pages/AboutPage'
 import CaraKerjaPage from '../pages/CaraKerjaPage'
+import DonatePage from '../pages/DonatePage'
 import NotFoundPage from '../pages/NotFoundPage'
 import FindActivityPage from '../pages/volunteer/FindActivityPage'
+import PassportPage from '../pages/volunteer/PassportPage'
+import VolunteerSettingsPage from '../pages/volunteer/SettingsPage'
+import SavedItemsPage from '../pages/volunteer/SavedItemsPage'
+import ApplicationHistoryPage from '../pages/volunteer/ApplicationHistoryPage'
 import LoginPage from '../pages/auth/LoginPage'
 import SignupPage from '../pages/auth/SignupPage'
 import OverviewPage from '../pages/admin/OverviewPage'
@@ -29,11 +34,13 @@ import { PORTAL } from '../config/portal'
 import LoadingScreen from '../components/LoadingScreen'
 import { useAuth } from '../contexts/AuthContext'
 
-export default function AppRoutes() {
-  const navigate = useNavigate()
+interface AppRoutesProps {
+  onLoginClick: () => void
+  onSignupClick: () => void
+}
+
+export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProps) {
   const { isLoading } = useAuth()
-  const onLoginClick = () => navigate('/masuk')
-  const onSignupClick = () => navigate('/daftar')
 
   if (isLoading) return <LoadingScreen />
 
@@ -105,20 +112,16 @@ export default function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/tentang-kami" element={<AboutPage onSignupClick={onSignupClick} />} />
         <Route path="/cara-kerja" element={<CaraKerjaPage onSignupClick={onSignupClick} />} />
+        <Route path="/donasi" element={<DonatePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
-      <Route
-        path="/masuk"
-        element={<LoginPage allowedRole="VOLUNTEER" homeRoute="/dashboard" title="Masuk ke akunmu" showSignupLink />}
-      />
-      <Route
-        path="/daftar"
-        element={<SignupPage role="VOLUNTEER" homeRoute="/dashboard" loginRoute="/masuk" title="Buat akun barumu" />}
-      />
-
       <Route element={<DashboardLayout />}>
         <Route path="/dashboard" element={<FindActivityPage />} />
+        <Route path="/dashboard/passport" element={<PassportPage />} />
+        <Route path="/dashboard/settings" element={<VolunteerSettingsPage />} />
+        <Route path="/dashboard/saved" element={<SavedItemsPage />} />
+        <Route path="/dashboard/history" element={<ApplicationHistoryPage />} />
       </Route>
     </Routes>
   )

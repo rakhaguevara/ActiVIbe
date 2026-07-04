@@ -49,6 +49,7 @@
   justify-content: space-between;
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
+  border-radius: 20px;
 }
 
 .applicants-page__bulk-actions {

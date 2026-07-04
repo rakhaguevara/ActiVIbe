@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FiShare2, FiBookmark } from 'react-icons/fi'
 import type { Event } from '../types/event'
 import { getMatchTier } from '../utils/matchScore'
+import { useBookmarkedEvents } from '../hooks/useBookmarkedEvents'
 import EventGalleryHero from './EventGalleryHero'
 import EventOrganizerStrip from './EventOrganizerStrip'
 import EventHighlights from './EventHighlights'
@@ -20,6 +21,8 @@ interface EventDetailPanelProps {
 
 export default function EventDetailPanel({ event }: EventDetailPanelProps) {
   const [showFullDescription, setShowFullDescription] = useState(false)
+  const { isBookmarked, toggle } = useBookmarkedEvents()
+  const bookmarked = isBookmarked(event.id)
   const slotsLeft = event.quota - event.filledSlots
 
   return (
@@ -32,8 +35,13 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
           <button type="button" className="event-detail-panel__icon-button" aria-label="Bagikan kegiatan">
             <FiShare2 />
           </button>
-          <button type="button" className="event-detail-panel__icon-button" aria-label="Simpan kegiatan">
-            <FiBookmark />
+          <button
+            type="button"
+            className={`event-detail-panel__icon-button${bookmarked ? ' event-detail-panel__icon-button--active' : ''}`}
+            aria-label={bookmarked ? 'Hapus dari simpanan' : 'Simpan kegiatan'}
+            onClick={() => toggle(event.id)}
+          >
+            <FiBookmark fill={bookmarked ? 'currentColor' : 'none'} />
           </button>
         </div>
       </div>

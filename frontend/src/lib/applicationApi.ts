@@ -1,6 +1,16 @@
 const API_URL = import.meta.env.VITE_API_URL
 
-export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED'
+export type ApplicationStatus =
+  | 'APPLIED'
+  | 'UNDER_REVIEW'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'WAITLISTED'
+  | 'CHECKED_IN'
+  | 'COMPLETED'
+  | 'NO_SHOW'
+  | 'CANCELLED_BY_ORGANIZER'
+  | 'CANCELLED_BY_VOLUNTEER'
 
 export interface ApplyPayload {
   eventId: string

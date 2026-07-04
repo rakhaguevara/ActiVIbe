@@ -26,5 +26,5 @@ export function useBookmarkedEvents() {
 
   const isBookmarked = useCallback((id: string) => bookmarkedIds.includes(id), [bookmarkedIds])
 
-  return { isBookmarked, toggle }
+  return { bookmarkedIds, isBookmarked, toggle }
 }

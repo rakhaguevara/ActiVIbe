@@ -1,144 +1,580 @@
+/* ============================================
+   ADMIN LAYOUT — CareDoc-style Sidebar
+   Warna tetap menggunakan token ActiVibe (design.md)
+   Style: white clean, section labels, search bar,
+          minimal active state, footer help + theme
+   ============================================ */
+
+/* ============================================
+   ROOT WRAPPER — hanya content kanan yang scroll
+   ============================================ */
 .admin-layout {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   background: var(--color-bg-surface);
 }
 
+/* ============================================
+   SIDEBAR
+   ============================================ */
 .admin-layout__sidebar {
   flex-shrink: 0;
   width: 240px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--color-bg-true);
   border-right: 1px solid var(--color-border-light);
   padding: var(--space-lg) var(--space-md);
+  overflow: hidden;
+  transition: width 0.25s ease;
+  /* Tidak ada gradient, tidak ada box-shadow berat — clean seperti CareDoc */
 }
 
+/* ============================================
+   BRAND — Logo + Nama (tanpa subtitle)
+   ============================================ */
 .admin-layout__brand {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: 0 var(--space-xs) var(--space-lg);
+  gap: var(--space-sm);
+  padding: 0 var(--space-xs);
+  margin-bottom: var(--space-lg);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.admin-layout__brand-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
 }
 
 .admin-layout__brand-label {
   font-family: var(--font-display);
   color: var(--color-text-heading);
   font-size: var(--text-body-md);
+  font-weight: 700;
+  line-height: 1.2;
 }
 
+/* ============================================
+   SEARCH BAR — CareDoc style
+   ============================================ */
+.admin-layout__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-lg);
+  cursor: text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.admin-layout__search:focus-within,
+.admin-layout__search:hover {
+  border-color: var(--color-border-medium);
+  box-shadow: 0 0 0 3px rgba(109, 80, 163, 0.07);
+}
+
+.admin-layout__search-icon {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.admin-layout__search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  font-family: var(--font-body);
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-layout__search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.admin-layout__search-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.admin-layout__search-key {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: var(--color-border-light);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* ============================================
+   NAVIGATION — dengan section labels
+   ============================================ */
 .admin-layout__nav {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
 }
 
+.admin-layout__nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Section label — seperti "OVERVIEW" dan "FINANCE" di CareDoc */
+.admin-layout__nav-section {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-sm) var(--space-xs) var(--space-2xs);
+  font-family: var(--font-body);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.admin-layout__nav-section:first-child {
+  padding-top: 0;
+}
+
+/* Nav link */
 .admin-layout__nav-link {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: 12px;
+  padding: 8px var(--space-sm);
+  border-radius: 8px;
   font-size: var(--text-body-sm);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: 500;
+  color: var(--color-text-body);
   text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-bottom: 2px;
+  transition: background 0.12s ease, color 0.12s ease;
+  position: relative;
 }
 
+/* Hover */
 .admin-layout__nav-link:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--color-bg-surface);
+  color: var(--color-text-heading);
 }
 
+/* Active — soft primary bg + primary text/icon */
 .admin-layout__nav-link.is-active {
   background: var(--color-primary-soft);
   color: var(--color-primary);
+  font-weight: 600;
 }
 
+.admin-layout__nav-link.is-active .admin-layout__nav-icon {
+  color: var(--color-primary);
+}
+
+/* Tidak ada ::before accent bar — CareDoc tidak pakai itu */
+
+/* Nav icon */
 .admin-layout__nav-icon {
-  font-size: 1.1rem;
+  font-size: 1rem;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: color 0.12s ease;
+}
+
+.admin-layout__nav-link:hover .admin-layout__nav-icon {
+  color: var(--color-text-heading);
+}
+
+/* Nav label */
+.admin-layout__nav-label {
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, max-width 0.25s ease;
+  max-width: 200px;
+}
+
+/* ============================================
+   FOOTER — Help & Support + Logout/Theme
+   ============================================ */
+.admin-layout__footer {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-sm);
+  margin-top: var(--space-sm);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Help & Support item */
+.admin-layout__help-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px var(--space-sm);
+  border-radius: 8px;
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  color: var(--color-text-body);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-bottom: 2px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.admin-layout__help-link:hover {
+  background: var(--color-bg-surface);
+  color: var(--color-text-heading);
+}
+
+.admin-layout__help-icon {
+  font-size: 1rem;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
-.admin-layout__footer {
-  border-top: 1px solid var(--color-border-light);
-  padding-top: var(--space-md);
+.admin-layout__help-label {
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, max-width 0.25s ease;
+  max-width: 200px;
+}
+
+/* User row — avatar + name + logout button */
+.admin-layout__user-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px var(--space-sm);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: background 0.12s ease;
+}
+
+.admin-layout__user-row:hover {
+  background: var(--color-bg-surface);
+}
+
+.admin-layout__user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-on-dark);
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  letter-spacing: 0.03em;
+}
+
+.admin-layout__user-info {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, max-width 0.25s ease;
+  max-width: 200px;
 }
 
 .admin-layout__user-name {
   font-size: var(--text-body-sm);
   font-weight: 600;
   color: var(--color-text-heading);
-  margin: 0 0 var(--space-xs);
-  padding: 0 var(--space-xs);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.admin-layout__logout {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  width: 100%;
+.admin-layout__user-role-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 0;
+  font-family: var(--font-body);
+}
+
+/* Logout button kecil di sebelah kanan user */
+.admin-layout__logout-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: var(--space-sm) var(--space-xs);
-  border-radius: 12px;
-  font-size: var(--text-body-sm);
-  font-weight: 600;
+  padding: 4px;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  transition: background 0.12s ease, color 0.12s ease;
+  flex-shrink: 0;
+}
+
+.admin-layout__logout-btn:hover {
+  background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
-.admin-layout__logout:hover {
-  background: var(--color-danger-soft);
-}
-
+/* ============================================
+   MAIN CONTENT AREA — hanya bagian ini scroll
+   ============================================ */
 .admin-layout__content {
   flex: 1;
   min-width: 0;
-  padding: var(--space-xl) var(--space-xl);
+  height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-xl);
+  position: relative;
+  background: var(--color-bg-surface);
+  display: flex;
+  flex-direction: column;
 }
 
-@media (max-width: 768px) {
+/* Gradient band tipis di top */
+.admin-layout__content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(
+    180deg,
+    rgba(109, 80, 163, 0.025) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============================================
+   TABLET — 768px s/d 1024px
+   Sidebar icon-only (56px), tooltip on hover
+   ============================================ */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .admin-layout__sidebar {
+    width: 60px;
+    padding: var(--space-lg) var(--space-sm);
+    align-items: center;
+  }
+
+  /* Brand: hanya logo */
+  .admin-layout__brand {
+    justify-content: center;
+    padding: 0;
+    margin-bottom: var(--space-lg);
+  }
+
+  .admin-layout__brand-info {
+    opacity: 0;
+    max-width: 0;
+    pointer-events: none;
+  }
+
+  /* Search bar: hanya icon */
+  .admin-layout__search {
+    justify-content: center;
+    padding: var(--space-xs);
+    width: 100%;
+  }
+
+  .admin-layout__search input,
+  .admin-layout__search-shortcut {
+    display: none;
+  }
+
+  /* Section labels: hilang */
+  .admin-layout__nav-section {
+    display: none;
+  }
+
+  /* Nav link: icon centered */
+  .admin-layout__nav-link {
+    justify-content: center;
+    padding: 10px;
+    width: 100%;
+    position: relative;
+  }
+
+  .admin-layout__nav-label {
+    opacity: 0;
+    max-width: 0;
+    pointer-events: none;
+  }
+
+  /* Tooltip via CSS attr(data-label) */
+  .admin-layout__nav-link::after {
+    content: attr(data-label);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--color-text-heading);
+    color: #fff;
+    font-size: var(--text-body-xs);
+    font-weight: 600;
+    font-family: var(--font-body);
+    padding: 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    box-shadow: 0 4px 12px rgba(26, 26, 46, 0.15);
+  }
+
+  .admin-layout__nav-link:hover::after {
+    opacity: 1;
+  }
+
+  /* Footer icon-only */
+  .admin-layout__help-label,
+  .admin-layout__user-info,
+  .admin-layout__logout-btn {
+    display: none;
+  }
+
+  .admin-layout__help-link {
+    justify-content: center;
+    padding: 10px;
+    width: 100%;
+  }
+
+  .admin-layout__user-row {
+    justify-content: center;
+    padding: 8px;
+  }
+
+  .admin-layout__content {
+    padding: var(--space-lg);
+  }
+}
+
+/* ============================================
+   MOBILE — di bawah 768px: top horizontal nav
+   ============================================ */
+@media (max-width: 767px) {
   .admin-layout {
     flex-direction: column;
   }
 
   .admin-layout__sidebar {
     width: 100%;
+    height: auto;
     flex-direction: row;
     align-items: center;
     border-right: none;
     border-bottom: 1px solid var(--color-border-light);
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-xs) var(--space-md);
     overflow-x: auto;
+    overflow-y: hidden;
+    gap: var(--space-xs);
+  }
+
+  /* Search: hilang di mobile nav */
+  .admin-layout__search,
+  .admin-layout__nav-section {
+    display: none;
   }
 
   .admin-layout__brand {
-    padding: 0 var(--space-sm) 0 0;
+    margin-bottom: 0;
+    flex-shrink: 0;
+    padding-right: var(--space-sm);
+    border-right: 1px solid var(--color-border-light);
+  }
+
+  .admin-layout__brand-info {
+    display: none;
   }
 
   .admin-layout__nav {
     flex-direction: row;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    gap: 0;
+  }
+
+  .admin-layout__nav::-webkit-scrollbar {
+    display: none;
   }
 
   .admin-layout__nav-link {
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: 8px;
     white-space: nowrap;
+    margin-bottom: 0;
+  }
+
+  .admin-layout__nav-label {
+    opacity: 1;
+    max-width: 200px;
+  }
+
+  /* Mobile active: bottom border */
+  .admin-layout__nav-link.is-active {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
   }
 
   .admin-layout__footer {
     border-top: none;
     padding-top: 0;
+    margin-top: 0;
     margin-left: auto;
+    flex-shrink: 0;
+    padding-left: var(--space-sm);
+    border-left: 1px solid var(--color-border-light);
   }
 
-  .admin-layout__user-name {
+  .admin-layout__help-link {
     display: none;
   }
 
+  .admin-layout__user-info,
+  .admin-layout__logout-btn {
+    display: none;
+  }
+
+  .admin-layout__user-row {
+    padding: 4px;
+  }
+
+  /* Content */
   .admin-layout__content {
-    padding: var(--space-lg) var(--space-md);
+    flex: 1;
+    height: 0;
+    overflow-y: auto;
+    padding: var(--space-md);
+  }
+
+  .admin-layout__content::before {
+    height: 80px;
   }
 }

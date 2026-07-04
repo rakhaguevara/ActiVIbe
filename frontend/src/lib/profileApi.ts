@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL
+export const API_URL = import.meta.env.VITE_API_URL
 
 export interface TaxonomyItem {
   id: string
@@ -16,6 +16,9 @@ export interface ProfileData {
   avatarUrl: string | null
   availability: Availability | null
   motivation: Motivation | null
+  education: string | null
+  cvUrl: string | null
+  cvFileName: string | null
   interests: TaxonomyItem[]
   skills: TaxonomyItem[]
 }
@@ -26,6 +29,9 @@ export interface ProfileUpdatePayload {
   availability?: Availability
   bio?: string
   motivation?: Motivation
+  customInterests?: string[]
+  education?: string
+  location?: string
 }
 
 async function parseResponse(res: Response) {
@@ -61,6 +67,26 @@ export async function updateMyProfile(payload: ProfileUpdatePayload): Promise<Pr
     credentials: 'include',
     body: JSON.stringify(payload),
   })
+  const data = await parseResponse(res)
+  return data.profile
+}
+
+export const MAX_CV_SIZE_BYTES = 5 * 1024 * 1024
+
+export async function uploadCv(file: File): Promise<ProfileData> {
+  const formData = new FormData()
+  formData.append('cv', file)
+  const res = await fetch(`${API_URL}/profile/me/cv`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  })
+  const data = await parseResponse(res)
+  return data.profile
+}
+
+export async function deleteCv(): Promise<ProfileData> {
+  const res = await fetch(`${API_URL}/profile/me/cv`, { method: 'DELETE', credentials: 'include' })
   const data = await parseResponse(res)
   return data.profile
 }
