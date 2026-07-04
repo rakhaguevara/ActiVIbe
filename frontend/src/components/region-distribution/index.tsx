@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Expand, AlertCircle, Loader2 } from 'lucide-react'
 import { useRegionDistribution } from '../../hooks/useRegionDistribution'
@@ -15,8 +15,6 @@ export default function RegionDistribution() {
   
   const [isExpanded, setIsExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterProvince, setFilterProvince] = useState('')
-
   const mapRef = useRef<GenericMapRef>(null)
 
   const [currentPage, setCurrentPage] = useState(0)
@@ -42,7 +40,6 @@ export default function RegionDistribution() {
 
   const handleReset = () => {
     setSearchQuery('')
-    setFilterProvince('')
     const instance = mapRef.current?.getEchartsInstance()
     if (instance) {
       instance.dispatchAction({

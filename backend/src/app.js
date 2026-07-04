@@ -17,11 +17,12 @@ export const app = express()
 // volunteer/organizer/admin each run on their own port), so allowlist-check
 // instead of passing the raw string straight to cors().
 const allowedOrigins = env.FRONTEND_URL.split(',').map((origin) => origin.trim())
+const isDevLocalhostOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || (env.NODE_ENV === 'development' && isDevLocalhostOrigin(origin))) {
         callback(null, true)
       } else {
         callback(new Error('Not allowed by CORS'))

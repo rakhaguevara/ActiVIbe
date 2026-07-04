@@ -1,6 +1,6 @@
 import type { Applicant, ApplicantStatus, EventRequirement, EventRole, OrganizerEvent } from '../types/organizer'
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export interface CreateEventShiftPayload {
   shiftDate: string

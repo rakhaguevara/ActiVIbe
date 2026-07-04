@@ -1,4 +1,3 @@
-import React from 'react'
 import { Map, BarChart2 } from 'lucide-react'
 
 interface SlideIndicatorProps {

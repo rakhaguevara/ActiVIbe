@@ -1,4 +1,6 @@
-export interface IndonesiaFeature extends GeoJSON.Feature {
+import type { Feature, FeatureCollection, Geometry } from 'geojson'
+
+export interface IndonesiaFeature extends Feature {
   properties: {
     Propinsi: string
   }
@@ -18627,4 +18629,4 @@ const geoData = {
   ]
 }
 ;
-export default geoData as GeoJSON.FeatureCollection<GeoJSON.Geometry, {Propinsi: string}>;
+export default geoData as FeatureCollection<Geometry, { Propinsi: string }>;

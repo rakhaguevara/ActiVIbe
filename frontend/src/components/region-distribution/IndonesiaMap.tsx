@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react'
+import { forwardRef } from 'react'
 import GenericMap from './GenericMap'
 import type { GenericMapRef } from './GenericMap'
 import indonesiaGeoJSON from '../../utils/geo/indonesia.geo.json'

@@ -1,5 +1,4 @@
-import React from 'react'
-import { Search, Download, Filter, RefreshCw } from 'lucide-react'
+import { Search, Download, RefreshCw } from 'lucide-react'
 
 interface MapToolbarProps {
   onSearch: (value: string) => void

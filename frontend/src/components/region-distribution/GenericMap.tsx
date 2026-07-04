@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, forwardRef, useImperativeHandle } from 'react'
+import { useMemo, useRef, forwardRef, useImperativeHandle } from 'react'
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
 import type { RegionStat } from '../../types/region'
