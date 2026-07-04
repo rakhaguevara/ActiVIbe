@@ -34,6 +34,12 @@
   margin: 0;
 }
 
+.find-activity-page__ai-status {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin: 4px 0 0;
+}
+
 .find-activity-page__results-filters {
   display: flex;
   align-items: center;

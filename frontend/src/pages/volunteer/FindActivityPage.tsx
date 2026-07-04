@@ -6,7 +6,7 @@ import EventDetailPanel from '../../components/EventDetailPanel'
 import EventApplyForm from '../../components/EventApplyForm'
 import ScrollPane from '../../components/ScrollPane'
 import VolunteerSearchBar, { type EventFilters } from '../../components/VolunteerSearchBar'
-import { mockEvents } from '../../data/mockEvents'
+import { useRecommendations } from '../../hooks/useRecommendations'
 import './FindActivityPage.css'
 
 type SortOption = 'matchScore' | 'dateAsc'
@@ -25,13 +25,12 @@ export default function FindActivityPage() {
   const [searchParams] = useSearchParams()
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS)
   const [sortBy, setSortBy] = useState<SortOption>('matchScore')
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(() => {
-    const sharedEventId = searchParams.get('event')
-    if (sharedEventId && mockEvents.some((event) => event.id === sharedEventId)) {
-      return sharedEventId
-    }
-    return [...mockEvents].sort((a, b) => b.matchScore - a.matchScore)[0]?.id ?? null
-  })
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+
+  // Hasil personalisasi FR-005 dari backend (algoritma rule-based + AI);
+  // fallback otomatis ke mockEvents kalau backend tidak bisa dihubungi.
+  const { events, isLoading: isLoadingEvents, isFallback, aiEnabled, aiProvider, profileComplete } =
+    useRecommendations()
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -39,14 +38,34 @@ export default function FindActivityPage() {
     }
   }, [isLoading, user, navigate])
 
-  const categories = useMemo(() => Array.from(new Set(mockEvents.map((event) => event.category))), [])
-  const skills = useMemo(() => Array.from(new Set(mockEvents.flatMap((event) => event.skills))), [])
+  // Pilih event awal begitu data rekomendasi datang: default event dengan
+  // Match Score tertinggi (kalau belum ada pilihan yang masih valid).
+  useEffect(() => {
+    if (isLoadingEvents || events.length === 0) return
+    setSelectedEventId((current) => {
+      if (current && events.some((event) => event.id === current)) return current
+      return [...events].sort((a, b) => b.matchScore - a.matchScore)[0]?.id ?? null
+    })
+  }, [isLoadingEvents, events])
+
+  // ?event=... menang atas pilihan default — dipakai link share DAN tombol
+  // "Daftar Sekarang" di PersonalizationResultModal (pasca-onboarding),
+  // supaya event pilihan user langsung terbuka dengan form pendaftarannya.
+  useEffect(() => {
+    const sharedEventId = searchParams.get('event')
+    if (sharedEventId && events.some((event) => event.id === sharedEventId)) {
+      setSelectedEventId(sharedEventId)
+    }
+  }, [searchParams, events])
+
+  const categories = useMemo(() => Array.from(new Set(events.map((event) => event.category))), [events])
+  const skills = useMemo(() => Array.from(new Set(events.flatMap((event) => event.skills))), [events])
 
   const filteredEvents = useMemo(() => {
     const keyword = filters.keyword.trim().toLowerCase()
     const location = filters.location.trim().toLowerCase()
 
-    return mockEvents.filter((event) => {
+    return events.filter((event) => {
       if (
         keyword &&
         !event.title.toLowerCase().includes(keyword) &&
@@ -68,19 +87,20 @@ export default function FindActivityPage() {
       }
       return true
     })
-  }, [filters])
+  }, [events, filters])
 
   const sortedEvents = useMemo(() => {
-    const events = [...filteredEvents]
+    const sorted = [...filteredEvents]
     if (sortBy === 'matchScore') {
-      events.sort((a, b) => b.matchScore - a.matchScore)
+      sorted.sort((a, b) => b.matchScore - a.matchScore)
     } else {
-      events.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+      sorted.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     }
-    return events
+    return sorted
   }, [filteredEvents, sortBy])
 
   useEffect(() => {
+    if (isLoadingEvents) return
     if (sortedEvents.length === 0) {
       setSelectedEventId(null)
       return
@@ -88,7 +108,7 @@ export default function FindActivityPage() {
     if (!sortedEvents.some((event) => event.id === selectedEventId)) {
       setSelectedEventId(sortedEvents[0].id)
     }
-  }, [sortedEvents, selectedEventId])
+  }, [isLoadingEvents, sortedEvents, selectedEventId])
 
   if (isLoading || !user) {
     return null
@@ -101,9 +121,19 @@ export default function FindActivityPage() {
       <VolunteerSearchBar filters={filters} onChange={setFilters} categories={categories} />
 
       <div className="find-activity-page__results-row">
-        <p className="find-activity-page__results-count">
-          Kegiatan Volunteer | Total {sortedEvents.length} hasil
-        </p>
+        <div>
+          <p className="find-activity-page__results-count">
+            Kegiatan Volunteer | Total {sortedEvents.length} hasil
+          </p>
+          {!isLoadingEvents && !isFallback && (
+            <p className="find-activity-page__ai-status">
+              {aiEnabled
+                ? `✨ Dipersonalisasi oleh AI untukmu${aiProvider ? ` (${aiProvider})` : ''}`
+                : 'Diurutkan berdasarkan kecocokan profilmu'}
+              {!profileComplete && ' · Lengkapi profilmu agar rekomendasi makin akurat'}
+            </p>
+          )}
+        </div>
 
         <div className="find-activity-page__results-filters">
           <select
@@ -138,7 +168,9 @@ export default function FindActivityPage() {
       </div>
 
       <div className="find-activity-page__columns">
-        {sortedEvents.length === 0 ? (
+        {isLoadingEvents ? (
+          <p className="find-activity-page__empty">Menyusun rekomendasi kegiatan untukmu…</p>
+        ) : sortedEvents.length === 0 ? (
           <p className="find-activity-page__empty">Tidak ada kegiatan yang cocok dengan filter ini.</p>
         ) : (
           <ScrollPane>
@@ -150,7 +182,7 @@ export default function FindActivityPage() {
           </ScrollPane>
         )}
 
-        {selectedEvent ? (
+        {isLoadingEvents ? null : selectedEvent ? (
           <>
             <ScrollPane>
               <EventDetailPanel event={selectedEvent} />

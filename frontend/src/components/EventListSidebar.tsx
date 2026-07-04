@@ -41,7 +41,9 @@ export default function EventListSidebar({ events, selectedEventId, onSelect }: 
           >
             <div className="event-list-sidebar__image-wrap">
               <img src={event.imageUrl} alt="" className="event-list-sidebar__image" />
-              <span className="event-list-sidebar__badge">{event.matchScore}%</span>
+              <span className="event-list-sidebar__badge">
+                {event.symbol ? `${event.symbol} ` : ''}{event.matchScore}%
+              </span>
             </div>
 
             <div className="event-list-sidebar__content">

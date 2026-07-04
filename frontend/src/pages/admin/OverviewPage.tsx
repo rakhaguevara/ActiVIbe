@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiSearch, FiBell, FiShare, FiCpu, FiCheckCircle, FiDownloadCloud, FiUploadCloud, FiPrinter, FiColumns, FiFileText, FiSend, FiX } from 'react-icons/fi'
+import { FiSearch, FiBell, FiShare, FiCpu, FiCheckCircle, FiDownloadCloud, FiUploadCloud, FiPrinter, FiColumns, FiFileText, FiSend, FiX, FiTrendingUp, FiAlertCircle } from 'react-icons/fi'
 import { mockAdminUsers, mockAdminEvents, mockActivityLog } from '../../data/mockAdmin'
 import VisxLineChart from '../../components/VisxLineChart'
-import BarChart from '../../components/BarChart'
+import RegionDistribution from '../../components/region-distribution'
 import './OverviewPage.css'
 
 // Mock Data untuk Tabel Historis
@@ -76,25 +76,6 @@ export default function OverviewPage() {
         })),
     [],
   )
-
-  /* ── 5. Retention Rate (Bar Chart data) ── */
-  const retentionData = useMemo(() => {
-    const counts = { active: 0, inactive: 0, suspended: 0 }
-    mockAdminUsers.forEach((u) => { counts[u.status] += 1 })
-
-    return [
-      { label: 'Aktif', value: counts.active, color: 'var(--color-success)', displayValue: String(counts.active) },
-      { label: 'Nonaktif', value: counts.inactive, color: 'var(--color-warning-chart)', displayValue: String(counts.inactive) },
-      { label: 'Suspend', value: counts.suspended, color: 'var(--color-danger)', displayValue: String(counts.suspended) },
-    ]
-  }, [])
-
-  /* ── 6. Region Distribution ── */
-  const regionData = [
-    { name: 'DKI Jakarta', val: '4,200', pct: 55, color: 'var(--color-accent-orange)' },
-    { name: 'Jawa Barat', val: '2,300', pct: 30, color: 'var(--color-primary)' },
-    { name: 'Jawa Timur', val: '1,150', pct: 15, color: 'var(--color-secondary)' },
-  ]
 
   return (
     <div className="admin-overview">
@@ -293,33 +274,54 @@ export default function OverviewPage() {
         </div>
 
         {/* Region Distribution */}
-        <div className="admin-overview__card">
-          <div className="admin-overview__card-header" style={{ marginBottom: '8px' }}>
-            <h3 className="admin-overview__card-title">Region Distribution</h3>
-            <span className="admin-overview__kpi-subtitle">...</span>
-          </div>
-          <div className="admin-overview__region-list">
-            {regionData.map(r => (
-              <div key={r.name} className="admin-overview__pipeline-item" style={{ marginBottom: '4px' }}>
-                <div className="admin-overview__region-info">
-                  <span className="admin-overview__region-name">📍 {r.name}</span>
-                  <div>
-                    <span className="admin-overview__region-val">{r.val}</span>
-                    <span className="admin-overview__region-pct">({r.pct}%)</span>
-                  </div>
-                </div>
-                <div className="admin-overview__pipeline-bar-bg">
-                  <div 
-                    className="admin-overview__pipeline-bar-fill" 
-                    style={{ width: `${r.pct}%`, background: r.color }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <RegionDistribution />
 
       </div> {/* end .admin-overview__bottom-row */}
+
+      {/* ================= AI INSIGHT SECTION ================= */}
+      <div className="admin-overview__ai-insight-section">
+        <div className="admin-overview__ai-header">
+          <div className="admin-overview__ai-title-wrap">
+            <FiCpu className="ai-sparkle-icon" />
+            <h3 className="admin-overview__ai-title">AI Insights & Recommendations</h3>
+          </div>
+          <button className="admin-dashboard-btn admin-dashboard-btn--dark" onClick={() => setIsAiOpen(true)}>
+            Chat with AI
+          </button>
+        </div>
+        <div className="admin-overview__ai-grid">
+          <div className="admin-overview__ai-card">
+            <div className="admin-overview__ai-card-icon success">
+              <FiTrendingUp />
+            </div>
+            <div className="admin-overview__ai-card-content">
+              <h4>Lonjakan Volunteer di Jawa Timur</h4>
+              <p>Pendaftaran Volunteer di Jawa Timur meningkat drastis (+25%). Saran: Alokasikan lebih banyak event kampanye di area Surabaya dan Malang bulan ini.</p>
+              <button className="admin-overview__ai-action">Buat Event Baru</button>
+            </div>
+          </div>
+          <div className="admin-overview__ai-card">
+            <div className="admin-overview__ai-card-icon warning">
+              <FiAlertCircle />
+            </div>
+            <div className="admin-overview__ai-card-content">
+              <h4>Izin NGO Mendekati Kedaluwarsa</h4>
+              <p>Terdapat 3 NGO aktif yang izin organisasinya akan habis dalam 7 hari ke depan. Saran: Kirimkan notifikasi pengingat otomatis.</p>
+              <button className="admin-overview__ai-action">Kirim Pengingat</button>
+            </div>
+          </div>
+          <div className="admin-overview__ai-card">
+            <div className="admin-overview__ai-card-icon primary">
+              <FiCheckCircle />
+            </div>
+            <div className="admin-overview__ai-card-content">
+              <h4>Review Aktivitas Pending</h4>
+              <p>Ada 4 aktivitas pendaftaran yang menunggu review Anda lebih dari 24 jam. Saran: Segera setujui Budi Santoso karena memiliki trust score 98%.</p>
+              <button className="admin-overview__ai-action">Tinjau Sekarang</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ================= HISTORY TABLE ================= */}
       <div className="admin-overview__history-section">
@@ -415,7 +417,6 @@ export default function OverviewPage() {
       )}
 
       </div> {/* end .admin-overview__scroll-content */}
-
     </div>
   )
 }

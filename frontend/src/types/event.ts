@@ -26,6 +26,12 @@ export interface Event {
   matchScore: number
   matchReasoning: string
   fitBadgeLabel: string
+  /** Emoji simbol kecocokan dari sistem rekomendasi FR-005 (opsional — hanya ada di hasil personalisasi) */
+  symbol?: string
+  /** true = skor/reasoning dari AI, false/undefined = rule-based atau mock */
+  aiGenerated?: boolean
+  /** Label tier kecocokan dari backend: "Kurang Cocok" | "Sedikit Relevan" | "Sangat Relevan & Cocok" */
+  relevanceLabel?: string
   rating: number
   reviewCount: number
   ratingBreakdown: RatingBreakdownItem[]

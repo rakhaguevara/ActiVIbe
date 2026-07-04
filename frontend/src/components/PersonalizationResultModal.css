@@ -1,0 +1,358 @@
+/* Modal hasil personalisasi (pasca-onboarding) — bahasa visual mengikuti
+   OnboardingModal: backdrop putih blur, panel radius 20px, token design.md. */
+
+.personalization-result__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: personalizationFadeIn 0.2s ease;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .personalization-result__backdrop {
+    background-color: rgba(255, 255, 255, 0.94);
+  }
+}
+
+@keyframes personalizationFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.personalization-result {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  background: var(--color-bg-true);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(26, 26, 46, 0.16);
+  padding: var(--space-xl) var(--space-lg);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+
+  animation: personalizationPopIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes personalizationPopIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header & state loading ── */
+
+.personalization-result__header {
+  text-align: center;
+}
+
+.personalization-result__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+}
+
+.personalization-result__loading-emoji {
+  font-size: 2.5rem;
+  animation: personalizationPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes personalizationPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.15); opacity: 0.7; }
+}
+
+.personalization-result__title {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.personalization-result__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  line-height: var(--leading-normal);
+  margin: var(--space-2xs) 0 0;
+}
+
+/* ── Card 1: analisis profil ── */
+
+.personalization-result__analysis-summary {
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  color: var(--color-text-body);
+  line-height: var(--leading-normal);
+  margin: 0;
+  text-align: center;
+}
+
+.personalization-result__role-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.personalization-result__role-label {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+.personalization-result__role-chip {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+
+.personalization-result__role-location {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+/* Grafik afinitas kategori — meter row satu series (hue tunggal --color-primary):
+   bar tipis 10px, ujung data rounded, track recessive; nama & angka memakai
+   token tinta teks (bukan warna series). */
+
+.personalization-result__chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-bg-surface);
+}
+
+.personalization-result__chart-title {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin: 0 0 var(--space-2xs);
+}
+
+.personalization-result__chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.personalization-result__chart-labels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.personalization-result__chart-name {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+}
+
+.personalization-result__chart-value {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.personalization-result__chart-track {
+  height: 10px;
+  border-radius: 4px;
+  background: var(--color-border-light);
+  overflow: hidden;
+}
+
+.personalization-result__chart-bar {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 0 4px 4px 0; /* ujung data rounded, sisi baseline (kiri) rata */
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Label tier kecocokan (aturan produk) ── */
+
+.personalization-result__relevance {
+  align-self: flex-start;
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.personalization-result__relevance--success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.personalization-result__relevance--info {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+.personalization-result__relevance--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-chart);
+}
+
+.personalization-result__footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* ── Card kegiatan cocok ── */
+
+.personalization-result__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.personalization-result__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: var(--space-md);
+  background: var(--color-bg-surface);
+}
+
+.personalization-result__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.personalization-result__symbol {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.personalization-result__score {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.personalization-result__score--success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.personalization-result__score--info {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+.personalization-result__score--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-chart);
+}
+
+.personalization-result__card-title {
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.personalization-result__card-meta {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.personalization-result__card-reasoning {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  line-height: var(--leading-normal);
+  margin: 0;
+  flex-grow: 1;
+}
+
+.personalization-result__fit-badge {
+  align-self: flex-start;
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  font-weight: 500;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+/* ── CTA ── */
+
+.personalization-result__cta {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-on-accent);
+  background: var(--color-primary);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.personalization-result__cta:hover {
+  background: var(--color-primary-hover);
+}
+
+.personalization-result__cta:active {
+  background: var(--color-primary-active);
+}
+
+.personalization-result__secondary {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  align-self: center;
+  padding: var(--space-2xs) var(--space-sm);
+}
+
+.personalization-result__secondary:hover {
+  text-decoration: underline;
+}

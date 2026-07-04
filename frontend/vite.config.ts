@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => {
       react(),
       babel({ presets: [reactCompilerPreset()] })
     ],
+    resolve: {
+      dedupe: ['react', 'react-dom'],
+    },
     server: {
       port: env.PORT ? parseInt(env.PORT) : 5173,
       strictPort: false,

@@ -55,9 +55,9 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
 
       <div className="event-detail-panel__badges">
         <span className={`event-detail-panel__match-badge event-detail-panel__match-badge--${getMatchTier(event.matchScore)}`}>
-          {event.matchScore}% Match Score
+          {event.matchScore}% Match Score{event.relevanceLabel ? ` · ${event.relevanceLabel}` : ''}
         </span>
-        <span className="event-detail-panel__fit-badge">✨ {event.fitBadgeLabel}</span>
+        <span className="event-detail-panel__fit-badge">{event.symbol ?? '✨'} {event.fitBadgeLabel}</span>
       </div>
       <p className="event-detail-panel__match-reasoning">{event.matchReasoning}</p>
 

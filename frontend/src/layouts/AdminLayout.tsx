@@ -123,7 +123,7 @@ export default function AdminLayout() {
                       to={to}
                       end={end}
                       data-label={label}
-                      onClick={(e) => {
+                      onClick={() => {
                         if (hasSub) {
                           setExpandedNavs(prev => ({ ...prev, [label]: !prev[label] }))
                         }
