@@ -1,16 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiDownload, FiSearch, FiFilter, FiMoreVertical } from 'react-icons/fi'
-import { mockParticipationRecords } from '../../data/mockAdmin'
+import { listParticipation } from '../../lib/adminApi'
+import type { ParticipationRecord } from '../../types/admin'
 import './ParticipationExportPage.css'
-
-const EARLIEST_DATE = mockParticipationRecords.reduce(
-  (min, r) => (r.date < min ? r.date : min),
-  mockParticipationRecords[0]?.date ?? '',
-)
-const LATEST_DATE = mockParticipationRecords.reduce(
-  (max, r) => (r.date > max ? r.date : max),
-  mockParticipationRecords[0]?.date ?? '',
-)
 
 function toCsvValue(value: string | number) {
   const str = String(value)
@@ -18,12 +10,31 @@ function toCsvValue(value: string | number) {
 }
 
 export default function ParticipationExportPage() {
-  const [fromDate, setFromDate] = useState(EARLIEST_DATE)
-  const [toDate, setToDate] = useState(LATEST_DATE)
+  const [records, setRecords] = useState<ParticipationRecord[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    listParticipation()
+      .then((data) => {
+        if (cancelled) return
+        setRecords(data)
+        if (data.length > 0) {
+          const dates = data.map((r) => r.date)
+          setFromDate(dates.reduce((min, d) => (d < min ? d : min), dates[0]))
+          setToDate(dates.reduce((max, d) => (d > max ? d : max), dates[0]))
+        }
+      })
+      .catch((err) => window.alert(err instanceof Error ? err.message : 'Gagal memuat data partisipasi.'))
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   const filteredRecords = useMemo(
-    () => mockParticipationRecords.filter((r) => r.date >= fromDate && r.date <= toDate),
-    [fromDate, toDate],
+    () => records.filter((r) => (!fromDate || r.date >= fromDate) && (!toDate || r.date <= toDate)),
+    [records, fromDate, toDate],
   )
 
   const handleExport = () => {
@@ -217,7 +228,14 @@ export default function ParticipationExportPage() {
                   </td>
                 </tr>
               ))}
-              {filteredRecords.length === 0 && (
+              {isLoading && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                    Memuat data partisipasi...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && filteredRecords.length === 0 && (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
                     Tidak ada data partisipasi pada rentang tanggal ini.

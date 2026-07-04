@@ -75,6 +75,15 @@ export async function loginUser({ email, password }) {
     throw new AppError(401, 'Email atau password salah')
   }
 
+  // Cek status SETELAH password cocok — supaya orang yang tidak tahu password
+  // tidak bisa dipakai buat mengetes/enumerasi akun mana yang ditangguhkan.
+  if (user.status === 'SUSPENDED') {
+    throw new AppError(403, 'Akun Anda telah ditangguhkan. Hubungi admin untuk informasi lebih lanjut.')
+  }
+  if (user.status === 'INACTIVE') {
+    throw new AppError(403, 'Akun Anda tidak aktif. Hubungi admin untuk mengaktifkan kembali.')
+  }
+
   const tokens = await issueTokens(user)
   return { user: toPublicUser(user), ...tokens }
 }

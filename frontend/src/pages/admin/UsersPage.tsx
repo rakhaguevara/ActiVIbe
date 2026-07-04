@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FiSearch, FiUserCheck, FiUserX, FiSlash, FiUploadCloud, FiPlus, FiFilter, FiColumns, FiMoreHorizontal, FiEye } from 'react-icons/fi'
-import { mockAdminUsers } from '../../data/mockAdmin'
+import { listUsers, updateUserStatus } from '../../lib/adminApi'
 import type { AdminUser } from '../../types/admin'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import './UsersPage.css'
@@ -19,12 +19,22 @@ const STATUS_VARIANT: Record<AdminUser['status'], 'success' | 'warning' | 'dange
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<AdminUser[]>(mockAdminUsers)
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [keyword, setKeyword] = useState('')
   const [suspendTarget, setSuspendTarget] = useState<AdminUser | null>(null)
   const [detailTarget, setDetailTarget] = useState<AdminUser | null>(null)
   const [searchParams] = useSearchParams()
   const roleFilter = searchParams.get('role')
+
+  useEffect(() => {
+    let cancelled = false
+    listUsers()
+      .then((data) => { if (!cancelled) setUsers(data) })
+      .catch((err) => window.alert(err instanceof Error ? err.message : 'Gagal memuat pengguna.'))
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   const filteredUsers = useMemo(() => {
     const query = keyword.trim().toLowerCase()
@@ -37,8 +47,13 @@ export default function UsersPage() {
     })
   }, [users, keyword, roleFilter])
 
-  const setStatus = (id: string, status: AdminUser['status']) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status } : u)))
+  const setStatus = async (id: string, status: AdminUser['status']) => {
+    try {
+      const updated = await updateUserStatus(id, status)
+      setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)))
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal mengubah status pengguna.')
+    }
   }
 
   return (
@@ -135,7 +150,14 @@ export default function UsersPage() {
                   </td>
                 </tr>
               ))}
-              {filteredUsers.length === 0 && (
+              {isLoading && (
+                <tr>
+                  <td colSpan={8} className="admin-users__empty">
+                    Memuat pengguna...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={8} className="admin-users__empty">
                     Tidak ada pengguna yang cocok.

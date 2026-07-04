@@ -8,15 +8,18 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(uuid())
+  id         String     @id @default(uuid())
   name       String
-  email      String?  @unique
-  phone      String?  @unique
+  email      String?    @unique
+  phone      String?    @unique
   password   String
-  role       Role     @default(VOLUNTEER)
-  isVerified Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  role       Role       @default(VOLUNTEER)
+  isVerified Boolean    @default(false)
+  // FR-019: admin bisa aktifkan/nonaktifkan/suspend akun. SUSPENDED juga
+  // memblokir login (lihat auth.service.js loginUser) — bukan cuma label.
+  status     UserStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   otpRequests   OtpRequest[]
   refreshTokens RefreshToken[]
@@ -42,6 +45,12 @@ enum Role {
   VOLUNTEER
   ORGANIZER
   ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
 }
 
 model OtpRequest {
@@ -199,8 +208,16 @@ model Event {
   // (FR-011) dan dipakai sbg saran nilai di close event flow (FR-017/FR-048).
   impactMetricLabel String
   impactMetricUnit  String?
+  // Kategori kegiatan (mis. "Lingkungan", "Pendidikan") — bebas teks, PRD tidak
+  // mengunci taksonomi tetap. Ditampilkan admin, belum ada input-nya di form
+  // organizer (CreateEventPage) sehingga event baru masih null utk sekarang.
+  category          String?
   approvedById      String?
   approvedAt        DateTime?
+  // Catatan admin saat review (FR-020): alasan penolakan ATAU syarat approval
+  // bersyarat — satu field, dua kegunaan, krn keduanya sama2 "catatan admin
+  // soal event ini" dan tidak pernah terisi bersamaan.
+  reviewNote        String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiSearch, FiPrinter, FiColumns, FiFileText } from 'react-icons/fi'
-import { mockActivityLog } from '../../data/mockAdmin'
+import { listActivityLog } from '../../lib/adminApi'
+import type { ActivityLogEntry } from '../../types/admin'
 import './ActivityLogPage.css'
 
 
@@ -15,10 +16,21 @@ const timeFormatter = new Intl.DateTimeFormat('id-ID', {
 
 export default function ActivityLogPage() {
   const [keyword, setKeyword] = useState('')
+  const [log, setLog] = useState<ActivityLogEntry[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    listActivityLog()
+      .then((data) => { if (!cancelled) setLog(data) })
+      .catch((err) => window.alert(err instanceof Error ? err.message : 'Gagal memuat log aktivitas.'))
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   const entries = useMemo(() => {
     const query = keyword.trim().toLowerCase()
-    return [...mockActivityLog]
+    return [...log]
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .filter((entry) => {
         if (!query) return true
@@ -28,7 +40,7 @@ export default function ActivityLogPage() {
           entry.targetLabel.toLowerCase().includes(query)
         )
       })
-  }, [keyword])
+  }, [log, keyword])
 
   return (
     <div className="admin-log" style={{ padding: '24px', width: '100%', fontFamily: 'var(--font-body)' }}>
@@ -104,7 +116,14 @@ export default function ActivityLogPage() {
                   </td>
                 </tr>
               ))}
-              {entries.length === 0 && (
+              {isLoading && (
+                <tr>
+                  <td colSpan={7} className="admin-log__empty">
+                    Memuat log aktivitas...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && entries.length === 0 && (
                 <tr>
                   <td colSpan={7} className="admin-log__empty">
                     Tidak ada aktivitas yang cocok.

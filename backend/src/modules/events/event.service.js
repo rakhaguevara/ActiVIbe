@@ -112,6 +112,21 @@ export async function createEvent(organizerId, data) {
     include: EVENT_INCLUDE,
   })
 
+  // Cuma dicatat saat benar-benar diajukan ke admin (bukan disimpan sbg draft)
+  // — draft masih "kerjaan organizer sendiri", belum jadi aktivitas penting
+  // yg perlu diaudit (FR-022/FR-052).
+  if (created.status === 'PENDING_APPROVAL') {
+    await prisma.auditLog.create({
+      data: {
+        actorId: organizerId,
+        action: 'Mengajukan kegiatan baru',
+        targetType: 'Event',
+        targetId: created.id,
+        targetLabel: created.title,
+      },
+    })
+  }
+
   return serializeEvent(created)
 }
 

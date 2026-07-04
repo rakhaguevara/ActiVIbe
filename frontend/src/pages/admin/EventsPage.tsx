@@ -1,11 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FiX, FiTrash2, FiSearch,
   FiExternalLink, FiDownload, FiSliders, FiFilter,
   FiMapPin, FiCalendar, FiUsers, FiFileText
 } from 'react-icons/fi'
-import { mockAdminEvents } from '../../data/mockAdmin'
+import {
+  listEvents,
+  approveEvent as approveEventRequest,
+  rejectEvent as rejectEventRequest,
+  deleteEvent as deleteEventRequest,
+} from '../../lib/adminApi'
 import type { AdminEvent } from '../../types/admin'
 import Badge from '../../components/Badge'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -68,11 +73,21 @@ function exportCSV(events: AdminEvent[]) {
 
 /* ════════════════════════════════════════════════════ */
 export default function EventsPage() {
-  const [events, setEvents] = useState<AdminEvent[]>(mockAdminEvents)
+  const [events, setEvents] = useState<AdminEvent[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [subFilter, setSubFilter] = useState<'all' | 'pending' | 'processed'>('all')
   const [search, setSearch] = useState('')
   const [dialog, setDialog] = useState<DialogState>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listEvents()
+      .then((data) => { if (!cancelled) setEvents(data) })
+      .catch((err) => window.alert(err instanceof Error ? err.message : 'Gagal memuat kegiatan.'))
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   /* Counts for tab badges */
   const counts = useMemo(() => ({
@@ -98,20 +113,38 @@ export default function EventsPage() {
     return list
   }, [events, statusFilter, subFilter, search])
 
-  /* Actions */
-  const approveEvent = (id: string) => {
-    setEvents((prev) => prev.map((e) => e.id === id ? { ...e, status: 'approved' } : e))
+  /* Actions — semuanya persist ke backend sekarang (lihat lib/adminApi.ts) */
+  const approveEvent = async (id: string) => {
+    try {
+      const updated = await approveEventRequest(id)
+      setEvents((prev) => prev.map((e) => (e.id === id ? updated : e)))
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal menyetujui kegiatan.')
+    }
   }
-  const rejectEvent = (id: string, _reason?: string) => {
-    // reason could be saved to backend in real app
-    setEvents((prev) => prev.map((e) => e.id === id ? { ...e, status: 'rejected' } : e))
+  const rejectEvent = async (id: string, reason: string) => {
+    try {
+      const updated = await rejectEventRequest(id, reason)
+      setEvents((prev) => prev.map((e) => (e.id === id ? updated : e)))
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal menolak kegiatan.')
+    }
   }
-  const deleteEvent = (id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id))
+  const deleteEvent = async (id: string) => {
+    try {
+      await deleteEventRequest(id)
+      setEvents((prev) => prev.filter((e) => e.id !== id))
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal menghapus kegiatan.')
+    }
   }
-  const conditionalApproveEvent = (id: string, _conditions?: string) => {
-    // conditions saved to backend in real app
-    setEvents((prev) => prev.map((e) => e.id === id ? { ...e, status: 'approved' } : e))
+  const conditionalApproveEvent = async (id: string, conditions: string) => {
+    try {
+      const updated = await approveEventRequest(id, conditions)
+      setEvents((prev) => prev.map((e) => (e.id === id ? updated : e)))
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal menyetujui kegiatan.')
+    }
   }
 
   // Helper form states for dialogs
@@ -232,7 +265,9 @@ export default function EventsPage() {
         </div>
 
         {/* Rows — satu grup per event */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="events-page__empty">Memuat kegiatan...</div>
+        ) : filtered.length === 0 ? (
           <div className="events-page__empty">
             Tidak ada kegiatan yang cocok.
           </div>

@@ -20,6 +20,7 @@ import UsersPage from '../pages/admin/UsersPage'
 import EventsPage from '../pages/admin/EventsPage'
 import ParticipationExportPage from '../pages/admin/ParticipationExportPage'
 import ActivityLogPage from '../pages/admin/ActivityLogPage'
+import OrganizersPage from '../pages/admin/OrganizersPage'
 import OrganizerOverviewPage from '../pages/organizer/OverviewPage'
 import OrganizerEventsPage from '../pages/organizer/EventsPage'
 import CreateEventPage from '../pages/organizer/CreateEventPage'
@@ -63,6 +64,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
           <Route path="/admin/events" element={<EventsPage />} />
           <Route path="/admin/participation" element={<ParticipationExportPage />} />
           <Route path="/admin/activity-log" element={<ActivityLogPage />} />
+          <Route path="/admin/organizers" element={<OrganizersPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -1,10 +1,19 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiSearch, FiBell, FiShare, FiCpu, FiCheckCircle, FiDownloadCloud, FiUploadCloud, FiPrinter, FiColumns, FiFileText, FiSend, FiX, FiTrendingUp, FiAlertCircle } from 'react-icons/fi'
-import { mockAdminUsers, mockAdminEvents, mockActivityLog } from '../../data/mockAdmin'
+import { getOverviewStats, type AdminOverviewStats } from '../../lib/adminApi'
 import VisxLineChart from '../../components/VisxLineChart'
 import RegionDistribution from '../../components/region-distribution'
 import './OverviewPage.css'
+
+const EMPTY_STATS: AdminOverviewStats = {
+  totalUsers: 0,
+  pendingEvents: 0,
+  approvedEvents: 0,
+  ongoingEvents: 0,
+  rejectedEvents: 0,
+  recentActivity: [],
+}
 
 // Mock Data untuk Tabel Historis
 const mockHistoryTable = [
@@ -18,15 +27,15 @@ export default function OverviewPage() {
   const navigate = useNavigate()
   const [isAiOpen, setIsAiOpen] = useState(false)
 
-  /* ── 1. KPI Stats ── */
-  const stats = useMemo(() => {
-    const totalUsers = mockAdminUsers.length
-    const approvedEvents = mockAdminEvents.filter((e) => e.status === 'approved').length
-    const pendingEvents = mockAdminEvents.filter((e) => e.status === 'pending').length
-    // Dummy logic for ongoing
-    const ongoingEvents = Math.floor(approvedEvents / 2) 
+  /* ── 1. KPI Stats — real counts from GET /admin/overview ── */
+  const [stats, setStats] = useState<AdminOverviewStats>(EMPTY_STATS)
 
-    return { totalUsers, approvedEvents, ongoingEvents, pendingEvents }
+  useEffect(() => {
+    let cancelled = false
+    getOverviewStats()
+      .then((data) => { if (!cancelled) setStats(data) })
+      .catch((err) => window.alert(err instanceof Error ? err.message : 'Gagal memuat ringkasan dashboard.'))
+    return () => { cancelled = true }
   }, [])
 
   const handleMockClick = (feature: string) => {
@@ -62,19 +71,17 @@ export default function OverviewPage() {
     }
   }, [])
 
-  /* ── 4. Aktivitas Terbaru (Lead Pipeline style) ── */
+  /* ── 4. Aktivitas Terbaru (Lead Pipeline style) — dari AuditLog sungguhan,
+     sudah diurutkan+dibatasi 5 oleh backend (lihat admin.service.js) ── */
   const recentActivity = useMemo(
     () =>
-      [...mockActivityLog]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 4)
-        .map((a, i) => ({
-          ...a,
-          // Calculate dummy width based on index for the progress bar visual
-          pct: 100 - (i * 20),
-          color: i === 0 ? 'var(--color-accent-orange)' : i === 1 ? 'var(--color-primary)' : i === 2 ? 'var(--color-secondary)' : 'var(--color-warning-chart)'
-        })),
-    [],
+      stats.recentActivity.slice(0, 4).map((a, i) => ({
+        ...a,
+        // Lebar progress bar tetap dummy (visual saja) berdasarkan urutan
+        pct: 100 - (i * 20),
+        color: i === 0 ? 'var(--color-accent-orange)' : i === 1 ? 'var(--color-primary)' : i === 2 ? 'var(--color-secondary)' : 'var(--color-warning-chart)'
+      })),
+    [stats.recentActivity],
   )
 
   return (
