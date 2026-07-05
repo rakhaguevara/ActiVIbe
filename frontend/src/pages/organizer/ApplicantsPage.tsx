@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { FiSearch } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import Badge from '../../components/Badge'
@@ -34,17 +35,14 @@ const STATUS_VARIANT: Record<ApplicantStatus, 'success' | 'warning' | 'danger' |
 }
 
 export default function ApplicantsPage() {
+  const { eventId } = useParams<{ eventId: string }>()
   const { isLoading, events, applicants, updateApplicantStatus, addApplicantNote } = useOrganizerData()
-  const [selectedEventId, setSelectedEventId] = useState('')
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | ApplicantStatus>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [openApplicantId, setOpenApplicantId] = useState<string | null>(null)
 
-  // Selection dipilih user (selectedEventId) menang; kalau belum pernah
-  // dipilih, jatuh ke event pertama begitu data selesai dimuat — dihitung
-  // saat render, bukan lewat effect+setState (lihat react-hooks/set-state-in-effect).
-  const effectiveEventId = selectedEventId || events[0]?.id || ''
+  const effectiveEventId = eventId || ''
 
   const selectedEvent = events.find((e) => e.id === effectiveEventId)
 
@@ -81,12 +79,6 @@ export default function ApplicantsPage() {
       </header>
 
       <div className="applicants-page__toolbar">
-        <select value={effectiveEventId} onChange={(e) => { setSelectedEventId(e.target.value); setSelectedIds([]) }}>
-          {events.map((e) => (
-            <option key={e.id} value={e.id}>{e.title}</option>
-          ))}
-        </select>
-
         <div className="applicants-page__search">
           <FiSearch />
           <input placeholder="Cari nama atau email..." value={keyword} onChange={(e) => setKeyword(e.target.value)} />

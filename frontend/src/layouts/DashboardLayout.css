@@ -3,23 +3,27 @@
   background: var(--color-bg-surface);
 }
 
-/* FindActivityPage butuh viewport tetap + scroll internal per-kolom (lihat
-   ScrollPane), jadi treatment flex/overflow-hidden ini di-scope khusus ke
-   halaman itu — halaman dashboard lain (Passport, Settings, dst) pakai
-   scroll dokumen biasa supaya position: sticky di dalamnya tetap jalan. */
+/* FindActivityPage & FindOrganizationPage butuh viewport tetap + scroll
+   internal per-kolom (lihat ScrollPane), jadi treatment flex/overflow-hidden
+   ini di-scope khusus ke halaman-halaman itu — halaman dashboard lain
+   (Passport, Settings, dst) pakai scroll dokumen biasa supaya position:
+   sticky di dalamnya tetap jalan. */
 @media (min-width: 1025px) {
-  .dashboard-layout:has(> .find-activity-page) {
+  .dashboard-layout:has(> .find-activity-page),
+  .dashboard-layout:has(> .find-organization-page) {
     height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
-  .dashboard-layout:has(> .find-activity-page) > .app-topbar {
+  .dashboard-layout:has(> .find-activity-page) > .app-topbar,
+  .dashboard-layout:has(> .find-organization-page) > .app-topbar {
     flex-shrink: 0;
   }
 
-  .dashboard-layout > .find-activity-page {
+  .dashboard-layout > .find-activity-page,
+  .dashboard-layout > .find-organization-page {
     flex: 1;
     min-height: 0;
     overflow: hidden;

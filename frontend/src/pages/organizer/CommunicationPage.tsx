@@ -1,115 +1,81 @@
-import { useState } from 'react'
-import { FiSend } from 'react-icons/fi'
-import { useOrganizerData } from '../../contexts/OrganizerDataContext'
-import ScrollPane from '../../components/ScrollPane'
+import React from 'react'
+import { useLocation } from 'react-router-dom'
+import { FiMessageSquare } from 'react-icons/fi'
+
+import BroadcastView from './communication-views/BroadcastView'
+import ScheduledMessagesView from './communication-views/ScheduledMessagesView'
+import TemplatesView from './communication-views/TemplatesView'
+import CommunicationLogView from './communication-views/CommunicationLogView'
+
 import './CommunicationPage.css'
 
-const SEGMENTS = [
-  'Semua pendaftar event',
-  'Volunteer accepted',
-  'Volunteer dengan role tertentu',
-  'Volunteer dengan shift tertentu',
-  'Volunteer belum selesai requirement',
-]
-
-let idCounter = 0
-function nextId() {
-  idCounter += 1
-  return `comm-${Date.now()}-${idCounter}`
-}
-
 export default function CommunicationPage() {
-  const { isLoading, events, communicationLogs, addCommunicationLog } = useOrganizerData()
-  const [selectedEventId, setSelectedEventId] = useState('')
-  const [segment, setSegment] = useState(SEGMENTS[0])
-  const [title, setTitle] = useState('')
-  const [message, setMessage] = useState('')
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const tabParam = searchParams.get('tab')
 
-  const effectiveEventId = selectedEventId || events[0]?.id || ''
-  const eventLogs = communicationLogs.filter((c) => c.eventId === effectiveEventId)
-
-  if (isLoading) {
-    return <p className="communication-page__empty">Memuat data...</p>
+  const renderView = () => {
+    switch (tabParam) {
+      case 'scheduled':
+        return <ScheduledMessagesView />
+      case 'templates':
+        return <TemplatesView />
+      case 'log':
+        return <CommunicationLogView />
+      case 'broadcast':
+      default:
+        return <BroadcastView />
+    }
   }
 
-  const handleSend = () => {
-    if (!title.trim() || !message.trim()) return
-    addCommunicationLog({
-      id: nextId(),
-      eventId: effectiveEventId,
-      title: title.trim(),
-      message: message.trim(),
-      targetSegment: segment,
-      sentAt: new Date().toISOString(),
-    })
-    setTitle('')
-    setMessage('')
+  const getTitle = () => {
+    switch (tabParam) {
+      case 'scheduled': return 'Scheduled Messages'
+      case 'templates': return 'Message Templates'
+      case 'log': return 'Communication Log'
+      case 'broadcast': 
+      default: return 'Communication Broadcast'
+    }
+  }
+
+  const getSubtitle = () => {
+    switch (tabParam) {
+      case 'scheduled': return 'Manage automated messages that will be sent in the future.'
+      case 'templates': return 'Create and manage reusable communication templates.'
+      case 'log': return 'Audit all communication history and analyze engagement metrics.'
+      case 'broadcast': 
+      default: return 'Create announcements and communicate directly with volunteers.'
+    }
   }
 
   return (
-    <div className="communication-page">
-      <header className="communication-page__header">
-        <h1>Communication</h1>
-        <p>Kirim broadcast &amp; reminder ke volunteer, dan pantau riwayat pengiriman.</p>
+    <div className="comm-hub">
+      {/* Universal Page Header */}
+      <header className="comm-header">
+        <div className="comm-header__title">
+          <h1>{getTitle()}</h1>
+          <p className="comm-header__subtitle">{getSubtitle()}</p>
+        </div>
+        <div className="comm-header__actions">
+          {tabParam !== 'templates' && tabParam !== 'log' && (
+            <button type="button" className="btn btn--outline btn--sm">Save Draft</button>
+          )}
+          {tabParam === 'templates' && (
+            <button type="button" className="btn btn--primary btn--sm">Create Template</button>
+          )}
+          {tabParam === 'log' && (
+            <button type="button" className="btn btn--outline btn--sm">Export Analytics</button>
+          )}
+          {(tabParam === 'broadcast' || !tabParam) && (
+            <button type="button" className="btn btn--primary btn--sm" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FiMessageSquare /> New Broadcast
+            </button>
+          )}
+        </div>
       </header>
 
-      <select value={effectiveEventId} onChange={(e) => setSelectedEventId(e.target.value)}>
-        {events.map((e) => (
-          <option key={e.id} value={e.id}>{e.title}</option>
-        ))}
-      </select>
-
-      <div className="card communication-page__composer">
-        <h2>Buat Broadcast</h2>
-        <label className="communication-page__field">
-          <span>Target Segment</span>
-          <select value={segment} onChange={(e) => setSegment(e.target.value)}>
-            {SEGMENTS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-        <label className="communication-page__field">
-          <span>Judul Pesan</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="mis. Reminder H-1 Kegiatan" />
-        </label>
-        <label className="communication-page__field">
-          <span>Isi Pesan</span>
-          <textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
-        </label>
-        <button type="button" className="btn btn--primary btn--sm" onClick={handleSend}>
-          <FiSend /> Kirim Broadcast
-        </button>
-      </div>
-
-      <section className="communication-page__log">
-        <h2>Communication Log</h2>
-        <ScrollPane>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Judul</th>
-                <th>Target</th>
-                <th>Waktu Kirim</th>
-              </tr>
-            </thead>
-            <tbody>
-              {eventLogs.map((log) => (
-                <tr key={log.id}>
-                  <td>{log.title}</td>
-                  <td>{log.targetSegment}</td>
-                  <td>{new Date(log.sentAt).toLocaleString('id-ID')}</td>
-                </tr>
-              ))}
-              {eventLogs.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="communication-page__empty">Belum ada broadcast untuk event ini.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </ScrollPane>
-      </section>
+      {/* Render the contextual content area below the header */}
+      {renderView()}
     </div>
   )
 }

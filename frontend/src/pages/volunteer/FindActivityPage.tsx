@@ -58,6 +58,15 @@ export default function FindActivityPage() {
     }
   }, [searchParams, events])
 
+  // ?organizer=... dipakai tombol "Daftar Kegiatan" di halaman Cari Organisasi,
+  // supaya kegiatan dari organisasi tersebut langsung terfilter di sini.
+  useEffect(() => {
+    const organizerName = searchParams.get('organizer')
+    if (organizerName) {
+      setFilters((current) => ({ ...current, keyword: organizerName }))
+    }
+  }, [searchParams])
+
   const categories = useMemo(() => Array.from(new Set(events.map((event) => event.category))), [events])
   const skills = useMemo(() => Array.from(new Set(events.flatMap((event) => event.skills))), [events])
 
@@ -69,7 +78,8 @@ export default function FindActivityPage() {
       if (
         keyword &&
         !event.title.toLowerCase().includes(keyword) &&
-        !event.description.toLowerCase().includes(keyword)
+        !event.description.toLowerCase().includes(keyword) &&
+        !event.organizerName.toLowerCase().includes(keyword)
       ) {
         return false
       }

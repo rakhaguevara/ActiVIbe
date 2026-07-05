@@ -1,15 +1,16 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { FiCheck, FiUserX } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import Badge from '../../components/Badge'
 import './AttendancePage.css'
 
 export default function AttendancePage() {
+  const { eventId } = useParams<{ eventId: string }>()
   const { isLoading, events, applicants, attendanceRecords, checkInAttendance, markNoShow } = useOrganizerData()
-  const [selectedEventId, setSelectedEventId] = useState('')
   const [selectedShiftId, setSelectedShiftId] = useState('')
 
-  const effectiveEventId = selectedEventId || events[0]?.id || ''
+  const effectiveEventId = eventId || ''
   const selectedEvent = events.find((e) => e.id === effectiveEventId)
 
   const currentShifts = selectedEvent?.roles.flatMap((r) => r.shifts.map((s) => ({ ...s, roleName: r.roleName }))) ?? []
@@ -38,17 +39,6 @@ export default function AttendancePage() {
       </header>
 
       <div className="attendance-page__toolbar">
-        <select
-          value={effectiveEventId}
-          onChange={(e) => {
-            setSelectedEventId(e.target.value)
-            setSelectedShiftId('')
-          }}
-        >
-          {events.map((e) => (
-            <option key={e.id} value={e.id}>{e.title}</option>
-          ))}
-        </select>
         <select value={activeShiftId} onChange={(e) => setSelectedShiftId(e.target.value)}>
           {currentShifts.map((s) => (
             <option key={s.id} value={s.id}>{s.roleName} — {s.shiftDate} {s.startTime}</option>

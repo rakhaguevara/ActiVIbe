@@ -9,6 +9,7 @@ import CaraKerjaPage from '../pages/CaraKerjaPage'
 import DonatePage from '../pages/DonatePage'
 import NotFoundPage from '../pages/NotFoundPage'
 import FindActivityPage from '../pages/volunteer/FindActivityPage'
+import FindOrganizationPage from '../pages/volunteer/FindOrganizationPage'
 import PassportPage from '../pages/volunteer/PassportPage'
 import VolunteerSettingsPage from '../pages/volunteer/SettingsPage'
 import SavedItemsPage from '../pages/volunteer/SavedItemsPage'
@@ -22,14 +23,21 @@ import ParticipationExportPage from '../pages/admin/ParticipationExportPage'
 import ActivityLogPage from '../pages/admin/ActivityLogPage'
 import OrganizersPage from '../pages/admin/OrganizersPage'
 import OrganizerOverviewPage from '../pages/organizer/OverviewPage'
+import VolunteersPage from '../pages/organizer/VolunteersPage'
 import OrganizerEventsPage from '../pages/organizer/EventsPage'
 import CreateEventPage from '../pages/organizer/CreateEventPage'
 import EventDetailPage from '../pages/organizer/EventDetailPage'
+import OverviewTab from '../pages/organizer/event-detail/OverviewTab'
+import RolesTab from '../pages/organizer/event-detail/RolesTab'
+import RequirementsTab from '../pages/organizer/event-detail/RequirementsTab'
+import ImpactTab from '../pages/organizer/event-detail/ImpactTab'
 import ApplicantsPage from '../pages/organizer/ApplicantsPage'
 import AssignmentsPage from '../pages/organizer/AssignmentsPage'
 import AttendancePage from '../pages/organizer/AttendancePage'
 import CommunicationPage from '../pages/organizer/CommunicationPage'
 import ReportsPage from '../pages/organizer/ReportsPage'
+import CertificatesPage from '../pages/organizer/CertificatesPage'
+import OrganizationPage from '../pages/organizer/OrganizationPage'
 import OrganizerSettingsPage from '../pages/organizer/SettingsPage'
 import { PORTAL } from '../config/portal'
 import LoadingScreen from '../components/LoadingScreen'
@@ -95,12 +103,24 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
           <Route path="/organizer" element={<OrganizerOverviewPage />} />
           <Route path="/organizer/events" element={<OrganizerEventsPage />} />
           <Route path="/organizer/events/new" element={<CreateEventPage />} />
-          <Route path="/organizer/events/:eventId" element={<EventDetailPage />} />
-          <Route path="/organizer/applicants" element={<ApplicantsPage />} />
-          <Route path="/organizer/assignments" element={<AssignmentsPage />} />
-          <Route path="/organizer/attendance" element={<AttendancePage />} />
+          <Route path="/organizer/events/:eventId" element={<EventDetailPage />}>
+            <Route index element={<OverviewTab />} />
+            <Route path="applicants" element={<ApplicantsPage />} />
+            <Route path="roles" element={<RolesTab />} />
+            <Route path="assignments" element={<AssignmentsPage />} />
+            <Route path="requirements" element={<RequirementsTab />} />
+            <Route path="attendance" element={<AttendancePage />} />
+            <Route path="communication" element={<CommunicationPage />} />
+            <Route path="impact" element={<ImpactTab />} />
+            <Route path="certificates" element={<p style={{ padding: '24px' }}>Certificates coming soon...</p>} />
+          </Route>
           <Route path="/organizer/communication" element={<CommunicationPage />} />
           <Route path="/organizer/reports" element={<ReportsPage />} />
+          
+          {/* Placeholders for new Level 1 Organizer modules */}
+          <Route path="/organizer/volunteers" element={<VolunteersPage />} />
+          <Route path="/organizer/certificates" element={<CertificatesPage />} />
+          <Route path="/organizer/organization" element={<OrganizationPage />} />
           <Route path="/organizer/settings" element={<OrganizerSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
@@ -120,6 +140,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
 
       <Route element={<DashboardLayout />}>
         <Route path="/dashboard" element={<FindActivityPage />} />
+        <Route path="/dashboard/organisasi" element={<FindOrganizationPage />} />
         <Route path="/dashboard/passport" element={<PassportPage />} />
         <Route path="/dashboard/settings" element={<VolunteerSettingsPage />} />
         <Route path="/dashboard/saved" element={<SavedItemsPage />} />

@@ -2,14 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/logo.svg'
-import { FiChevronDown, FiLogOut, FiBell, FiBookOpen, FiHeart, FiClipboard, FiAward, FiSettings } from 'react-icons/fi'
+import {
+  FiChevronDown,
+  FiLogOut,
+  FiBell,
+  FiBookOpen,
+  FiHeart,
+  FiClipboard,
+  FiAward,
+  FiSettings,
+  FiBookmark,
+} from 'react-icons/fi'
 import './AppTopbar.css'
 
 type OpenMenu = 'cari-aktivitas' | 'cari-organisasi' | 'user' | 'notif' | null
 
-// Belum ada rute nyata untuk "Cari Organisasi" — isi array ini begitu ada,
-// jangan tulis ulang logic isOrganisasiActive di bawah.
-const ORGANISASI_ROUTES: string[] = []
+const ORGANISASI_ROUTES: string[] = ['/dashboard/organisasi']
 
 interface AppTopbarProps {
   logoTo: string
@@ -19,8 +27,8 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const isAktivitasActive = location.pathname.startsWith('/dashboard')
   const isOrganisasiActive = ORGANISASI_ROUTES.some((route) => location.pathname.startsWith(route))
+  const isAktivitasActive = location.pathname.startsWith('/dashboard') && !isOrganisasiActive
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const topbarRef = useRef<HTMLElement>(null)
@@ -131,10 +139,13 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
               <div className="app-topbar__mega">
                 <div className="app-topbar__mega-col">
                   <p className="app-topbar__mega-eyebrow">ORGANISASI</p>
-                  <div className="app-topbar__mega-item app-topbar__mega-item--disabled">
+                  <Link
+                    to="/dashboard/organisasi"
+                    className="app-topbar__mega-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
                     Semua Organisasi
-                    <span className="app-topbar__mega-badge">Segera Hadir</span>
-                  </div>
+                  </Link>
                   <div className="app-topbar__mega-item app-topbar__mega-item--disabled">
                     Organisasi Terverifikasi
                     <span className="app-topbar__mega-badge">Segera Hadir</span>
@@ -201,6 +212,13 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
               {openMenu === 'user' && (
                 <div className="app-topbar__dropdown app-topbar__dropdown--user">
                   <Link
+                    to="/dashboard/saved"
+                    className="app-topbar__dropdown-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    <FiBookmark /> My Saved Items
+                  </Link>
+                  <Link
                     to="/dashboard/passport"
                     className="app-topbar__dropdown-item"
                     onClick={() => setOpenMenu(null)}
@@ -213,6 +231,13 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
                     onClick={() => setOpenMenu(null)}
                   >
                     <FiSettings /> Pengaturan
+                  </Link>
+                  <Link
+                    to="/dashboard/history"
+                    className="app-topbar__dropdown-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    <FiClipboard /> Application History
                   </Link>
                   <div className="app-topbar__dropdown-divider" />
                   <button type="button" className="app-topbar__dropdown-item" onClick={handleLogout}>
@@ -253,10 +278,17 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
               Kegiatan Match Tertinggi
               <span className="app-topbar__mega-badge">Segera Hadir</span>
             </div>
-            <div className="app-topbar__mobile-link app-topbar__mobile-link--disabled">
+            <NavLink
+              to="/dashboard/organisasi"
+              className={({ isActive }) =>
+                ['app-topbar__mobile-link', 'app-topbar__mobile-link--secondary', isActive ? 'is-active' : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
               Semua Organisasi
-              <span className="app-topbar__mega-badge">Segera Hadir</span>
-            </div>
+            </NavLink>
             <div className="app-topbar__mobile-link app-topbar__mobile-link--disabled">
               Organisasi Terverifikasi
               <span className="app-topbar__mega-badge">Segera Hadir</span>

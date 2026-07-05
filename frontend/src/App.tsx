@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import AuthModal, { type AuthMode } from './components/AuthModal'
 import AppRoutes from './routes/AppRoutes'
@@ -7,6 +7,21 @@ import { PORTAL } from './config/portal'
 
 function App() {
   const [authMode, setAuthMode] = useState<AuthMode | null>(null)
+
+  useEffect(() => {
+    switch (PORTAL) {
+      case 'organizer':
+        document.title = 'Activibe-Organizer-Edition'
+        break
+      case 'admin':
+        document.title = 'Activibe:Admin'
+        break
+      case 'volunteer':
+      default:
+        document.title = 'Activibe'
+        break
+    }
+  }, [])
 
   return (
     <AuthProvider>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { FiAlertTriangle } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import Badge from '../../components/Badge'
@@ -9,10 +10,10 @@ function timesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string
 }
 
 export default function AssignmentsPage() {
+  const { eventId } = useParams<{ eventId: string }>()
   const { isLoading, events, applicants, assignApplicant } = useOrganizerData()
-  const [selectedEventId, setSelectedEventId] = useState('')
 
-  const effectiveEventId = selectedEventId || events[0]?.id || ''
+  const effectiveEventId = eventId || ''
   const selectedEvent = events.find((e) => e.id === effectiveEventId)
   const eventApplicants = applicants.filter((a) => a.eventId === effectiveEventId)
 
@@ -62,12 +63,6 @@ export default function AssignmentsPage() {
         <h1>Assignments</h1>
         <p>Tempatkan volunteer yang sudah diterima ke role &amp; shift tertentu.</p>
       </header>
-
-      <select value={effectiveEventId} onChange={(e) => setSelectedEventId(e.target.value)}>
-        {events.map((e) => (
-          <option key={e.id} value={e.id}>{e.title}</option>
-        ))}
-      </select>
 
       {selectedEvent.roles.map((role) => (
         <div key={role.id} className="card assignments-page__role">

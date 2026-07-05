@@ -1,0 +1,147 @@
+.org-hub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: 1400px;
+  width: 100%;
+}
+
+.org-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.org-header__title h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.org-header__subtitle {
+  color: var(--color-text-muted);
+  margin: 0;
+  font-size: 15px;
+}
+
+.org-header__actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Profile specific */
+.org-profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.org-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.org-logo-lg {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.org-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.org-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.org-info-item label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.org-info-item span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Subscription specific */
+.usage-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--color-border-light);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.usage-bar__fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 4px;
+}
+
+.usage-item {
+  margin-bottom: 20px;
+}
+.usage-item:last-child {
+  margin-bottom: 0;
+}
+
+.usage-item__header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Branding Settings */
+.settings-group {
+  margin-bottom: 24px;
+}
+.settings-group:last-child {
+  margin-bottom: 0;
+}
+
+.settings-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.color-picker-mock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  width: 200px;
+}
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.1);
+}

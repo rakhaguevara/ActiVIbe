@@ -1,106 +1,77 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { FiPlus } from 'react-icons/fi'
-import { useOrganizerData } from '../../contexts/OrganizerDataContext'
-import Badge from '../../components/Badge'
-import ScrollPane from '../../components/ScrollPane'
-import CloseEventWizard from '../../components/organizer/CloseEventWizard'
-import type { OrganizerEvent, OrganizerEventStatus } from '../../types/organizer'
-import { formatDateShort } from '../../utils/formatDate'
+import React from 'react'
+import { useLocation, Link } from 'react-router-dom'
+import { FiUpload, FiDownload, FiPlus } from 'react-icons/fi'
+
+import AllEventsView from './events-views/AllEventsView'
+import DraftEventsView from './events-views/DraftEventsView'
+import PublishedEventsView from './events-views/PublishedEventsView'
+import OngoingEventsView from './events-views/OngoingEventsView'
+import CompletedEventsView from './events-views/CompletedEventsView'
+import ArchivedEventsView from './events-views/ArchivedEventsView'
+
 import './EventsPage.css'
 
-const TODAY = new Date().toISOString().slice(0, 10)
-
-const STATUS_LABEL: Record<OrganizerEventStatus, string> = {
-  draft: 'Draft',
-  pending_approval: 'Menunggu Persetujuan',
-  published: 'Published',
-  ongoing: 'Ongoing',
-  completed: 'Completed',
-  rejected: 'Ditolak',
-}
-
-const STATUS_VARIANT: Record<OrganizerEventStatus, 'success' | 'warning' | 'danger' | 'info'> = {
-  draft: 'info',
-  pending_approval: 'warning',
-  published: 'success',
-  ongoing: 'success',
-  completed: 'info',
-  rejected: 'danger',
-}
-
 export default function EventsPage() {
-  const { events, applicants, closeEvent } = useOrganizerData()
-  const navigate = useNavigate()
-  const [closingEvent, setClosingEvent] = useState<OrganizerEvent | null>(null)
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const statusParam = searchParams.get('status')
 
-  const needsClosing = (event: OrganizerEvent) =>
-    (event.status === 'published' || event.status === 'ongoing') && event.endDate < TODAY
+  const renderView = () => {
+    switch (statusParam) {
+      case 'draft':
+        return <DraftEventsView />
+      case 'published':
+        return <PublishedEventsView />
+      case 'ongoing':
+        return <OngoingEventsView />
+      case 'completed':
+        return <CompletedEventsView />
+      case 'archived':
+        return <ArchivedEventsView />
+      default:
+        return <AllEventsView />
+    }
+  }
+
+  const getTitle = () => {
+    switch (statusParam) {
+      case 'draft': return 'Draft Events'
+      case 'published': return 'Published Events'
+      case 'ongoing': return 'Ongoing Events'
+      case 'completed': return 'Completed Events'
+      case 'archived': return 'Archived Events'
+      default: return 'All Events'
+    }
+  }
+
+  const getSubtitle = () => {
+    switch (statusParam) {
+      case 'draft': return 'Finish setting up these events before making them public.'
+      case 'published': return 'Monitor registration performance and applicant statistics.'
+      case 'ongoing': return 'Support live event operations and track real-time attendance.'
+      case 'completed': return 'Review finished events, feedback, and generate reports.'
+      case 'archived': return 'Access read-only historical events and their impact data.'
+      default: return 'Provide a complete overview of every event in your organization.'
+    }
+  }
 
   return (
-    <div className="organizer-events">
-      <header className="organizer-events__header">
-        <div>
-          <h1>Events</h1>
-          <p>Kelola seluruh kegiatan volunteer yang kamu selenggarakan.</p>
+    <div className="events-hub" style={{ flexDirection: 'column', gap: 'var(--space-md)' }}>
+      {/* 1. Universal Page Header */}
+      <header className="events-header">
+        <div className="events-header__title">
+          <h1>{getTitle()}</h1>
+          <p className="events-header__subtitle">{getSubtitle()}</p>
         </div>
-        <Link to="/organizer/events/new" className="btn btn--primary btn--sm">
-          <FiPlus /> Buat Event Baru
-        </Link>
+        <div className="events-header__actions">
+          <button type="button" className="btn btn--outline btn--sm"><FiUpload /> Import Event</button>
+          <button type="button" className="btn btn--outline btn--sm"><FiDownload /> Export</button>
+          <Link to="/organizer/events/new" className="btn btn--primary btn--sm"><FiPlus /> Create Event</Link>
+        </div>
       </header>
 
-      <ScrollPane>
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Kegiatan</th>
-              <th>Lokasi</th>
-              <th>Tanggal</th>
-              <th>Kuota</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event) => (
-              <tr key={event.id}>
-                <td className="organizer-events__title" onClick={() => navigate(`/organizer/events/${event.id}`)}>
-                  {event.title}
-                </td>
-                <td>{event.location}</td>
-                <td>{formatDateShort(event.startDate)}</td>
-                <td>{event.quota}</td>
-                <td>
-                  <Badge variant={STATUS_VARIANT[event.status]}>{STATUS_LABEL[event.status]}</Badge>
-                </td>
-                <td>
-                  <div className="organizer-events__actions">
-                    <Link to={`/organizer/events/${event.id}`} className="btn btn--outline btn--sm">
-                      Detail
-                    </Link>
-                    {needsClosing(event) && (
-                      <button type="button" className="btn btn--primary btn--sm" onClick={() => setClosingEvent(event)}>
-                        Tutup Event
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </ScrollPane>
-
-      {closingEvent && (
-        <CloseEventWizard
-          event={closingEvent}
-          applicants={applicants.filter(
-            (a) => a.eventId === closingEvent.id && (a.assignedRoleId || a.status === 'accepted' || a.status === 'checked_in'),
-          )}
-          onClose={() => setClosingEvent(null)}
-          onConfirm={(result) => closeEvent(closingEvent.id, result)}
-        />
-      )}
+      {/* Render the contextual content area below the header */}
+      {renderView()}
     </div>
   )
 }

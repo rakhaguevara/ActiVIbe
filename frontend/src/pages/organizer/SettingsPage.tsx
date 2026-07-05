@@ -1,52 +1,72 @@
-import { useState } from 'react'
-import { useAuth } from '../../contexts/AuthContext'
+import React from 'react'
+import { useLocation } from 'react-router-dom'
+import { FiSave } from 'react-icons/fi'
+
+import GeneralSettingsView from './settings-views/GeneralSettingsView'
+import NotificationSettingsView from './settings-views/NotificationSettingsView'
+import SecuritySettingsView from './settings-views/SecuritySettingsView'
+import ApiSettingsView from './settings-views/ApiSettingsView'
+
 import './SettingsPage.css'
 
 export default function SettingsPage() {
-  const { user } = useAuth()
-  const [orgName, setOrgName] = useState(user?.name ?? '')
-  const [description, setDescription] = useState('')
-  const [contactEmail, setContactEmail] = useState(user?.email ?? '')
-  const [contactPhone, setContactPhone] = useState('')
-  const [saved, setSaved] = useState(false)
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const tabParam = searchParams.get('tab')
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const renderView = () => {
+    switch (tabParam) {
+      case 'notifications':
+        return <NotificationSettingsView />
+      case 'security':
+        return <SecuritySettingsView />
+      case 'api':
+        return <ApiSettingsView />
+      case 'general':
+      default:
+        return <GeneralSettingsView />
+    }
+  }
+
+  const getTitle = () => {
+    switch (tabParam) {
+      case 'notifications': return 'Notification Settings'
+      case 'security': return 'Account Security'
+      case 'api': return 'API & Integrations'
+      case 'general': 
+      default: return 'General Settings'
+    }
+  }
+
+  const getSubtitle = () => {
+    switch (tabParam) {
+      case 'notifications': return 'Manage your alerts and notification preferences.'
+      case 'security': return 'Protect your organization data and manage sessions.'
+      case 'api': return 'Connect ActiVibe to your existing tools.'
+      case 'general': 
+      default: return 'Configure global organization preferences.'
+    }
   }
 
   return (
-    <div className="organizer-settings">
-      <header className="organizer-settings__header">
-        <h1>Organization Settings</h1>
-        <p>Profil organisasi yang tampil ke volunteer & publik.</p>
+    <div className="settings-hub">
+      {/* Universal Page Header */}
+      <header className="settings-header">
+        <div className="settings-header__title">
+          <h1>{getTitle()}</h1>
+          <p className="settings-header__subtitle">{getSubtitle()}</p>
+        </div>
+        <div className="settings-header__actions">
+          {(tabParam === 'general' || !tabParam) && (
+            <button type="button" className="btn btn--primary btn--sm" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FiSave /> Save Settings
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="card organizer-settings__form">
-        <label className="organizer-settings__field">
-          <span>Nama Organisasi</span>
-          <input value={orgName} onChange={(e) => setOrgName(e.target.value)} />
-        </label>
-        <label className="organizer-settings__field">
-          <span>Deskripsi</span>
-          <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ceritakan tentang organisasimu..." />
-        </label>
-        <label className="organizer-settings__field">
-          <span>Email Kontak</span>
-          <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
-        </label>
-        <label className="organizer-settings__field">
-          <span>Nomor Telepon</span>
-          <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="08123456789" />
-        </label>
-
-        <div className="organizer-settings__footer">
-          <button type="button" className="btn btn--primary btn--sm" onClick={handleSave}>
-            Simpan Perubahan
-          </button>
-          {saved && <span className="organizer-settings__saved">Tersimpan!</span>}
-        </div>
-      </div>
+      {/* Render the contextual content area below the header */}
+      {renderView()}
     </div>
   )
 }
