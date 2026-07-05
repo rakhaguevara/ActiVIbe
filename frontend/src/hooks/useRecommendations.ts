@@ -2,16 +2,14 @@
 // backend (GET /recommendations, lihat services/recommendation.service.ts) dan
 // memetakannya ke tipe `Event` yang dipakai card/panel dashboard.
 //
-// Backend baru mengembalikan data inti + hasil personalisasi (matchScore,
+// Backend mengembalikan data inti + hasil personalisasi (matchScore,
 // matchReasoning, fitBadgeLabel, symbol). Field presentasi lain (foto, rating,
-// ulasan, profil organizer, kebijakan) belum ada di API — diisi dari template:
-// kalau judul event sama dengan entri mockEvents, field kaya itu di-merge dari
-// sana; kalau tidak, pakai default generik. Saat API-nya lengkap nanti,
-// hapus lapisan merge ini.
+// ulasan, profil organizer, kebijakan) belum ada di API — diisi default netral
+// generik (BUKAN di-merge dari mockEvents by title-match lagi, supaya event
+// asli tidak diam-diam mewarisi foto/ulasan event mock yang tidak terkait).
 
 import { useCallback, useEffect, useState } from 'react'
 import type { Event } from '../types/event'
-import { mockEvents } from '../data/mockEvents'
 import {
   fetchRecommendations,
   subscribeRecommendations,
@@ -43,17 +41,11 @@ const DEFAULT_PRESENTATION = {
 }
 
 function toEvent(rec: RecommendedEvent, index: number): Event {
-  const template = mockEvents.find(
-    (mock) => mock.title.trim().toLowerCase() === rec.title.trim().toLowerCase(),
-  )
-
   return {
     ...DEFAULT_PRESENTATION,
-    ...(template ?? {}),
-    // Data inti + hasil personalisasi dari backend SELALU menang atas template
     id: rec.id,
     title: rec.title,
-    imageUrl: template?.imageUrl ?? FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
+    imageUrl: FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
     description: rec.description,
     category: rec.category,
     location: rec.location,
@@ -75,8 +67,8 @@ function toEvent(rec: RecommendedEvent, index: number): Event {
 export interface UseRecommendationsResult {
   events: Event[]
   isLoading: boolean
-  /** true kalau fetch gagal dan events berisi fallback mockEvents */
-  isFallback: boolean
+  /** Pesan error kalau fetch gagal — null berarti tidak ada error */
+  error: string | null
   /** true kalau skor/reasoning datang dari mesin AI */
   aiEnabled: boolean
   aiProvider: 'claude' | 'openai' | 'gemini' | null
@@ -88,7 +80,7 @@ export function useRecommendations(): UseRecommendationsResult {
   const [result, setResult] = useState<UseRecommendationsResult>({
     events: [],
     isLoading: true,
-    isFallback: false,
+    error: null,
     aiEnabled: false,
     aiProvider: null,
     profileComplete: true,
@@ -102,20 +94,21 @@ export function useRecommendations(): UseRecommendationsResult {
         setResult({
           events: data.recommendations.map(toEvent),
           isLoading: false,
-          isFallback: false,
+          error: null,
           aiEnabled: data.aiEnabled,
           aiProvider: data.aiProvider,
           profileComplete: data.profileComplete,
         })
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelledRef.current) return
-        // Backend mati / belum login penuh — jangan biarkan dashboard kosong,
-        // tampilkan mockEvents sebagai fallback terakhir.
+        // Gagal fetch ditampilkan apa adanya sbg error section-scoped (lihat
+        // SectionState di FindActivityPage) — tidak lagi diam-diam diganti
+        // mockEvents seolah-olah berhasil.
         setResult({
-          events: mockEvents,
+          events: [],
           isLoading: false,
-          isFallback: true,
+          error: err instanceof Error ? err.message : 'Gagal memuat rekomendasi, coba lagi.',
           aiEnabled: false,
           aiProvider: null,
           profileComplete: true,

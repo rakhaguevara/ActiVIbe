@@ -89,35 +89,6 @@
   background: none;
 }
 
-.saved-items-page__empty {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 4px 16px rgba(26, 26, 46, 0.06);
-}
-
-.saved-items-page__empty-title {
-  margin: 0;
-  font-weight: 600;
-  color: var(--color-text-heading);
-}
-
-.saved-items-page__empty-desc {
-  margin: 0;
-  font-size: var(--text-body-sm);
-  color: var(--color-text-muted);
-}
-
-.saved-items-page__empty-desc a {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.saved-items-page__no-match {
-  font-size: var(--text-body-sm);
-  color: var(--color-text-muted);
-}
-
 .saved-items-page__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

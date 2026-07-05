@@ -30,13 +30,45 @@ export async function applyToEvent({ userId, eventId, whatsapp, motivation, avai
   }
 }
 
+// Event di-embed langsung (bukan cuma eventId) supaya frontend tidak perlu
+// join manual ke sumber data lain utk menampilkan riwayat pendaftaran — join
+// manual ke mockEvents sebelumnya diam-diam membuang aplikasi yang eventId-nya
+// tidak ada di data mock (bug), lihat ApplicationHistoryPage.tsx.
 export async function getMyApplications(userId) {
   const applications = await prisma.application.findMany({
     where: { userId },
-    select: { eventId: true, status: true, appliedAt: true },
+    select: {
+      eventId: true,
+      status: true,
+      appliedAt: true,
+      event: {
+        select: {
+          id: true,
+          title: true,
+          location: true,
+          category: true,
+          startDate: true,
+          endDate: true,
+          organizer: { select: { name: true } },
+        },
+      },
+    },
     orderBy: { appliedAt: 'desc' },
   })
-  return applications
+  return applications.map((app) => ({
+    eventId: app.eventId,
+    status: app.status,
+    appliedAt: app.appliedAt,
+    event: {
+      id: app.event.id,
+      title: app.event.title,
+      location: app.event.location,
+      category: app.event.category ?? 'Umum',
+      organizerName: app.event.organizer.name,
+      startDate: app.event.startDate.toISOString().slice(0, 10),
+      endDate: app.event.endDate.toISOString().slice(0, 10),
+    },
+  }))
 }
 
 // ============================================

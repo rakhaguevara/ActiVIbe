@@ -70,7 +70,7 @@ function locationScore(userLocation, eventLocation) {
  *
  * @param {object} profile hasil profile.service getProfile():
  *   { availability, motivation, location, interests: [{name}], skills: [{name}] }
- * @param {object} event   satu entri DUMMY_EVENTS (recommendation.data.js)
+ * @param {object} event   satu entri katalog dari event.service.js listMatchableEvents()
  * @returns {{ score: number, breakdown: object }} skor bulat 0–100 + rincian per komponen
  */
 export function computeMatchScore(profile, event) {

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiPlus, FiTrash2 } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
+import { getInterests, getSkills, type TaxonomyItem } from '../../lib/profileApi'
 import type { EventRole, EventShift } from '../../types/organizer'
 import './CreateEventPage.css'
 
@@ -9,6 +10,33 @@ let idCounter = 0
 function nextId(prefix: string) {
   idCounter += 1
   return `${prefix}-${Date.now()}-${idCounter}`
+}
+
+// Kategori baku (dipetakan ke simbol emoji di backend CATEGORY_SYMBOLS) —
+// sinkron dgn recommendation.data.js supaya kartu rekomendasi volunteer tampil rapi.
+const CATEGORY_OPTIONS = ['Lingkungan', 'Pendidikan', 'Kesehatan', 'Sosial', 'Teknologi', 'Seni & Budaya', 'Umum']
+
+const MOTIVATION_OPTIONS: { value: 'CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH'; label: string }[] = [
+  { value: 'CAREER', label: 'Pengembangan karier' },
+  { value: 'SOCIAL', label: 'Relasi & komunitas' },
+  { value: 'VALUES', label: 'Nilai-nilai hidup' },
+  { value: 'SKILL_GROWTH', label: 'Belajar skill baru' },
+]
+
+const DAY_TYPE_OPTIONS: { value: 'WEEKDAY' | 'WEEKEND' | 'BOTH'; label: string }[] = [
+  { value: 'WEEKDAY', label: 'Hari kerja' },
+  { value: 'WEEKEND', label: 'Akhir pekan' },
+  { value: 'BOTH', label: 'Keduanya' },
+]
+
+function groupByCategory(items: TaxonomyItem[]): [string, TaxonomyItem[]][] {
+  const map = new Map<string, TaxonomyItem[]>()
+  for (const item of items) {
+    const group = map.get(item.category) ?? []
+    group.push(item)
+    map.set(item.category, group)
+  }
+  return Array.from(map.entries())
 }
 
 function emptyShift(eventRoleId: string): EventShift {
@@ -35,6 +63,55 @@ export default function CreateEventPage() {
   const [impactMetricLabel, setImpactMetricLabel] = useState('')
   const [impactMetricUnit, setImpactMetricUnit] = useState('')
   const [roles, setRoles] = useState<EventRole[]>([emptyRole(eventId)])
+
+  // Tag kecocokan (FR-005 Predictive Match Score) — opsional, tapi tanpa ini
+  // event baru selalu skor netral di rekomendasi volunteer.
+  const [category, setCategory] = useState('')
+  const [dayType, setDayType] = useState<'' | 'WEEKDAY' | 'WEEKEND' | 'BOTH'>('')
+  const [motivationTags, setMotivationTags] = useState<Set<'CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH'>>(new Set())
+  const [interestsAll, setInterestsAll] = useState<TaxonomyItem[]>([])
+  const [skillsAll, setSkillsAll] = useState<TaxonomyItem[]>([])
+  const [selectedInterestIds, setSelectedInterestIds] = useState<Set<string>>(new Set())
+  const [selectedSkillIds, setSelectedSkillIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    Promise.all([getInterests(), getSkills()])
+      .then(([interests, skills]) => {
+        setInterestsAll(interests)
+        setSkillsAll(skills)
+      })
+      .catch(() => {
+        // Gagal ambil daftar tag tidak boleh blokir form buat event — organizer
+        // masih bisa submit tanpa tag, cuma bagian ini kosong.
+      })
+  }, [])
+
+  const toggleMotivationTag = (value: 'CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH') => {
+    setMotivationTags((prev) => {
+      const next = new Set(prev)
+      if (next.has(value)) next.delete(value)
+      else next.add(value)
+      return next
+    })
+  }
+
+  const toggleInterest = (id: string) => {
+    setSelectedInterestIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSkill = (id: string) => {
+    setSelectedSkillIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const updateRole = (roleId: string, patch: Partial<EventRole>) => {
     setRoles((prev) => prev.map((r) => (r.id === roleId ? { ...r, ...patch } : r)))
@@ -70,6 +147,11 @@ export default function CreateEventPage() {
       status,
       impactMetricLabel,
       impactMetricUnit,
+      category: category || undefined,
+      skillIds: Array.from(selectedSkillIds),
+      interestIds: Array.from(selectedInterestIds),
+      motivationTags: Array.from(motivationTags),
+      dayType: dayType || undefined,
       // Strip client-only id/eventId fields (dipakai cuma utk React key & state
       // lokal form ini) — backend yang generate id sungguhan.
       roles: roles.map(({ roleName, roleDescription, maxVolunteers, shifts }) => ({
@@ -143,6 +225,97 @@ export default function CreateEventPage() {
               value={impactMetricUnit}
               onChange={(e) => setImpactMetricUnit(e.target.value)}
             />
+          </div>
+        </div>
+      </section>
+
+      <section className="card create-event__section">
+        <h2>Kategori &amp; Tag Kecocokan</h2>
+        <p className="create-event__tag-hint">
+          Dipakai algoritma rekomendasi (Predictive Match Score) buat mencocokkan event ini ke volunteer yang tepat.
+          Boleh dikosongkan, tapi event tanpa tag akan tampil netral di semua volunteer.
+        </p>
+        <div className="create-event__row">
+          <div className="create-event__field">
+            <label htmlFor="category">Kategori</label>
+            <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <option value="">Pilih kategori</option>
+              {CATEGORY_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="create-event__field">
+            <label htmlFor="dayType">Waktu Pelaksanaan</label>
+            <select id="dayType" value={dayType} onChange={(e) => setDayType(e.target.value as typeof dayType)}>
+              <option value="">Tidak ditentukan</option>
+              {DAY_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="create-event__field">
+          <label>Motivasi yang Cocok</label>
+          <div className="create-event__tag-options">
+            {MOTIVATION_OPTIONS.map((opt) => (
+              <label key={opt.value} className="create-event__tag-option">
+                <input
+                  type="checkbox"
+                  checked={motivationTags.has(opt.value)}
+                  onChange={() => toggleMotivationTag(opt.value)}
+                />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="create-event__row">
+          <div className="create-event__field">
+            <label>Skill yang Dibutuhkan</label>
+            <div className="create-event__tag-options">
+              {groupByCategory(skillsAll).map(([groupName, items]) => (
+                <div key={groupName} className="create-event__tag-group">
+                  <span className="create-event__tag-group-label">{groupName}</span>
+                  {items.map((item) => (
+                    <label key={item.id} className="create-event__tag-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedSkillIds.has(item.id)}
+                        onChange={() => toggleSkill(item.id)}
+                      />
+                      {item.name}
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="create-event__field">
+            <label>Minat yang Cocok</label>
+            <div className="create-event__tag-options">
+              {groupByCategory(interestsAll).map(([groupName, items]) => (
+                <div key={groupName} className="create-event__tag-group">
+                  <span className="create-event__tag-group-label">{groupName}</span>
+                  {items.map((item) => (
+                    <label key={item.id} className="create-event__tag-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedInterestIds.has(item.id)}
+                        onChange={() => toggleInterest(item.id)}
+                      />
+                      {item.name}
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

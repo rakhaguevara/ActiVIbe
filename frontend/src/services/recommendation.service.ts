@@ -70,6 +70,8 @@ export interface RecommendedEvent {
   relevanceLabel: string
   /** Skor rule-based sebelum penyesuaian AI (auditable anchor) */
   ruleBasedScore: number
+  /** Penyesuaian dari riwayat buka/simpan event serupa, 0..+10 (lihat behavior.service.js) */
+  behaviorBoost: number
   breakdown: MatchBreakdown
 }
 

@@ -2,23 +2,28 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FiSearch, FiBookmark, FiShare2 } from 'react-icons/fi'
 import AccountSidebar from '../../components/AccountSidebar'
+import InlineLoading from '../../components/InlineLoading'
+import SectionState from '../../components/SectionState'
 import { useBookmarkedEvents } from '../../hooks/useBookmarkedEvents'
+import { useRecommendations } from '../../hooks/useRecommendations'
 import { getCategoryStyle } from '../../utils/categoryStyle'
 import { formatDateShort } from '../../utils/formatDate'
-import { mockEvents } from '../../data/mockEvents'
 import './SavedItemsPage.css'
 
 type Tab = 'kegiatan' | 'organisasi'
 
 export default function SavedItemsPage() {
   const { bookmarkedIds, toggle } = useBookmarkedEvents()
+  // Katalog event nyata (recommendations mencakup SEMUA event published,
+  // bukan cuma top-N) — dipakai sbg sumber data, disaring ke yg di-bookmark.
+  const { events, isLoading, error } = useRecommendations()
   const [tab, setTab] = useState<Tab>('kegiatan')
   const [keyword, setKeyword] = useState('')
   const [copiedEventId, setCopiedEventId] = useState<string | null>(null)
 
   const savedEvents = useMemo(
-    () => mockEvents.filter((event) => bookmarkedIds.includes(event.id)),
-    [bookmarkedIds],
+    () => events.filter((event) => bookmarkedIds.includes(event.id)),
+    [events, bookmarkedIds],
   )
 
   const filteredEvents = useMemo(() => {
@@ -71,15 +76,19 @@ export default function SavedItemsPage() {
           />
         </div>
 
-        {savedEvents.length === 0 ? (
-          <div className="card saved-items-page__empty">
-            <p className="saved-items-page__empty-title">Kamu belum menyimpan kegiatan apa pun.</p>
-            <p className="saved-items-page__empty-desc">
-              <Link to="/dashboard">Mulai cari kegiatan</Link> dan tekan ikon bookmark buat menyimpannya di sini.
-            </p>
-          </div>
+        {isLoading ? (
+          <InlineLoading />
+        ) : error ? (
+          <SectionState variant="error" title={error} onRetry={() => window.location.reload()} />
+        ) : savedEvents.length === 0 ? (
+          <SectionState
+            variant="empty"
+            title="Kamu belum menyimpan kegiatan apa pun."
+            description="Mulai cari kegiatan dan tekan ikon bookmark buat menyimpannya di sini."
+            action={{ label: 'Mulai cari kegiatan', to: '/dashboard' }}
+          />
         ) : filteredEvents.length === 0 ? (
-          <p className="saved-items-page__no-match">Tidak ada kegiatan tersimpan yang cocok dengan pencarian ini.</p>
+          <SectionState variant="empty" title="Tidak ada kegiatan tersimpan yang cocok dengan pencarian ini." />
         ) : (
           <div className="saved-items-page__grid">
             {filteredEvents.map((event) => {

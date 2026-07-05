@@ -1,5 +1,56 @@
 import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
+import { CATEGORY_SYMBOLS } from '../recommendations/recommendation.data.js'
+import { ensureOrganizationForOwner } from '../organizations/organization.service.js'
+
+// Status "pendaftaran terisi" — sama dengan definisi filledSlots di seluruh
+// app: semua status Application KECUALI yang berarti batal/ditolak.
+const FILLED_SLOT_STATUSES = ['APPLIED', 'UNDER_REVIEW', 'ACCEPTED', 'WAITLISTED', 'CHECKED_IN', 'COMPLETED', 'NO_SHOW']
+
+// Status event yang boleh dilihat volunteer — PUBLISHED (dibuka pendaftaran)
+// dan ONGOING (sedang berjalan, masih relevan utk dilihat/didaftar susulan).
+const VOLUNTEER_VISIBLE_STATUSES = ['PUBLISHED', 'ONGOING']
+
+const PUBLIC_EVENT_INCLUDE = {
+  organizer: true,
+  organization: true,
+  eventSkills: { include: { skill: true } },
+  eventInterests: { include: { interest: true } },
+}
+
+async function filledSlotsByEventId(eventIds) {
+  if (eventIds.length === 0) return new Map()
+  const counts = await prisma.application.groupBy({
+    by: ['eventId'],
+    where: { eventId: { in: eventIds }, status: { in: FILLED_SLOT_STATUSES } },
+    _count: { _all: true },
+  })
+  return new Map(counts.map((c) => [c.eventId, c._count._all]))
+}
+
+// Bentuk publik (volunteer-facing) — SENGAJA terpisah dari serializeEvent()
+// yang berbentuk organizer (roles/requirements, bukan skills/interests/organizerName).
+function serializePublicEvent(event, filledSlots) {
+  return {
+    id: event.id,
+    title: event.title,
+    description: event.description,
+    category: event.category ?? 'Umum',
+    location: event.location,
+    organizerName: event.organizer.name,
+    organizationId: event.organizationId,
+    quota: event.quota,
+    filledSlots,
+    startDate: toDateOnly(event.startDate),
+    endDate: toDateOnly(event.endDate),
+    skills: event.eventSkills.map((es) => es.skill.name),
+    interests: event.eventInterests.map((ei) => ei.interest.name),
+    motivationTags: event.motivationTags,
+    dayType: event.dayType,
+    symbol: CATEGORY_SYMBOLS[event.category] ?? '✨',
+    status: event.status.toLowerCase(),
+  }
+}
 
 // Nama relasi di schema.prisma adalah "eventRoles" (bukan "roles") — field ini
 // cuma dipakai internal utk query Prisma; response API tetap pakai "roles"
@@ -88,9 +139,20 @@ function shiftsCreateData(shifts) {
 }
 
 export async function createEvent(organizerId, data) {
+  // Setiap organizer yang membuat event pertama kalinya otomatis dapat
+  // Organization asli di baliknya (FindOrganizationPage butuh entitas nyata,
+  // bukan sekadar User role=ORGANIZER) — lihat organization.service.js.
+  const organizer = await prisma.user.findUnique({ where: { id: organizerId } })
+  const organization = await ensureOrganizationForOwner(organizerId, {
+    name: organizer.name,
+    email: organizer.email ?? '',
+    phone: organizer.phone ?? '',
+  })
+
   const created = await prisma.event.create({
     data: {
       organizerId,
+      organizationId: organization.id,
       title: data.title.trim(),
       description: data.description.trim(),
       location: data.location.trim(),
@@ -100,6 +162,11 @@ export async function createEvent(organizerId, data) {
       status: data.status.toUpperCase(),
       impactMetricLabel: data.impactMetricLabel.trim(),
       impactMetricUnit: data.impactMetricUnit?.trim() || null,
+      category: data.category?.trim() || null,
+      motivationTags: data.motivationTags ?? [],
+      dayType: data.dayType ?? null,
+      eventSkills: { create: (data.skillIds ?? []).map((skillId) => ({ skillId })) },
+      eventInterests: { create: (data.interestIds ?? []).map((interestId) => ({ interestId })) },
       eventRoles: {
         create: (data.roles ?? []).map((role) => ({
           roleName: role.roleName.trim(),
@@ -236,4 +303,72 @@ export async function closeEvent(organizerId, eventId, { finalStatuses, impactVa
   })
 
   return getEventForOrganizer(organizerId, eventId)
+}
+
+// ============================================
+// Volunteer-facing (publik): browse & detail — dipakai FindActivityPage dan
+// sbg sumber katalog matchable events utk recommendation.service.js.
+// ============================================
+
+export async function listPublishedEventsForVolunteer({ keyword, category, location, skill } = {}) {
+  const where = {
+    status: { in: VOLUNTEER_VISIBLE_STATUSES },
+    ...(keyword ? { title: { contains: keyword, mode: 'insensitive' } } : {}),
+    ...(category ? { category: { equals: category, mode: 'insensitive' } } : {}),
+    ...(location ? { location: { contains: location, mode: 'insensitive' } } : {}),
+    ...(skill ? { eventSkills: { some: { skill: { name: { equals: skill, mode: 'insensitive' } } } } } : {}),
+  }
+  const events = await prisma.event.findMany({ where, include: PUBLIC_EVENT_INCLUDE, orderBy: { startDate: 'asc' } })
+  const filledSlots = await filledSlotsByEventId(events.map((e) => e.id))
+  return events.map((event) => serializePublicEvent(event, filledSlots.get(event.id) ?? 0))
+}
+
+export async function getPublishedEventById(eventId) {
+  const event = await prisma.event.findUnique({ where: { id: eventId }, include: PUBLIC_EVENT_INCLUDE })
+  if (!event || !VOLUNTEER_VISIBLE_STATUSES.includes(event.status)) {
+    throw new AppError(404, 'Kegiatan tidak ditemukan')
+  }
+  const filledSlots = await filledSlotsByEventId([eventId])
+  return serializePublicEvent(event, filledSlots.get(eventId) ?? 0)
+}
+
+// Katalog event yang dipakai algoritma matching (matchScore.js) — bentuknya
+// sama persis dgn serializePublicEvent tapi tanpa perlu filledSlots per-item
+// dihitung 2x kalau nanti dipanggil bareng listing; dipisah fungsi supaya
+// recommendation.service.js tidak perlu tahu detail query Prisma-nya.
+export async function listMatchableEvents() {
+  return listPublishedEventsForVolunteer()
+}
+
+// ============================================
+// Sinyal perilaku volunteer (buka & simpan event) — dipakai behavioral boost
+// di recommendation.service.js. Dipisah dr endpoint listing/detail supaya
+// tracking tidak tergantung strategi fetch detail yg dipakai frontend.
+// ============================================
+
+export async function logEventView(eventId, userId) {
+  // Gagal log tidak boleh bikin request gagal — ini cuma telemetri.
+  try {
+    await prisma.eventView.create({ data: { eventId, userId: userId ?? null } })
+  } catch {
+    // eventId tidak valid (FK violation) — abaikan, bukan tanggung jawab endpoint ini
+  }
+}
+
+export async function bookmarkEvent(userId, eventId) {
+  try {
+    await prisma.eventBookmark.create({ data: { userId, eventId } })
+  } catch (err) {
+    // P2002 = sudah pernah di-bookmark sebelumnya — idempotent, bukan error
+    if (err?.code !== 'P2002') throw err
+  }
+}
+
+export async function unbookmarkEvent(userId, eventId) {
+  await prisma.eventBookmark.deleteMany({ where: { userId, eventId } })
+}
+
+export async function listMyBookmarkedEventIds(userId) {
+  const bookmarks = await prisma.eventBookmark.findMany({ where: { userId }, select: { eventId: true } })
+  return bookmarks.map((b) => b.eventId)
 }

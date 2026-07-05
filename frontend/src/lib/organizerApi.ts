@@ -28,6 +28,13 @@ export interface CreateEventPayload {
   impactMetricLabel: string
   impactMetricUnit: string
   roles: CreateEventRolePayload[]
+  // Tag matching untuk Predictive Match Score (FR-005) — opsional, tapi tanpa
+  // ini event baru selalu skor netral di rekomendasi volunteer (lihat matchScore.js).
+  category?: string
+  skillIds?: string[]
+  interestIds?: string[]
+  motivationTags?: ('CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH')[]
+  dayType?: 'WEEKDAY' | 'WEEKEND' | 'BOTH'
 }
 
 export interface CloseEventPayload {

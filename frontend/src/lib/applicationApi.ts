@@ -19,10 +19,21 @@ export interface ApplyPayload {
   availability: string[]
 }
 
+export interface ApplicationEventSummary {
+  id: string
+  title: string
+  location: string
+  category: string
+  organizerName: string
+  startDate: string
+  endDate: string
+}
+
 export interface ApplicationRecord {
   eventId: string
   status: ApplicationStatus
   appliedAt: string
+  event: ApplicationEventSummary
 }
 
 async function parseResponse(res: Response) {

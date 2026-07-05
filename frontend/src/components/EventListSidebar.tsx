@@ -3,6 +3,7 @@ import { FiBookmark, FiShare2 } from 'react-icons/fi'
 import { getCategoryStyle } from '../utils/categoryStyle'
 import { formatDateShort } from '../utils/formatDate'
 import { useBookmarkedEvents } from '../hooks/useBookmarkedEvents'
+import { trackEventView } from '../lib/eventApi'
 import type { Event } from '../types/event'
 import './EventListSidebar.css'
 
@@ -23,6 +24,16 @@ export default function EventListSidebar({ events, selectedEventId, onSelect }: 
     setTimeout(() => {
       setCopiedEventId((current) => (current === eventId ? null : current))
     }, 1500)
+  }
+
+  // Sinyal "buka event" (FR-005 behavioral boost) — fire-and-forget, gagal
+  // tracking tidak boleh mengganggu navigasi ke detail. TIDAK invalidate cache
+  // rekomendasi di sini (beda dgn bookmark) — view terjadi tiap klik "Detail",
+  // kalau tiap klik memicu refetch (termasuk panggilan AI ulang) jadi boros;
+  // efeknya cukup terlihat lewat TTL cache 5 menit yang sudah ada.
+  const handleSelect = (eventId: string) => {
+    onSelect(eventId)
+    trackEventView(eventId).catch(() => {})
   }
 
   return (
@@ -73,7 +84,7 @@ export default function EventListSidebar({ events, selectedEventId, onSelect }: 
                   type="button"
                   className="event-list-sidebar__detail-button"
                   aria-label="Lihat detail kegiatan"
-                  onClick={() => onSelect(event.id)}
+                  onClick={() => handleSelect(event.id)}
                 >
                   Detail
                 </button>

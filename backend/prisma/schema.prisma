@@ -29,11 +29,17 @@ model User {
   applications  Application[]
   skillProgress SkillProgress[]
   auditLogs     AuditLog[]
+  eventViews    EventView[]
+  bookmarks     EventBookmark[]
 
   // Organizer domain — dua relasi terpisah ke Event karena satu User bisa
   // jadi organizer sekaligus (di kesempatan lain) admin yang approve event.
   organizedEvents Event[] @relation("EventOrganizer")
   approvedEvents  Event[] @relation("EventApprovedBy")
+  // Satu User (role ORGANIZER) memiliki paling banyak satu Organization —
+  // lihat model Organization untuk alasan kenapa ini model terpisah, bukan
+  // sekadar query User role=ORGANIZER.
+  organization    Organization? @relation("OrganizationOwner")
 
   assignmentsMade       VolunteerAssignment[] @relation("AssignmentAssignedBy")
   organizerNotes        OrganizerNote[]       @relation("OrganizerNoteAuthor")
@@ -194,8 +200,13 @@ model SkillProgress {
 
 // FR-011/012: kegiatan volunteer — lihat PRD v2.0 Section 7.1 Event
 model Event {
-  id          String      @id @default(uuid())
-  organizerId String
+  id             String      @id @default(uuid())
+  organizerId    String
+  // Organisasi pemilik event (opsional/additive) — organizerId tetap dipakai
+  // sebagai akun staff yang mengelola event ini (audit trail & approval flow
+  // admin tidak berubah); organizationId khusus untuk fitur "Cari Organisasi"
+  // volunteer, supaya tidak perlu migrasi besar mengubah semantik organizerId.
+  organizationId String?
   title       String
   description String
   location    String
@@ -209,9 +220,13 @@ model Event {
   impactMetricLabel String
   impactMetricUnit  String?
   // Kategori kegiatan (mis. "Lingkungan", "Pendidikan") — bebas teks, PRD tidak
-  // mengunci taksonomi tetap. Ditampilkan admin, belum ada input-nya di form
-  // organizer (CreateEventPage) sehingga event baru masih null utk sekarang.
+  // mengunci taksonomi tetap.
   category          String?
+  // Sinyal tambahan utk Predictive Match Score (FR-005) — motivationTags
+  // dicocokkan ke Profile.motivation (bobot 15%), dayType ke Profile.availability
+  // (bobot 10%). Reuse enum Motivation/Availability yang sudah ada di Profile.
+  motivationTags    Motivation[]
+  dayType           Availability?
   approvedById      String?
   approvedAt        DateTime?
   // Catatan admin saat review (FR-020): alasan penolakan ATAU syarat approval
@@ -221,8 +236,9 @@ model Event {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  organizer  User  @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
-  approvedBy User? @relation("EventApprovedBy", fields: [approvedById], references: [id])
+  organizer    User          @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  approvedBy   User?         @relation("EventApprovedBy", fields: [approvedById], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
 
   eventSkills       EventSkill[]
   eventInterests    EventInterest[]
@@ -230,8 +246,11 @@ model Event {
   eventRoles        EventRole[]
   requirements      EventRequirement[]
   communicationLogs CommunicationLog[]
+  eventViews        EventView[]
+  bookmarks         EventBookmark[]
 
   @@index([organizerId])
+  @@index([organizationId])
   @@index([status])
 }
 
@@ -268,6 +287,70 @@ model EventInterest {
   @@unique([eventId, interestId])
   @@index([eventId])
   @@index([interestId])
+}
+
+// Domain "Organisasi" untuk fitur volunteer FindOrganizationPage — dibuat
+// sebagai model penuh (bukan sekadar query User role=ORGANIZER) karena butuh
+// field presentasi (logo, deskripsi, cause area) yang tidak masuk akal
+// disimpan di User/Profile. Satu Organization dimiliki satu User organizer
+// (ownerId unique); dibuat otomatis (upsert) saat organizer pertama kali
+// membuat event — lihat ensureOrganizationForOwner di event.service.js.
+model Organization {
+  id           String   @id @default(uuid())
+  ownerId      String   @unique
+  name         String
+  logoUrl      String?
+  shortProfile String
+  location     String
+  address      String?
+  website      String?
+  email        String
+  phone        String
+  causeAreas   String[]
+  isVerified   Boolean  @default(false)
+  mission      String?
+  aboutUs      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner  User    @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  events Event[]
+
+  @@index([ownerId])
+}
+
+// Log setiap kali volunteer membuka detail event — sinyal perilaku "buka"
+// utk Predictive Match Score behavioral boost (lihat recommendation.service.js
+// getBehavioralAffinity). userId nullable + onDelete SetNull supaya baris log
+// tetap ada (utk analitik agregat) walau akun user dihapus.
+model EventView {
+  id       String   @id @default(uuid())
+  eventId  String
+  userId   String?
+  viewedAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([userId])
+}
+
+// "Simpan/suka" event volunteer — sebelumnya cuma localStorage browser,
+// dipindah ke backend supaya (a) persisten lintas device dan (b) jadi sinyal
+// perilaku "suka" (bobot lebih tinggi dari EventView) utk behavioral boost.
+model EventBookmark {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+  @@index([userId])
 }
 
 // FR-006: pendaftaran kegiatan volunteer

@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import InlineLoading from '../../components/InlineLoading'
 import OrganizationListSidebar from '../../components/OrganizationListSidebar'
 import OrganizationDetailPanel from '../../components/OrganizationDetailPanel'
 import OrganizationSearchBar, { type OrganizationFilters } from '../../components/OrganizationSearchBar'
 import ScrollPane from '../../components/ScrollPane'
-import { mockOrganizations } from '../../data/mockOrganizations'
-import { mockEvents } from '../../data/mockEvents'
+import SectionErrorBoundary from '../../components/SectionErrorBoundary'
+import SectionState from '../../components/SectionState'
+import { listOrganizations } from '../../lib/organizationApi'
+import type { Organization } from '../../types/organization'
 import './FindOrganizationPage.css'
 
 const EMPTY_FILTERS: OrganizationFilters = {
@@ -16,28 +19,45 @@ const EMPTY_FILTERS: OrganizationFilters = {
 }
 
 export default function FindOrganizationPage() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading: isLoadingAuth } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [filters, setFilters] = useState<OrganizationFilters>(EMPTY_FILTERS)
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
 
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchOrganizations = () => {
+    setIsLoading(true)
+    setError(null)
+    listOrganizations()
+      .then(setOrganizations)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Gagal memuat organisasi, coba lagi.'))
+      .finally(() => setIsLoading(false))
+  }
+
   useEffect(() => {
-    if (!isLoading && !user) {
+    fetchOrganizations()
+  }, [])
+
+  useEffect(() => {
+    if (!isLoadingAuth && !user) {
       navigate('/', { replace: true })
     }
-  }, [isLoading, user, navigate])
+  }, [isLoadingAuth, user, navigate])
 
   const causeAreas = useMemo(
-    () => Array.from(new Set(mockOrganizations.flatMap((org) => org.causeAreas))),
-    [],
+    () => Array.from(new Set(organizations.flatMap((org) => org.causeAreas))),
+    [organizations],
   )
 
   const filteredOrganizations = useMemo(() => {
     const name = filters.name.trim().toLowerCase()
     const location = filters.location.trim().toLowerCase()
 
-    return mockOrganizations.filter((org) => {
+    return organizations.filter((org) => {
       if (name && !org.name.toLowerCase().includes(name) && !org.shortProfile.toLowerCase().includes(name)) {
         return false
       }
@@ -49,15 +69,15 @@ export default function FindOrganizationPage() {
       }
       return true
     })
-  }, [filters])
+  }, [organizations, filters])
 
   // ?org=... dipakai link share dari OrganizationListSidebar/OrganizationDetailPanel
   useEffect(() => {
     const sharedOrgId = searchParams.get('org')
-    if (sharedOrgId && mockOrganizations.some((org) => org.id === sharedOrgId)) {
+    if (sharedOrgId && organizations.some((org) => org.id === sharedOrgId)) {
       setSelectedOrgId(sharedOrgId)
     }
-  }, [searchParams])
+  }, [searchParams, organizations])
 
   useEffect(() => {
     if (filteredOrganizations.length === 0) {
@@ -70,15 +90,12 @@ export default function FindOrganizationPage() {
     })
   }, [filteredOrganizations])
 
-  if (isLoading || !user) {
+  if (isLoadingAuth || !user) {
     return null
   }
 
   const selectedIndex = filteredOrganizations.findIndex((org) => org.id === selectedOrgId)
   const selectedOrganization = selectedIndex >= 0 ? filteredOrganizations[selectedIndex] : null
-  const availableEventsCount = selectedOrganization
-    ? mockEvents.filter((event) => event.organizerName === selectedOrganization.name).length
-    : 0
 
   const goToOffset = (offset: number) => {
     if (selectedIndex < 0) return
@@ -101,8 +118,12 @@ export default function FindOrganizationPage() {
       </div>
 
       <div className="find-organization-page__columns">
-        {filteredOrganizations.length === 0 ? (
-          <p className="find-organization-page__empty">Tidak ada organisasi yang cocok dengan pencarian ini.</p>
+        {isLoading ? (
+          <SectionState variant="loading" title="Memuat daftar organisasi…" />
+        ) : error ? (
+          <SectionState variant="error" title={error} onRetry={fetchOrganizations} />
+        ) : filteredOrganizations.length === 0 ? (
+          <SectionState variant="empty" title="Tidak ada organisasi yang cocok dengan pencarian ini." />
         ) : (
           <ScrollPane>
             <OrganizationListSidebar
@@ -113,20 +134,24 @@ export default function FindOrganizationPage() {
           </ScrollPane>
         )}
 
-        {selectedOrganization ? (
+        {isLoading ? (
+          <InlineLoading />
+        ) : error ? null : selectedOrganization ? (
           <ScrollPane>
-            <OrganizationDetailPanel
-              organization={selectedOrganization}
-              availableEventsCount={availableEventsCount}
-              currentIndex={selectedIndex}
-              total={filteredOrganizations.length}
-              onPrev={() => goToOffset(-1)}
-              onNext={() => goToOffset(1)}
-              onBackToResults={() => setSelectedOrgId(null)}
-            />
+            <SectionErrorBoundary>
+              <OrganizationDetailPanel
+                organization={selectedOrganization}
+                availableEventsCount={selectedOrganization.eventsCount}
+                currentIndex={selectedIndex}
+                total={filteredOrganizations.length}
+                onPrev={() => goToOffset(-1)}
+                onNext={() => goToOffset(1)}
+                onBackToResults={() => setSelectedOrgId(null)}
+              />
+            </SectionErrorBoundary>
           </ScrollPane>
         ) : (
-          <p className="find-organization-page__empty">Pilih organisasi untuk melihat profil lengkapnya.</p>
+          <SectionState variant="empty" title="Pilih organisasi untuk melihat profil lengkapnya." />
         )}
       </div>
     </main>

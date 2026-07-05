@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom'
 import AccountSidebar from '../../components/AccountSidebar'
 import Badge from '../../components/Badge'
 import InlineLoading from '../../components/InlineLoading'
+import SectionState from '../../components/SectionState'
 import { getMyApplications, type ApplicationRecord, type ApplicationStatus } from '../../lib/applicationApi'
 import { getCategoryStyle } from '../../utils/categoryStyle'
 import { formatDateShort } from '../../utils/formatDate'
-import { mockEvents } from '../../data/mockEvents'
-import type { Event } from '../../types/event'
+import fallbackImage from '../../assets/png/pic1 1.png'
 import './ApplicationHistoryPage.css'
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
@@ -36,29 +36,23 @@ const STATUS_VARIANT: Record<ApplicationStatus, 'success' | 'warning' | 'danger'
   CANCELLED_BY_VOLUNTEER: 'danger',
 }
 
-interface HistoryEntry {
-  application: ApplicationRecord
-  event: Event
-}
-
 export default function ApplicationHistoryPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [entries, setEntries] = useState<HistoryEntry[]>([])
+  const [applications, setApplications] = useState<ApplicationRecord[]>([])
   const [error, setError] = useState<string | null>(null)
 
+  // Event sekarang di-embed langsung oleh GET /applications/me (lihat
+  // application.service.js getMyApplications) — tidak ada lagi join ke
+  // mockEvents yang bisa diam-diam membuang aplikasi asli.
   const fetchHistory = useCallback(() => {
     setIsLoading(true)
     setError(null)
     getMyApplications()
-      .then((applications) => {
-        const withEvent = applications
-          .map((application) => {
-            const event = mockEvents.find((e) => e.id === application.eventId)
-            return event ? { application, event } : null
-          })
-          .filter((entry): entry is HistoryEntry => entry !== null)
-          .sort((a, b) => new Date(b.application.appliedAt).getTime() - new Date(a.application.appliedAt).getTime())
-        setEntries(withEvent)
+      .then((data) => {
+        const sorted = [...data].sort(
+          (a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime(),
+        )
+        setApplications(sorted)
       })
       .catch(() => setError('Gagal memuat riwayat pendaftaran, coba muat ulang.'))
       .finally(() => setIsLoading(false))
@@ -80,28 +74,22 @@ export default function ApplicationHistoryPage() {
         {isLoading ? (
           <InlineLoading />
         ) : error ? (
-          <div className="card application-history-page__empty">
-            <p className="application-history-page__empty-title">{error}</p>
-            <p className="application-history-page__empty-desc">
-              <button type="button" className="application-history-page__retry" onClick={fetchHistory}>
-                Muat ulang
-              </button>
-            </p>
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="card application-history-page__empty">
-            <p className="application-history-page__empty-title">Kamu belum pernah mendaftar kegiatan apa pun.</p>
-            <p className="application-history-page__empty-desc">
-              <Link to="/dashboard">Mulai cari kegiatan</Link> dan daftar untuk melihat riwayatnya di sini.
-            </p>
-          </div>
+          <SectionState variant="error" title={error} onRetry={fetchHistory} />
+        ) : applications.length === 0 ? (
+          <SectionState
+            variant="empty"
+            title="Kamu belum pernah mendaftar kegiatan apa pun."
+            description="Mulai cari kegiatan dan daftar untuk melihat riwayatnya di sini."
+            action={{ label: 'Mulai cari kegiatan', to: '/dashboard' }}
+          />
         ) : (
           <div className="application-history-page__list">
-            {entries.map(({ application, event }) => {
+            {applications.map((application) => {
+              const { event } = application
               const { icon: Icon } = getCategoryStyle(event.category)
               return (
                 <div key={event.id} className="card application-history-page__row">
-                  <img src={event.imageUrl} alt="" className="application-history-page__image" />
+                  <img src={fallbackImage} alt="" className="application-history-page__image" />
 
                   <div className="application-history-page__main">
                     <div className="application-history-page__row-head">

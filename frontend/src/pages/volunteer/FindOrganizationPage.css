@@ -67,8 +67,3 @@
   }
 }
 
-.find-organization-page__empty {
-  font-size: var(--text-body-sm);
-  color: var(--color-text-muted);
-  padding: 24px;
-}

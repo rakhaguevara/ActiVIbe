@@ -5,6 +5,8 @@ import EventListSidebar from '../../components/EventListSidebar'
 import EventDetailPanel from '../../components/EventDetailPanel'
 import EventApplyForm from '../../components/EventApplyForm'
 import ScrollPane from '../../components/ScrollPane'
+import SectionErrorBoundary from '../../components/SectionErrorBoundary'
+import SectionState from '../../components/SectionState'
 import VolunteerSearchBar, { type EventFilters } from '../../components/VolunteerSearchBar'
 import { useRecommendations } from '../../hooks/useRecommendations'
 import './FindActivityPage.css'
@@ -27,9 +29,8 @@ export default function FindActivityPage() {
   const [sortBy, setSortBy] = useState<SortOption>('matchScore')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
 
-  // Hasil personalisasi FR-005 dari backend (algoritma rule-based + AI);
-  // fallback otomatis ke mockEvents kalau backend tidak bisa dihubungi.
-  const { events, isLoading: isLoadingEvents, isFallback, aiEnabled, aiProvider, profileComplete } =
+  // Hasil personalisasi FR-005 dari backend (algoritma rule-based + AI).
+  const { events, isLoading: isLoadingEvents, error: recommendationsError, aiEnabled, aiProvider, profileComplete } =
     useRecommendations()
 
   useEffect(() => {
@@ -135,7 +136,7 @@ export default function FindActivityPage() {
           <p className="find-activity-page__results-count">
             Kegiatan Volunteer | Total {sortedEvents.length} hasil
           </p>
-          {!isLoadingEvents && !isFallback && (
+          {!isLoadingEvents && !recommendationsError && (
             <p className="find-activity-page__ai-status">
               {aiEnabled
                 ? `✨ Dipersonalisasi oleh AI untukmu${aiProvider ? ` (${aiProvider})` : ''}`
@@ -179,9 +180,11 @@ export default function FindActivityPage() {
 
       <div className="find-activity-page__columns">
         {isLoadingEvents ? (
-          <p className="find-activity-page__empty">Menyusun rekomendasi kegiatan untukmu…</p>
+          <SectionState variant="loading" title="Menyusun rekomendasi kegiatan untukmu…" />
+        ) : recommendationsError ? (
+          <SectionState variant="error" title={recommendationsError} onRetry={() => window.location.reload()} />
         ) : sortedEvents.length === 0 ? (
-          <p className="find-activity-page__empty">Tidak ada kegiatan yang cocok dengan filter ini.</p>
+          <SectionState variant="empty" title="Tidak ada kegiatan yang cocok dengan filter ini." />
         ) : (
           <ScrollPane>
             <EventListSidebar
@@ -192,19 +195,25 @@ export default function FindActivityPage() {
           </ScrollPane>
         )}
 
-        {isLoadingEvents ? null : selectedEvent ? (
+        {isLoadingEvents || recommendationsError ? null : selectedEvent ? (
           <>
             <ScrollPane>
-              <EventDetailPanel event={selectedEvent} />
+              <SectionErrorBoundary>
+                <EventDetailPanel event={selectedEvent} />
+              </SectionErrorBoundary>
             </ScrollPane>
             <ScrollPane>
-              <EventApplyForm event={selectedEvent} />
+              <SectionErrorBoundary>
+                <EventApplyForm event={selectedEvent} />
+              </SectionErrorBoundary>
             </ScrollPane>
           </>
         ) : (
-          <p className="find-activity-page__empty find-activity-page__empty--panel">
-            Pilih atau ubah filter untuk melihat kegiatan.
-          </p>
+          <SectionState
+            variant="empty"
+            title="Pilih atau ubah filter untuk melihat kegiatan."
+            className="find-activity-page__empty-panel"
+          />
         )}
       </div>
     </main>

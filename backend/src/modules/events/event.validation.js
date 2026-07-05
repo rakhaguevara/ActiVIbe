@@ -1,4 +1,10 @@
 const EVENT_STATUSES = ['draft', 'pending_approval']
+const MOTIVATION_VALUES = ['CAREER', 'SOCIAL', 'VALUES', 'SKILL_GROWTH']
+const DAY_TYPE_VALUES = ['WEEKDAY', 'WEEKEND', 'BOTH']
+
+function isStringIdArray(value) {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string' && v.trim())
+}
 
 function validateShift(shift) {
   if (!shift.shiftDate || !shift.startTime || !shift.endTime) {
@@ -25,7 +31,22 @@ function validateRole(role) {
 }
 
 export function validateCreateEvent(body) {
-  const { title, description, location, quota, startDate, endDate, status, impactMetricLabel, roles } = body
+  const {
+    title,
+    description,
+    location,
+    quota,
+    startDate,
+    endDate,
+    status,
+    impactMetricLabel,
+    roles,
+    category,
+    skillIds,
+    interestIds,
+    motivationTags,
+    dayType,
+  } = body
 
   if (!title || typeof title !== 'string' || !title.trim()) {
     return { valid: false, message: 'Judul kegiatan wajib diisi' }
@@ -56,6 +77,26 @@ export function validateCreateEvent(body) {
       const err = validateRole(role)
       if (err) return { valid: false, message: err }
     }
+  }
+  // Kategori/skill/interest/motivationTags/dayType semuanya opsional — event
+  // yang tidak diisi tag-nya tetap valid, cuma matching score-nya netral
+  // (lihat matchScore.js overlap()).
+  if (category !== undefined && typeof category !== 'string') {
+    return { valid: false, message: 'Kategori tidak valid' }
+  }
+  if (skillIds !== undefined && !isStringIdArray(skillIds)) {
+    return { valid: false, message: 'skillIds harus berupa array id' }
+  }
+  if (interestIds !== undefined && !isStringIdArray(interestIds)) {
+    return { valid: false, message: 'interestIds harus berupa array id' }
+  }
+  if (motivationTags !== undefined) {
+    if (!Array.isArray(motivationTags) || motivationTags.some((m) => !MOTIVATION_VALUES.includes(m))) {
+      return { valid: false, message: 'motivationTags tidak valid' }
+    }
+  }
+  if (dayType !== undefined && dayType !== null && !DAY_TYPE_VALUES.includes(dayType)) {
+    return { valid: false, message: 'dayType tidak valid' }
   }
 
   return { valid: true }

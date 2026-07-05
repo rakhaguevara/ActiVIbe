@@ -20,41 +20,6 @@
   color: var(--color-text-heading);
 }
 
-.application-history-page__empty {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 4px 16px rgba(26, 26, 46, 0.06);
-}
-
-.application-history-page__empty-title {
-  margin: 0;
-  font-weight: 600;
-  color: var(--color-text-heading);
-}
-
-.application-history-page__empty-desc {
-  margin: 0;
-  font-size: var(--text-body-sm);
-  color: var(--color-text-muted);
-}
-
-.application-history-page__empty-desc a,
-.application-history-page__retry {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.application-history-page__retry {
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: var(--font-body);
-  font-size: var(--text-body-sm);
-  cursor: pointer;
-  text-decoration: underline;
-}
-
 .application-history-page__list {
   display: flex;
   flex-direction: column;

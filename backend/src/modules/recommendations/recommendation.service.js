@@ -5,9 +5,10 @@
 //      profil (fallback otomatis ke rule-based kalau AI tidak tersedia)
 
 import { getProfile } from '../profile/profile.service.js'
-import { DUMMY_EVENTS } from './recommendation.data.js'
+import { listMatchableEvents } from '../events/event.service.js'
 import { rankEvents } from './matchScore.js'
 import { enrichWithAi, buildFallback } from './ai.service.js'
+import { getBehavioralAffinity, behaviorBoost } from './behavior.service.js'
 
 // Aturan tier kecocokan (keputusan produk "make your activity with vibe"):
 //   0–49  = kurang  → "Kurang Cocok"
@@ -42,7 +43,17 @@ function computeCategoryAffinity(ranked) {
 
 // Analisis fallback tanpa AI — template dari sinyal profil terkuat.
 function buildFallbackAnalysis(profile, affinity) {
-  const topCategory = affinity[0]?.label ?? 'volunteer'
+  // Belum ada satu pun event PUBLISHED (mis. organizer belum publish apa pun)
+  // — jangan paksakan "kategori paling cocok" kalau memang tidak ada kategori
+  // sama sekali, itu menghasilkan teks rusak ("Volunteer volunteer").
+  if (affinity.length === 0) {
+    return {
+      summary: 'Belum ada kegiatan yang bisa direkomendasikan saat ini — coba lagi setelah organizer mempublikasikan kegiatan baru.',
+      recommendedRole: 'Volunteer',
+    }
+  }
+
+  const topCategory = affinity[0].label
   const interests = (profile.interests ?? []).map((i) => i.name)
   const interestPart =
     interests.length > 0 ? `kamu tertarik pada ${interests.slice(0, 2).join(' dan ')}` : 'profilmu masih bisa dilengkapi'
@@ -56,7 +67,8 @@ function buildFallbackAnalysis(profile, affinity) {
 
 export async function getRecommendations(userId) {
   const profile = await getProfile(userId)
-  const ranked = rankEvents(profile, DUMMY_EVENTS)
+  const events = await listMatchableEvents()
+  const ranked = rankEvents(profile, events)
 
   // Profil tanpa sinyal sama sekali (belum onboarding) tidak perlu panggilan
   // AI — skornya pasti netral semua, AI tidak punya bahan personalisasi.
@@ -76,10 +88,17 @@ export async function getRecommendations(userId) {
         analysis: null,
       }
 
+  // Sinyal perilaku (FR-005 behavioral boost): event yang sering dibuka/disimpan
+  // user menaikkan skor event LAIN dengan kategori/minat serupa — "user suka
+  // buka event tipe X, direkomendasikan yang serupa". Lihat behavior.service.js.
+  const behavioralAffinity = await getBehavioralAffinity(userId)
+
   const recommendations = ranked
     .map(({ event, score, breakdown }) => {
       const ai = enriched.get(event.id)
-      const relevance = getRelevance(ai.matchScore)
+      const boost = behaviorBoost(event, behavioralAffinity)
+      const matchScore = Math.min(100, Math.max(0, ai.matchScore + boost))
+      const relevance = getRelevance(matchScore)
       return {
         // Data event untuk card di dashboard
         id: event.id,
@@ -94,11 +113,14 @@ export async function getRecommendations(userId) {
         endDate: event.endDate,
         skills: event.skills,
         // Hasil personalisasi
-        matchScore: ai.matchScore,
+        matchScore,
         matchReasoning: ai.matchReasoning,
         fitBadgeLabel: ai.fitBadgeLabel,
         symbol: ai.symbol,
         aiGenerated: ai.aiGenerated,
+        // Boost dari riwayat buka/simpan event serupa (0..+10) — auditable,
+        // terpisah dari skor AI/rule-based (lihat behavior.service.js).
+        behaviorBoost: boost,
         // Tier kecocokan sesuai aturan produk (lihat getRelevance di atas)
         relevanceTier: relevance.tier,
         relevanceLabel: relevance.label,
@@ -107,7 +129,7 @@ export async function getRecommendations(userId) {
         breakdown,
       }
     })
-    // Urut ulang pakai skor final (AI bisa menggeser urutan dalam batas ±10)
+    // Urut ulang pakai skor final (AI + behavioral boost bisa menggeser urutan)
     .sort((a, b) => b.matchScore - a.matchScore)
 
   const profileComplete =

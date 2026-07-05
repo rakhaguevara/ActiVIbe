@@ -7,6 +7,7 @@ import authRoutes from './modules/auth/auth.routes.js'
 import profileRoutes from './modules/profile/profile.routes.js'
 import applicationRoutes from './modules/applications/application.routes.js'
 import eventRoutes from './modules/events/event.routes.js'
+import organizationRoutes from './modules/organizations/organization.routes.js'
 import recommendationRoutes from './modules/recommendations/recommendation.routes.js'
 import adminRoutes from './modules/admin/admin.routes.js'
 import { errorHandler } from './middlewares/errorHandler.js'
@@ -42,6 +43,7 @@ app.use('/auth', authRoutes)
 app.use('/profile', profileRoutes)
 app.use('/applications', applicationRoutes)
 app.use('/events', eventRoutes)
+app.use('/organizations', organizationRoutes)
 app.use('/recommendations', recommendationRoutes)
 app.use('/admin', adminRoutes)
 
