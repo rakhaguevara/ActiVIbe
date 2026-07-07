@@ -15,6 +15,14 @@
   gap: 24px;
 }
 
+.settings-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .settings-page__header h1 {
   margin: 0;
   font-family: var(--font-display);

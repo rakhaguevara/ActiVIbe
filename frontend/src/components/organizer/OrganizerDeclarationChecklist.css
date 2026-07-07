@@ -1,0 +1,19 @@
+.organizer-declaration-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.organizer-declaration-checklist__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.organizer-declaration-checklist__item input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}

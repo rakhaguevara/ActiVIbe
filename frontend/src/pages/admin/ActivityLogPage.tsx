@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FiSearch, FiPrinter, FiColumns, FiFileText } from 'react-icons/fi'
 import { listActivityLog } from '../../lib/adminApi'
+import { getActivityLogStatus } from '../../lib/activityLogStatus'
 import type { ActivityLogEntry } from '../../types/admin'
 import './ActivityLogPage.css'
 
@@ -105,13 +106,8 @@ export default function ActivityLogPage() {
                   <td>{timeFormatter.format(new Date(entry.timestamp)).replace(' pukul', ' at')}</td>
                   <td>{entry.targetLabel}</td>
                   <td>
-                    <span style={{ 
-                      color: entry.action.includes('Tolak') || entry.action.includes('Nonaktif') || entry.action.includes('Tangguh') ? '#f75555' : 
-                             entry.action.includes('Mengajukan') ? '#ff9d00' : '#00b06b',
-                      fontWeight: 500
-                    }}>
-                      {entry.action.includes('Tolak') || entry.action.includes('Nonaktif') || entry.action.includes('Tangguh') ? 'Rejected' : 
-                       entry.action.includes('Mengajukan') ? 'Pending' : 'Delivered'}
+                    <span style={{ color: getActivityLogStatus(entry.action).color, fontWeight: 500 }}>
+                      {getActivityLogStatus(entry.action).label}
                     </span>
                   </td>
                 </tr>

@@ -4,6 +4,8 @@ import type { Event } from '../types/event'
 import { getMatchTier } from '../utils/matchScore'
 import { useBookmarkedEvents } from '../hooks/useBookmarkedEvents'
 import EventGalleryHero from './EventGalleryHero'
+import EventGalleryGrid from './EventGalleryGrid'
+import EventGalleryLightbox from './EventGalleryLightbox'
 import EventOrganizerStrip from './EventOrganizerStrip'
 import EventHighlights from './EventHighlights'
 import EventAmenities from './EventAmenities'
@@ -21,13 +23,22 @@ interface EventDetailPanelProps {
 
 export default function EventDetailPanel({ event }: EventDetailPanelProps) {
   const [showFullDescription, setShowFullDescription] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const { isBookmarked, toggle } = useBookmarkedEvents()
   const bookmarked = isBookmarked(event.id)
   const slotsLeft = event.quota - event.filledSlots
+  const photos = event.photos ?? []
 
   return (
     <div className="event-detail-panel">
-      <EventGalleryHero category={event.category} />
+      {photos.length > 0 ? (
+        <EventGalleryGrid photos={photos} onOpenLightbox={setLightboxIndex} />
+      ) : (
+        <EventGalleryHero category={event.category} />
+      )}
+      {lightboxIndex !== null && (
+        <EventGalleryLightbox photos={photos} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
 
       <div className="event-detail-panel__title-row">
         <h2 className="event-detail-panel__title">{event.title}</h2>
@@ -97,7 +108,7 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
 
       <EventReviewList reviews={event.reviews} />
 
-      <EventLocationMap location={event.location} />
+      <EventLocationMap location={event.location} mapLink={event.mapLink} eventMode={event.eventMode} />
 
       <OrganizerProfileCard event={event} />
 

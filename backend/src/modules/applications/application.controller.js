@@ -5,6 +5,8 @@ import {
   updateApplicationStatus,
   addOrganizerNote,
   assignApplicant,
+  checkInAssignment,
+  markAssignmentNoShow,
 } from './application.service.js'
 
 export async function apply(req, res, next) {
@@ -67,6 +69,24 @@ export async function assign(req, res, next) {
     const { eventRoleId, eventShiftId } = req.body
     const applicant = await assignApplicant(req.user.id, req.params.id, eventRoleId, eventShiftId)
     return res.json({ applicant })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function checkIn(req, res, next) {
+  try {
+    const record = await checkInAssignment(req.user.id, req.params.assignmentId, req.body.method)
+    return res.json({ record })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function noShow(req, res, next) {
+  try {
+    const record = await markAssignmentNoShow(req.user.id, req.params.assignmentId)
+    return res.json({ record })
   } catch (err) {
     next(err)
   }

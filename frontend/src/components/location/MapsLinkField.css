@@ -1,0 +1,16 @@
+.maps-link-field__helper {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.maps-link-field__preview {
+  margin-top: var(--space-sm);
+}
+
+.maps-link-field__preview iframe {
+  width: 100%;
+  height: 180px;
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 10px;
+}

@@ -4,10 +4,13 @@ import type {
   Applicant,
   ApplicantStatus,
   AttendanceRecord,
+  Certificate,
   CommunicationLogEntry,
   EventRequirement,
+  FeedbackSummary,
+  TrafficSummary,
 } from '../types/organizer'
-import { mockAttendanceRecords, mockCommunicationLogs } from '../data/mockOrganizer'
+import { mockCommunicationLogs } from '../data/mockOrganizer'
 import type { CloseEventResult } from '../components/organizer/CloseEventWizard'
 import {
   createEventRequest,
@@ -19,6 +22,15 @@ import {
   updateApplicantStatusRequest,
   addApplicantNoteRequest,
   assignApplicantRequest,
+  getEventAttendanceRequest,
+  checkInRequest,
+  markNoShowRequest,
+  generateCertificatesRequest,
+  listCertificatesRequest,
+  getFeedbackSummaryRequest,
+  getTrafficSummaryRequest,
+  archiveEventRequest,
+  restoreEventRequest,
   type CreateEventPayload,
   type CreateEventRolePayload,
 } from '../lib/organizerApi'
@@ -28,6 +40,9 @@ interface OrganizerDataContextValue {
   events: OrganizerEvent[]
   applicants: Applicant[]
   attendanceRecords: AttendanceRecord[]
+  certificates: Certificate[]
+  feedbackSummaries: Record<string, FeedbackSummary>
+  trafficSummary: TrafficSummary | null
   communicationLogs: CommunicationLogEntry[]
   requirements: EventRequirement[]
   addEvent: (payload: CreateEventPayload) => Promise<void>
@@ -37,9 +52,12 @@ interface OrganizerDataContextValue {
   assignApplicant: (applicantId: string, roleId: string, shiftId: string) => Promise<void>
   addCommunicationLog: (log: CommunicationLogEntry) => void
   addRequirement: (eventId: string, requirement: { title: string; type: EventRequirement['type']; isMandatory: boolean }) => Promise<void>
-  checkInAttendance: (attendanceId: string, method: 'qr' | 'manual') => void
-  markNoShow: (attendanceId: string) => void
+  checkInAttendance: (attendanceId: string, method: 'qr' | 'manual') => Promise<void>
+  markNoShow: (attendanceId: string) => Promise<void>
   closeEvent: (eventId: string, result: CloseEventResult) => Promise<void>
+  generateCertificates: (eventId: string) => Promise<void>
+  archiveEvent: (eventId: string) => Promise<void>
+  restoreEvent: (eventId: string) => Promise<void>
 }
 
 const OrganizerDataContext = createContext<OrganizerDataContextValue | null>(null)
@@ -53,7 +71,10 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [events, setEvents] = useState<OrganizerEvent[]>([])
   const [applicants, setApplicants] = useState<Applicant[]>([])
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(mockAttendanceRecords)
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [feedbackSummaries, setFeedbackSummaries] = useState<Record<string, FeedbackSummary>>({})
+  const [trafficSummary, setTrafficSummary] = useState<TrafficSummary | null>(null)
   const [communicationLogs, setCommunicationLogs] = useState<CommunicationLogEntry[]>(mockCommunicationLogs)
 
   const requirements = events.flatMap((e) => e.requirements)
@@ -67,11 +88,23 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         setEvents(myEvents)
 
-        const applicantLists = await Promise.all(
-          myEvents.map((event) => listApplicantsRequest(event.id).catch(() => [])),
-        )
+        const [applicantLists, attendanceLists, certificateLists, feedbackList, traffic] = await Promise.all([
+          Promise.all(myEvents.map((event) => listApplicantsRequest(event.id).catch(() => []))),
+          Promise.all(myEvents.map((event) => getEventAttendanceRequest(event.id).catch(() => []))),
+          Promise.all(myEvents.map((event) => listCertificatesRequest(event.id).catch(() => []))),
+          Promise.all(
+            myEvents.map(async (event) => [event.id, await getFeedbackSummaryRequest(event.id).catch(() => null)] as const),
+          ),
+          getTrafficSummaryRequest().catch(() => null),
+        ])
         if (cancelled) return
         setApplicants(applicantLists.flat())
+        setAttendanceRecords(attendanceLists.flat())
+        setCertificates(certificateLists.flat())
+        setFeedbackSummaries(
+          Object.fromEntries(feedbackList.filter((entry): entry is [string, FeedbackSummary] => entry[1] !== null)),
+        )
+        setTrafficSummary(traffic)
       } catch (err) {
         if (!cancelled) reportError(err)
       } finally {
@@ -146,16 +179,22 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const checkInAttendance = (attendanceId: string, method: 'qr' | 'manual') => {
-    setAttendanceRecords((prev) =>
-      prev.map((r) =>
-        r.id === attendanceId ? { ...r, status: 'checked_in', checkedInAt: new Date().toISOString(), method } : r,
-      ),
-    )
+  const checkInAttendance = async (attendanceId: string, method: 'qr' | 'manual') => {
+    try {
+      const updated = await checkInRequest(attendanceId, method)
+      setAttendanceRecords((prev) => prev.map((r) => (r.id === attendanceId ? updated : r)))
+    } catch (err) {
+      reportError(err)
+    }
   }
 
-  const markNoShow = (attendanceId: string) => {
-    setAttendanceRecords((prev) => prev.map((r) => (r.id === attendanceId ? { ...r, status: 'no_show' } : r)))
+  const markNoShow = async (attendanceId: string) => {
+    try {
+      const updated = await markNoShowRequest(attendanceId)
+      setAttendanceRecords((prev) => prev.map((r) => (r.id === attendanceId ? updated : r)))
+    } catch (err) {
+      reportError(err)
+    }
   }
 
   const closeEvent = async (eventId: string, result: CloseEventResult) => {
@@ -170,6 +209,34 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const generateCertificates = async (eventId: string) => {
+    try {
+      await generateCertificatesRequest(eventId)
+      const updated = await listCertificatesRequest(eventId)
+      setCertificates((prev) => [...prev.filter((c) => !updated.some((u) => u.id === c.id)), ...updated])
+    } catch (err) {
+      reportError(err)
+    }
+  }
+
+  const archiveEvent = async (eventId: string) => {
+    try {
+      const updated = await archiveEventRequest(eventId)
+      setEvents((prev) => prev.map((e) => (e.id === eventId ? updated : e)))
+    } catch (err) {
+      reportError(err)
+    }
+  }
+
+  const restoreEvent = async (eventId: string) => {
+    try {
+      const updated = await restoreEventRequest(eventId)
+      setEvents((prev) => prev.map((e) => (e.id === eventId ? updated : e)))
+    } catch (err) {
+      reportError(err)
+    }
+  }
+
   return (
     <OrganizerDataContext.Provider
       value={{
@@ -177,6 +244,9 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         events,
         applicants,
         attendanceRecords,
+        certificates,
+        feedbackSummaries,
+        trafficSummary,
         communicationLogs,
         requirements,
         addEvent,
@@ -188,6 +258,9 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         addRequirement,
         checkInAttendance,
         markNoShow,
+        generateCertificates,
+        archiveEvent,
+        restoreEvent,
         closeEvent,
       }}
     >

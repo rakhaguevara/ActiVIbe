@@ -29,3 +29,14 @@
     overflow: hidden;
   }
 }
+
+@media (max-width: 768px) {
+  .dashboard-layout > .app-topbar {
+    display: none !important;
+  }
+  
+  .dashboard-layout {
+    /* To prevent the bottom nav from obscuring content */
+    padding-bottom: 65px;
+  }
+}

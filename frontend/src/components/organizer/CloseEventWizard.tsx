@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiCheck } from 'react-icons/fi'
+import { useAuth } from '../../contexts/AuthContext'
+import { loadDraft, saveDraft, clearDraft } from '../../lib/formDraft'
 import type { Applicant, OrganizerEvent } from '../../types/organizer'
 import './CloseEventWizard.css'
 
@@ -32,16 +34,34 @@ const STEP_TITLES = [
   'Confirm & Close',
 ]
 
+interface CloseEventDraft {
+  step: number
+  finalStatuses: Record<string, FinalStatus>
+  impactValue: number
+}
+
 export default function CloseEventWizard({ event, applicants, onClose, onConfirm }: CloseEventWizardProps) {
-  const [step, setStep] = useState(1)
+  const { user } = useAuth()
+  const draftKey = `close-event:${user?.id ?? 'anon'}:${event.id}`
+  const [draft] = useState(() => loadDraft<CloseEventDraft>(draftKey))
+
+  const [step, setStep] = useState(() => draft?.step ?? 1)
   const [finalStatuses, setFinalStatuses] = useState<Record<string, FinalStatus>>(() => {
+    if (draft?.finalStatuses) return draft.finalStatuses
     const initial: Record<string, FinalStatus> = {}
     applicants.forEach((a) => {
       initial[a.id] = a.status === 'no_show' ? 'no_show' : 'completed'
     })
     return initial
   })
-  const [impactValue, setImpactValue] = useState(event.impactValue ?? applicants.length * 5)
+  const [impactValue, setImpactValue] = useState(() => draft?.impactValue ?? event.impactValue ?? applicants.length * 5)
+
+  // Autosave draft lokal per event — bertahan lintas refresh, cuma hilang
+  // kalau organizer klik "Batal" (lihat handleCancel, dianggap aksi discard
+  // eksplisit di wizard ini).
+  useEffect(() => {
+    saveDraft<CloseEventDraft>(draftKey, { step, finalStatuses, impactValue })
+  }, [draftKey, step, finalStatuses, impactValue])
 
   const setStatus = (applicantId: string, status: FinalStatus) => {
     setFinalStatuses((prev) => ({ ...prev, [applicantId]: status }))
@@ -55,13 +75,19 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
 
   const sampleApplicant = applicants.find((a) => finalStatuses[a.id] === 'completed') ?? applicants[0]
 
+  const handleCancel = () => {
+    clearDraft(draftKey)
+    onClose()
+  }
+
   const handleConfirm = () => {
+    clearDraft(draftKey)
     onConfirm({ finalStatuses, impactValue })
     onClose()
   }
 
   return (
-    <div className="close-wizard__backdrop" onClick={onClose}>
+    <div className="close-wizard__backdrop" onClick={handleCancel}>
       <div className="close-wizard" onClick={(e) => e.stopPropagation()}>
         <header className="close-wizard__header">
           <p className="close-wizard__step-label">Step {step} dari 5</p>
@@ -143,7 +169,7 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
         </div>
 
         <footer className="close-wizard__footer">
-          <button type="button" className="btn btn--outline btn--sm" onClick={step === 1 ? onClose : () => setStep((s) => s - 1)}>
+          <button type="button" className="btn btn--outline btn--sm" onClick={step === 1 ? handleCancel : () => setStep((s) => s - 1)}>
             {step === 1 ? 'Batal' : 'Kembali'}
           </button>
           {step < 5 ? (

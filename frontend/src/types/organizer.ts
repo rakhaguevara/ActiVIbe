@@ -1,4 +1,11 @@
-export type OrganizerEventStatus = 'draft' | 'pending_approval' | 'published' | 'ongoing' | 'completed' | 'rejected'
+export type OrganizerEventStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'published'
+  | 'ongoing'
+  | 'completed'
+  | 'rejected'
+  | 'archived'
 
 export interface EventShift {
   id: string
@@ -19,6 +26,29 @@ export interface EventRole {
   shifts: EventShift[]
 }
 
+export interface UploadedFile {
+  url: string
+  fileName: string
+}
+
+export type EventMode = 'ONLINE' | 'OFFLINE'
+export type OrganizationEntityType = 'INDIVIDU' | 'PT' | 'CV' | 'YAYASAN' | 'ORGANISASI'
+export type LegalDocType = 'NIB' | 'AKTA' | 'SK_KEMENKUMHAM' | 'NPWP'
+
+export interface EventSupportingDocuments {
+  proposal: UploadedFile | null
+  rundown: UploadedFile | null
+  poster: UploadedFile | null
+  responsibilityLetter: UploadedFile | null
+  locationPermit: UploadedFile | null
+  cooperationLetter: UploadedFile | null
+  assignmentLetter: UploadedFile | null
+}
+
+export interface EventLegalDocument extends UploadedFile {
+  docType: LegalDocType
+}
+
 export interface OrganizerEvent {
   id: string
   title: string
@@ -31,8 +61,38 @@ export interface OrganizerEvent {
   impactMetricLabel: string
   impactMetricUnit: string
   impactValue?: number
+  category?: string
+  archivedAt?: string
+  updatedAt: string
   roles: EventRole[]
   requirements: EventRequirement[]
+  // Enhancement: verifikasi organizer, dokumen pendukung, galeri, peta lokasi.
+  eventMode?: EventMode
+  mapLink?: string
+  organizationEntityType?: OrganizationEntityType
+  onBehalfOfInstitution?: boolean
+  documents?: EventSupportingDocuments
+  legalDocuments?: EventLegalDocument[]
+  galleryImages?: string[]
+  declarationAcceptedAt?: string
+}
+
+export interface Certificate {
+  id: string
+  applicationId: string
+  eventId: string
+  volunteerName: string
+  issuedAt: string
+}
+
+export interface FeedbackSummary {
+  average: number | null
+  count: number
+}
+
+export interface TrafficSummary {
+  total: number
+  bySource: Record<string, number>
 }
 
 export type ApplicantStatus =

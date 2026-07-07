@@ -176,12 +176,85 @@
   text-decoration: underline;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 768px) {
+  .auth-page {
+    background: #ffffff;
+    padding: 16px 20px;
+    align-items: flex-start;
+  }
+
   .auth-page__panel {
-    padding: var(--space-lg) var(--space-md);
+    box-shadow: none;
+    padding: 0;
+    max-width: 100%;
+    border-radius: 0;
   }
 
   .auth-page__row {
     grid-template-columns: 1fr;
   }
+
+  .auth-page__back {
+    margin-bottom: 24px;
+    font-size: 0; /* Hide text */
+  }
+
+  .auth-page__back svg {
+    font-size: 24px; /* Larger icon */
+    color: var(--color-text-heading);
+  }
+
+  .auth-page__logo {
+    display: none;
+  }
+
+  .auth-page__title {
+    font-size: 2rem;
+    text-align: left;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .auth-page__subtitle {
+    text-align: left;
+    font-size: 1rem;
+    margin-bottom: 24px;
+  }
+
+  /* Make inputs taller and stack them nicely */
+  .auth-page__field input,
+  .auth-page__field .location-selector__trigger {
+    padding: 16px;
+    font-size: 1rem;
+    border-color: var(--color-border-medium);
+  }
+}
+
+/* ── Override LocationSelector di dalam form daftar ──
+   Sesuaikan radius & border agar konsisten dengan input lain di AuthPage */
+.auth-page__field .location-selector__label {
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+
+.auth-page__field .location-selector__trigger {
+  border-radius: 12px;
+  border-color: var(--color-border-light);
+  min-height: 46px;
+  padding: 12px 14px;
+}
+
+.auth-page__field .location-selector__trigger:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.auth-page__field .location-selector__trigger--open,
+.auth-page__field .location-selector__trigger:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.auth-page__field .location-selector__menu {
+  border-radius: 12px;
 }

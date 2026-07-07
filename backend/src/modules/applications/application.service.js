@@ -41,6 +41,7 @@ export async function getMyApplications(userId) {
       eventId: true,
       status: true,
       appliedAt: true,
+      feedback: { select: { id: true } },
       event: {
         select: {
           id: true,
@@ -59,6 +60,7 @@ export async function getMyApplications(userId) {
     eventId: app.eventId,
     status: app.status,
     appliedAt: app.appliedAt,
+    hasFeedback: app.feedback !== null,
     event: {
       id: app.event.id,
       title: app.event.title,
@@ -196,4 +198,66 @@ export async function assignApplicant(organizerId, applicationId, eventRoleId, e
     create: { applicationId, eventRoleId, eventShiftId, assignedById: organizerId },
   })
   return getApplicantDetail(applicationId)
+}
+
+// ============================================
+// Attendance / check-in (FR-044-046) — pakai VolunteerAssignment sbg roster
+// "expected" (siapa yang dijadwalkan di shift mana) dan AttendanceLog sbg
+// bukti kehadiran nyata; Application.status tetap sumber kebenaran status
+// (CHECKED_IN/NO_SHOW) krn dipakai luas di tempat lain (close event, dst).
+// ============================================
+
+async function assertOwnsAssignment(organizerId, assignmentId) {
+  const assignment = await prisma.volunteerAssignment.findUnique({
+    where: { id: assignmentId },
+    include: { eventShift: { include: { eventRole: true } } },
+  })
+  if (!assignment || !assignment.eventShift?.eventRole) {
+    throw new AppError(404, 'Assignment tidak ditemukan')
+  }
+  const event = await prisma.event.findUnique({ where: { id: assignment.eventShift.eventRole.eventId } })
+  if (!event || event.organizerId !== organizerId) {
+    throw new AppError(404, 'Assignment tidak ditemukan')
+  }
+  return { assignment, eventId: event.id }
+}
+
+export async function checkInAssignment(organizerId, assignmentId, method) {
+  const { assignment, eventId } = await assertOwnsAssignment(organizerId, assignmentId)
+
+  const [log] = await prisma.$transaction([
+    prisma.attendanceLog.create({
+      data: {
+        applicationId: assignment.applicationId,
+        eventRoleId: assignment.eventRoleId,
+        eventShiftId: assignment.eventShiftId,
+        method: method.toUpperCase(),
+        checkedById: organizerId,
+      },
+    }),
+    prisma.application.update({ where: { id: assignment.applicationId }, data: { status: 'CHECKED_IN' } }),
+  ])
+
+  return {
+    id: assignment.id,
+    applicantId: assignment.applicationId,
+    eventId,
+    shiftId: assignment.eventShiftId,
+    status: 'checked_in',
+    checkedInAt: log.checkedInAt.toISOString(),
+    method: log.method.toLowerCase(),
+  }
+}
+
+export async function markAssignmentNoShow(organizerId, assignmentId) {
+  const { assignment, eventId } = await assertOwnsAssignment(organizerId, assignmentId)
+  await prisma.application.update({ where: { id: assignment.applicationId }, data: { status: 'NO_SHOW' } })
+
+  return {
+    id: assignment.id,
+    applicantId: assignment.applicationId,
+    eventId,
+    shiftId: assignment.eventShiftId,
+    status: 'no_show',
+  }
 }

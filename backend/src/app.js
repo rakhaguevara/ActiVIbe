@@ -10,7 +10,9 @@ import eventRoutes from './modules/events/event.routes.js'
 import organizationRoutes from './modules/organizations/organization.routes.js'
 import recommendationRoutes from './modules/recommendations/recommendation.routes.js'
 import adminRoutes from './modules/admin/admin.routes.js'
+import locationRoutes from './modules/location/location.routes.js'
 import { errorHandler } from './middlewares/errorHandler.js'
+import { sessionSlot } from './middlewares/sessionSlot.js'
 
 export const app = express()
 
@@ -30,9 +32,11 @@ app.use(
       }
     },
     credentials: true,
+    allowedHeaders: ['Content-Type', 'X-Session-Slot'],
   }),
 )
 app.use(cookieParser())
+app.use(sessionSlot)
 app.use(express.json())
 
 // File CV yang diupload user (lihat modules/profile/cv.upload.js) — path publiknya
@@ -46,5 +50,6 @@ app.use('/events', eventRoutes)
 app.use('/organizations', organizationRoutes)
 app.use('/recommendations', recommendationRoutes)
 app.use('/admin', adminRoutes)
+app.use('/locations', locationRoutes)
 
 app.use(errorHandler)

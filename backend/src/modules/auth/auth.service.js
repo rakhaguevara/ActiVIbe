@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
-import { signAccessToken, signRefreshToken, verifyAccessToken } from '../../utils/jwt.js'
+import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } from '../../utils/jwt.js'
 import { hashToken } from '../../utils/hash.js'
 import { AppError } from '../../utils/AppError.js'
 
@@ -83,6 +83,41 @@ export async function loginUser({ email, password }) {
   if (user.status === 'INACTIVE') {
     throw new AppError(403, 'Akun Anda tidak aktif. Hubungi admin untuk mengaktifkan kembali.')
   }
+
+  const tokens = await issueTokens(user)
+  return { user: toPublicUser(user), ...tokens }
+}
+
+// Refresh token rotation: setiap kali dipakai, token lama langsung direvoke
+// dan pasangan baru diterbitkan (issueTokens bikin baris RefreshToken baru) —
+// supaya satu refresh token cuma bisa dipakai sekali (replay lama otomatis
+// gagal krn revokedAt sudah terisi).
+export async function refreshUserSession(refreshToken) {
+  if (!refreshToken) {
+    throw new AppError(401, 'Tidak ada sesi aktif')
+  }
+
+  let payload
+  try {
+    payload = verifyRefreshToken(refreshToken)
+  } catch {
+    throw new AppError(401, 'Sesi tidak valid, silakan login ulang')
+  }
+
+  const stored = await prisma.refreshToken.findUnique({ where: { tokenHash: hashToken(refreshToken) } })
+  if (!stored || stored.revokedAt || stored.expiresAt < new Date() || stored.userId !== payload.userId) {
+    throw new AppError(401, 'Sesi tidak valid, silakan login ulang')
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.userId } })
+  if (!user) {
+    throw new AppError(401, 'Sesi tidak valid, silakan login ulang')
+  }
+  if (user.status === 'SUSPENDED' || user.status === 'INACTIVE') {
+    throw new AppError(403, 'Akun Anda tidak aktif, hubungi admin')
+  }
+
+  await prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } })
 
   const tokens = await issueTokens(user)
   return { user: toPublicUser(user), ...tokens }

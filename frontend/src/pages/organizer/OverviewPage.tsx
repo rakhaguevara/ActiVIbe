@@ -1,14 +1,17 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   FiPlus, FiDownload, FiBell, FiCalendar, FiUsers, FiCheckSquare, 
   FiMessageSquare, FiXCircle, FiTrendingUp, FiActivity, FiStar,
-  FiClock, FiWind, FiSun
+  FiClock, FiWind, FiSun, FiSearch, FiShare, FiCpu, FiCheckCircle
 } from 'react-icons/fi'
 import ReactECharts from 'echarts-for-react'
 import './OverviewPage.css'
+import '../admin/OverviewPage.css' // Reuse the admin fixed header styles
 
 export default function OverviewPage() {
+  const [activeChart, setActiveChart] = useState(0)
+
   // 1. Header Data
   const orgName = "Green Earth Foundation"
   const currentDate = "Tuesday, July 7, 2026"
@@ -39,22 +42,42 @@ export default function OverviewPage() {
   }
 
   return (
-    <div className="organizer-overview">
-      {/* 1. HEADER */}
-      <header className="overview-header">
-        <div className="overview-header__title">
-          <h1>Overview</h1>
-          <p className="overview-header__subtitle">Welcome back, {orgName} 👋</p>
-          <span className="overview-header__date">{currentDate}</span>
+    <div className="admin-overview">
+      {/* ================= FIXED HEADER ================= */}
+      <div className="admin-dashboard-header">
+        <div className="admin-dashboard-header__top">
+          <h1 className="admin-dashboard-header__title">Dashboard</h1>
+          <div className="admin-dashboard-header__top-actions">
+            <div className="admin-dashboard-header__search">
+              <FiSearch />
+              <input type="text" placeholder="Search everything" />
+            </div>
+            <button className="admin-dashboard-btn-icon"><FiBell /></button>
+            <button className="admin-dashboard-btn"><FiShare /> Share</button>
+          </div>
         </div>
-        <div className="overview-header__actions">
-          <button type="button" className="btn btn--outline btn--sm"><FiDownload /> Export Report</button>
-          <button type="button" className="btn btn--outline btn--sm" style={{ padding: '8px' }}><FiBell /></button>
-          <Link to="/organizer/events/new" className="btn btn--primary btn--sm"><FiPlus /> Create Event</Link>
+        
+        <div className="admin-dashboard-header__bottom">
+          <div className="admin-dashboard-header__bottom-left">
+            <button className="admin-dashboard-btn admin-dashboard-btn--dark">
+              <FiCpu /> Ask AI
+            </button>
+          </div>
+          <div className="admin-dashboard-header__bottom-right">
+            <span className="admin-dashboard-header__updated">
+              <FiCheckCircle className="icon-success" /> Last updated now
+            </span>
+            <button className="admin-dashboard-btn"><FiDownload /> Unduh Laporan</button>
+            <Link to="/organizer/events/new" className="admin-dashboard-btn admin-dashboard-btn--dark" style={{ textDecoration: 'none' }}>
+              <FiPlus /> Buat Event
+            </Link>
+          </div>
         </div>
-      </header>
+      </div>
 
-      {/* 2. QUICK ACTIONS */}
+      {/* ================= SCROLLABLE CONTENT ================= */}
+      <div className="admin-overview__scroll-content">
+        {/* 2. QUICK ACTIONS */}
       <section className="quick-actions-grid">
         <Link to="/organizer/events/new" className="quick-action-card">
           <FiCalendar className="quick-action-card__icon" />
@@ -63,14 +86,14 @@ export default function OverviewPage() {
             <p>Draft a new volunteer activity</p>
           </div>
         </Link>
-        <Link to="/organizer/applicants" className="quick-action-card">
+        <Link to="/organizer/volunteers" className="quick-action-card">
           <FiUsers className="quick-action-card__icon" style={{ color: '#D4AF37', backgroundColor: '#fcf6e3' }} />
           <div>
             <h3>Review Applicants</h3>
             <p>14 volunteers pending review</p>
           </div>
         </Link>
-        <Link to="/organizer/attendance" className="quick-action-card">
+        <Link to="/organizer/events?status=ongoing" className="quick-action-card">
           <FiCheckSquare className="quick-action-card__icon" style={{ color: '#10b981', backgroundColor: '#e6f8f0' }} />
           <div>
             <h3>Today's Attendance</h3>
@@ -129,11 +152,67 @@ export default function OverviewPage() {
 
       <div className="dashboard-grid">
         {/* LEFT COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+        <div className="dashboard-left-column" style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 'var(--space-xl)',
+          position: 'sticky',
+          top: 0,
+          maxHeight: 'calc(100vh - 120px)', // adjust based on header height
+          overflowY: 'auto',
+          paddingRight: '12px'
+        }}>
           
+          {/* 11. ORGANIZATION PERFORMANCE (Charts) */}
+          <section className="dashboard-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0 }}>Organization Performance</h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  type="button"
+                  className="btn btn--outline btn--sm" 
+                  onClick={() => setActiveChart(prev => (prev > 0 ? prev - 1 : 2))}
+                >
+                  Previous
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn--outline btn--sm" 
+                  onClick={() => setActiveChart(prev => (prev < 2 ? prev + 1 : 0))}
+                >
+                  Next Chart
+                </button>
+              </div>
+            </div>
+            
+            <div className="admin-overview__card" style={{ zIndex: 10 }}>
+              {activeChart === 0 && (
+                <>
+                  <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Applicants Growth</h3>
+                  <ReactECharts option={applicantsChartOption} style={{ height: 280 }} />
+                </>
+              )}
+              {activeChart === 1 && (
+                <>
+                  <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Attendance Trend</h3>
+                  <ReactECharts option={attendanceChartOption} style={{ height: 280 }} />
+                </>
+              )}
+              {activeChart === 2 && (
+                <>
+                  <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Monthly Impact (Kg Trash)</h3>
+                  <ReactECharts option={impactChartOption} style={{ height: 280 }} />
+                </>
+              )}
+            </div>
+          </section>
+
           {/* 4. EVENT STATUS OVERVIEW */}
           <section className="dashboard-section">
-            <h2>Event Status Overview</h2>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <h2 style={{ margin: 0 }}>Event Status Overview</h2>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Maksimal 9 Event Prioritas</span>
+            </div>
             <div className="event-status-grid">
               <div className="event-status-card">
                 <div className="event-status-card__banner">
@@ -209,24 +288,35 @@ export default function OverviewPage() {
             </div>
           </section>
 
-          {/* 11. ORGANIZATION PERFORMANCE (Charts) */}
-          <section className="dashboard-section">
-            <h2>Organization Performance</h2>
-            <div className="charts-grid">
-              <div className="chart-card">
-                <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Applicants Growth</h3>
-                <ReactECharts option={applicantsChartOption} style={{ height: 200 }} />
+          {/* 12. FOOTER SUMMARY */}
+          <footer className="overview-footer-banner" style={{ marginTop: '0' }}>
+            <div>
+              <h2>This Month's Impact</h2>
+              <p>Thank you for making a difference.</p>
+            </div>
+            <div className="footer-stats">
+              <div className="footer-stat-item">
+                <span className="footer-stat-value">4</span>
+                <span className="footer-stat-label">Events</span>
               </div>
-              <div className="chart-card">
-                <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Attendance Trend</h3>
-                <ReactECharts option={attendanceChartOption} style={{ height: 200 }} />
+              <div className="footer-stat-item">
+                <span className="footer-stat-value">420</span>
+                <span className="footer-stat-label">New Volunteers</span>
               </div>
-              <div className="chart-card">
-                <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Monthly Impact (Kg Trash)</h3>
-                <ReactECharts option={impactChartOption} style={{ height: 200 }} />
+              <div className="footer-stat-item">
+                <span className="footer-stat-value">8,540</span>
+                <span className="footer-stat-label">Kg Trash</span>
+              </div>
+              <div className="footer-stat-item">
+                <span className="footer-stat-value">18,420</span>
+                <span className="footer-stat-label">Trees</span>
+              </div>
+              <div className="footer-stat-item">
+                <span className="footer-stat-value">12,900</span>
+                <span className="footer-stat-label">Volunteer Hours</span>
               </div>
             </div>
-          </section>
+          </footer>
 
         </div>
 
@@ -428,36 +518,7 @@ export default function OverviewPage() {
 
         </div>
       </div>
-
-      {/* 12. FOOTER SUMMARY */}
-      <footer className="overview-footer-banner">
-        <div>
-          <h2>This Month's Impact</h2>
-          <p>Thank you for making a difference.</p>
-        </div>
-        <div className="footer-stats">
-          <div className="footer-stat-item">
-            <span className="footer-stat-value">4</span>
-            <span className="footer-stat-label">Events</span>
-          </div>
-          <div className="footer-stat-item">
-            <span className="footer-stat-value">420</span>
-            <span className="footer-stat-label">New Volunteers</span>
-          </div>
-          <div className="footer-stat-item">
-            <span className="footer-stat-value">8,540</span>
-            <span className="footer-stat-label">Kg Trash</span>
-          </div>
-          <div className="footer-stat-item">
-            <span className="footer-stat-value">18,420</span>
-            <span className="footer-stat-label">Trees</span>
-          </div>
-          <div className="footer-stat-item">
-            <span className="footer-stat-value">12,900</span>
-            <span className="footer-stat-label">Volunteer Hours</span>
-          </div>
-        </div>
-      </footer>
+      </div> {/* end .admin-overview__scroll-content */}
     </div>
   )
 }

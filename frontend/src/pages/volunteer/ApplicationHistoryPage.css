@@ -81,6 +81,13 @@
   color: var(--color-text-muted);
 }
 
+.application-history-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 @media (max-width: 1024px) {
   .application-history-page {
     flex-direction: column;
@@ -92,9 +99,33 @@
   }
 }
 
+.application-history-page__mobile-header {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .application-history-page__header {
+    display: none; /* Hide desktop title on mobile */
+  }
+
+  .application-history-page__mobile-header {
+    display: block;
+    margin-bottom: -10px; /* Offset spacing to sit cleanly above list */
+  }
+}
+
 @media (max-width: 600px) {
   .application-history-page {
-    padding: 24px 20px 48px;
+    padding: 0 0 48px; /* Remove top/side padding to let search header stretch full width */
+    background: #ffffff; /* Make background clean like wishlist/explore */
+  }
+  
+  .application-history-page__list {
+    padding: 0 20px;
+  }
+  
+  .application-history-page__content {
+    gap: 16px;
   }
 
   .application-history-page__row {

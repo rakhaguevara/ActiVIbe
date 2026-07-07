@@ -9,6 +9,8 @@ import {
   remove,
   getParticipation,
   getActivityLog,
+  getOverviewRegions,
+  postAiChat,
 } from './admin.controller.js'
 import { requireAuth } from '../../middlewares/requireAuth.js'
 import { requireRole } from '../../middlewares/requireRole.js'
@@ -20,6 +22,9 @@ const router = Router()
 router.use(requireAuth, requireRole('ADMIN'))
 
 router.get('/overview', overview)
+router.get('/overview/regions', getOverviewRegions)
+
+router.post('/ai/chat', postAiChat)
 
 router.get('/users', getUsers)
 router.patch('/users/:id/status', validateRequest(validateUserStatus), patchUserStatus)

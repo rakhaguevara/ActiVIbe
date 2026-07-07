@@ -255,6 +255,24 @@
   margin-bottom: var(--space-md);
 }
 
+.onboarding-modal__discard {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.onboarding-modal__discard:hover {
+  color: var(--color-text-body);
+  text-decoration: underline;
+}
+
 .onboarding-modal__dot {
   width: 8px;
   height: 8px;

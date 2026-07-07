@@ -34,17 +34,18 @@ model User {
 
   // Organizer domain — dua relasi terpisah ke Event karena satu User bisa
   // jadi organizer sekaligus (di kesempatan lain) admin yang approve event.
-  organizedEvents Event[] @relation("EventOrganizer")
-  approvedEvents  Event[] @relation("EventApprovedBy")
+  organizedEvents Event[]       @relation("EventOrganizer")
+  approvedEvents  Event[]       @relation("EventApprovedBy")
   // Satu User (role ORGANIZER) memiliki paling banyak satu Organization —
   // lihat model Organization untuk alasan kenapa ini model terpisah, bukan
   // sekadar query User role=ORGANIZER.
   organization    Organization? @relation("OrganizationOwner")
 
-  assignmentsMade       VolunteerAssignment[] @relation("AssignmentAssignedBy")
-  organizerNotes        OrganizerNote[]       @relation("OrganizerNoteAuthor")
-  communicationsSent    CommunicationLog[]    @relation("CommunicationSentBy")
-  attendanceChecksMade  AttendanceLog[]       @relation("AttendanceCheckedBy")
+  assignmentsMade      VolunteerAssignment[] @relation("AssignmentAssignedBy")
+  organizerNotes       OrganizerNote[]       @relation("OrganizerNoteAuthor")
+  communicationsSent   CommunicationLog[]    @relation("CommunicationSentBy")
+  attendanceChecksMade AttendanceLog[]       @relation("AttendanceCheckedBy")
+  eventFeedbacks       EventFeedback[]
 }
 
 enum Role {
@@ -200,20 +201,20 @@ model SkillProgress {
 
 // FR-011/012: kegiatan volunteer — lihat PRD v2.0 Section 7.1 Event
 model Event {
-  id             String      @id @default(uuid())
-  organizerId    String
+  id                String        @id @default(uuid())
+  organizerId       String
   // Organisasi pemilik event (opsional/additive) — organizerId tetap dipakai
   // sebagai akun staff yang mengelola event ini (audit trail & approval flow
   // admin tidak berubah); organizationId khusus untuk fitur "Cari Organisasi"
   // volunteer, supaya tidak perlu migrasi besar mengubah semantik organizerId.
-  organizationId String?
-  title       String
-  description String
-  location    String
-  quota       Int
-  startDate   DateTime
-  endDate     DateTime
-  status      EventStatus @default(DRAFT)
+  organizationId    String?
+  title             String
+  description       String
+  location          String
+  quota             Int
+  startDate         DateTime
+  endDate           DateTime
+  status            EventStatus   @default(DRAFT)
   // impact_metric_template dari PRD — nama & satuan metrik dampak event
   // (mis. "Jumlah bibit ditanam" / "bibit"), diisi organizer saat buat event
   // (FR-011) dan dipakai sbg saran nilai di close event flow (FR-017/FR-048).
@@ -233,8 +234,52 @@ model Event {
   // bersyarat — satu field, dua kegunaan, krn keduanya sama2 "catatan admin
   // soal event ini" dan tidak pernah terisi bersamaan.
   reviewNote        String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  // Diisi saat event COMPLETED diarsipkan organizer (status jadi ARCHIVED) —
+  // null selama belum diarsipkan, dikosongkan lagi kalau di-restore.
+  archivedAt        DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // --- Enhancement: verifikasi organizer, dokumen pendukung, galeri, peta lokasi ---
+  // Semua field di bawah nullable/berdefault supaya event lama tidak perlu backfill.
+  eventMode EventMode @default(OFFLINE)
+  // Link share Google Maps ATAU alamat lengkap/koordinat teks bebas — diparsing
+  // jadi embed peta di frontend (lihat frontend/src/lib/mapsEmbed.ts), tanpa API key.
+  mapLink   String?
+
+  // Jenis badan hukum organizer saat event ini dibuat (snapshot per-event, bukan
+  // di Organization, supaya tidak perlu halaman "Kelola Organisasi" terpisah).
+  organizationEntityType OrganizationEntityType @default(INDIVIDU)
+  // Centang "Event diselenggarakan atas nama instansi" — kalau true, Surat
+  // Penugasan wajib diisi.
+  onBehalfOfInstitution  Boolean                @default(false)
+
+  // Dokumen pendukung verifikasi (FR baru) — wajib saat submit utk approval
+  // (bukan saat draft), lihat validateCreateEvent. Hanya organizer & admin yang
+  // bisa akses (tidak diekspos di serializePublicEvent).
+  proposalDocUrl               String?
+  proposalDocFileName          String?
+  rundownDocUrl                String?
+  rundownDocFileName           String?
+  posterImageUrl               String?
+  posterImageFileName          String?
+  responsibilityLetterUrl      String?
+  responsibilityLetterFileName String?
+  // Wajib kalau eventMode = OFFLINE.
+  locationPermitUrl            String?
+  locationPermitFileName       String?
+  // Opsional — hanya kalau event bekerja sama dgn pihak lain.
+  cooperationLetterUrl         String?
+  cooperationLetterFileName    String?
+  // Wajib kalau onBehalfOfInstitution = true.
+  assignmentLetterUrl          String?
+  assignmentLetterFileName     String?
+
+  // Snapshot 11 checkbox pernyataan organizer (bukan kolom boolean terpisah)
+  // supaya histori persis kalimat yang disetujui tetap terjaga walau redaksi
+  // berubah nanti — lihat frontend/src/lib/organizerDeclarationItems.ts.
+  declarationAcceptedAt DateTime?
+  declarationChecklist  Json?
 
   organizer    User          @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
   approvedBy   User?         @relation("EventApprovedBy", fields: [approvedById], references: [id])
@@ -248,6 +293,10 @@ model Event {
   communicationLogs CommunicationLog[]
   eventViews        EventView[]
   bookmarks         EventBookmark[]
+  certificates      Certificate[]
+  feedbacks         EventFeedback[]
+  galleryImages     EventGalleryImage[]
+  legalDocuments    EventLegalDocument[]
 
   @@index([organizerId])
   @@index([organizationId])
@@ -261,6 +310,58 @@ enum EventStatus {
   ONGOING
   COMPLETED
   REJECTED
+  ARCHIVED
+}
+
+enum EventMode {
+  ONLINE
+  OFFLINE
+}
+
+enum OrganizationEntityType {
+  INDIVIDU
+  PT
+  CV
+  YAYASAN
+  ORGANISASI
+}
+
+enum LegalDocType {
+  NIB
+  AKTA
+  SK_KEMENKUMHAM
+  NPWP
+}
+
+// Galeri dokumentasi event (1-6 foto) — sortOrder dipakai utk urutan drag & drop
+// yg diatur organizer sebelum submit; gambar index 0 = thumbnail utama.
+model EventGalleryImage {
+  id        String   @id @default(uuid())
+  eventId   String
+  imageUrl  String
+  fileName  String?
+  sortOrder Int
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+// Dokumen legal badan usaha organizer (NIB/Akta/SK Kemenkumham/NPWP) — snapshot
+// per-event, minimal 1 wajib diupload kalau organizationEntityType != INDIVIDU.
+model EventLegalDocument {
+  id        String       @id @default(uuid())
+  eventId   String
+  docType   LegalDocType
+  fileUrl   String
+  fileName  String?
+  createdAt DateTime     @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, docType])
+  @@index([eventId])
 }
 
 model EventSkill {
@@ -327,6 +428,10 @@ model EventView {
   id       String   @id @default(uuid())
   eventId  String
   userId   String?
+  // Dari mana volunteer sampai ke halaman detail event ini — 'search',
+  // 'recommendation', atau 'direct'. Bebas teks (bukan enum) krn cuma dipakai
+  // utk breakdown traffic organizer, bukan logic bisnis yang butuh validasi ketat.
+  source   String?
   viewedAt DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -376,6 +481,8 @@ model Application {
   organizerNotes      OrganizerNote[]
   requirementStatuses VolunteerRequirementStatus[]
   attendanceLogs      AttendanceLog[]
+  certificate         Certificate?
+  feedback            EventFeedback?
 
   @@unique([userId, eventId])
   @@index([userId])
@@ -407,6 +514,41 @@ model ImpactLog {
   createdAt     DateTime @default(now())
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+// Sertifikat keikutsertaan — diterbitkan organizer per volunteer yang
+// menyelesaikan event (Application.status COMPLETED), lewat aksi eksplisit
+// "Generate Certificates" di CompletedEventsView (bukan otomatis saat close
+// event, supaya organizer bisa cek data dulu sebelum menerbitkan).
+model Certificate {
+  id            String   @id @default(uuid())
+  applicationId String   @unique
+  eventId       String
+  issuedAt      DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+// Rating & komentar volunteer terhadap event yang sudah diikuti — hanya bisa
+// diisi kalau Application.status volunteer tsb COMPLETED (lihat
+// event.service.js submitFeedback), satu rating per keikutsertaan.
+model EventFeedback {
+  id            String   @id @default(uuid())
+  applicationId String   @unique
+  eventId       String
+  userId        String
+  rating        Int
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
 }
 
 // ============================================
@@ -501,7 +643,7 @@ model EventRequirement {
   isMandatory Boolean         @default(true)
   createdAt   DateTime        @default(now())
 
-  event    Event                         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event    Event                        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   statuses VolunteerRequirementStatus[]
 
   @@index([eventId])

@@ -12,10 +12,14 @@
     padding-bottom: 0;
   }
 
-  .find-activity-page > .volunteer-search-bar,
+  .find-activity-page > .find-activity-page__desktop-search,
   .find-activity-page__results-row {
     flex-shrink: 0;
   }
+}
+
+.find-activity-page__desktop-search {
+  display: block;
 }
 
 .find-activity-page__results-row {
@@ -95,6 +99,17 @@
 @media (max-width: 1024px) {
   .find-activity-page__columns {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .find-activity-page__desktop-search {
+    display: none;
+  }
+
+  /* On mobile, we hide the detail panel and apply form because clicking a card redirects */
+  .find-activity-page__columns > :nth-child(n+2) {
+    display: none;
   }
 }
 

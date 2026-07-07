@@ -4,6 +4,8 @@
 // Panggilan bisa memakan beberapa detik saat layer AI Claude aktif — tampilkan
 // skeleton/loading state, jangan blocking render dashboard.
 
+import { apiFetch } from '../lib/apiFetch'
+
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export interface MatchBreakdownComponent {
@@ -113,7 +115,7 @@ export function subscribeRecommendations(listener: () => void): () => void {
 }
 
 async function requestRecommendations(): Promise<RecommendationsResponse> {
-  const res = await fetch(`${API_URL}/recommendations`, {
+  const res = await apiFetch(`${API_URL}/recommendations`, {
     credentials: 'include',
   })
   const data = await res.json().catch(() => ({}))

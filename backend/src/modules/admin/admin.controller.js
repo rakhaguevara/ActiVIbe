@@ -8,12 +8,34 @@ import {
   listParticipation,
   listActivityLog,
   getOverviewStats,
+  getRegionDistribution,
+  buildDashboardSummary,
 } from './admin.service.js'
+import { chat as chatWithAdminAi } from './adminAi.service.js'
 
 export async function overview(req, res, next) {
   try {
     const stats = await getOverviewStats()
     return res.json(stats)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getOverviewRegions(req, res, next) {
+  try {
+    const data = await getRegionDistribution()
+    return res.json(data)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postAiChat(req, res, next) {
+  try {
+    const summary = await buildDashboardSummary()
+    const result = await chatWithAdminAi(summary, req.body.messages)
+    return res.json(result)
   } catch (err) {
     next(err)
   }

@@ -44,4 +44,9 @@ export interface Event {
   cancellationPolicy: string
   eventRules: string
   safetyInfo: string
+  /** Foto galeri dokumentasi event (1-6), index 0 = thumbnail utama — lihat EventGalleryGrid */
+  photos?: string[]
+  /** Link share Google Maps atau alamat/koordinat teks — lihat lib/mapsEmbed.ts */
+  mapLink?: string
+  eventMode?: 'ONLINE' | 'OFFLINE'
 }

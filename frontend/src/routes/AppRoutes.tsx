@@ -14,6 +14,7 @@ import PassportPage from '../pages/volunteer/PassportPage'
 import VolunteerSettingsPage from '../pages/volunteer/SettingsPage'
 import SavedItemsPage from '../pages/volunteer/SavedItemsPage'
 import ApplicationHistoryPage from '../pages/volunteer/ApplicationHistoryPage'
+import ActivityDetailPage from '../pages/volunteer/ActivityDetailPage'
 import LoginPage from '../pages/auth/LoginPage'
 import SignupPage from '../pages/auth/SignupPage'
 import OverviewPage from '../pages/admin/OverviewPage'
@@ -145,6 +146,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
         <Route path="/dashboard/settings" element={<VolunteerSettingsPage />} />
         <Route path="/dashboard/saved" element={<SavedItemsPage />} />
         <Route path="/dashboard/history" element={<ApplicationHistoryPage />} />
+        <Route path="/dashboard/activity/:id" element={<ActivityDetailPage />} />
       </Route>
     </Routes>
   )

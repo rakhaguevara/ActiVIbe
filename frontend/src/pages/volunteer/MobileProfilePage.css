@@ -1,0 +1,142 @@
+.mobile-profile-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 24px 24px 80px;
+}
+
+.mobile-profile-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.mobile-profile-page__header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-family: var(--font-display);
+  color: var(--color-text-heading);
+}
+
+.mobile-profile-page__bell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-bg-surface);
+  color: var(--color-text-heading);
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.mobile-profile-page__bell:active {
+  background: var(--color-border-light);
+}
+
+.mobile-profile-page__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-true);
+  border-radius: 24px;
+  padding: 32px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 32px;
+  border: 1px solid var(--color-border-light);
+}
+
+.mobile-profile-page__avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #f0e6e6; /* Soft color matching Airbnb */
+  color: #7b1fa2; /* Darker tone for initial */
+  font-size: 40px;
+  font-family: var(--font-display);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.mobile-profile-page__name {
+  font-size: 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin-bottom: 4px;
+}
+
+.mobile-profile-page__role {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.mobile-profile-page__links {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-profile-page__link-item {
+  display: flex;
+  align-items: center;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  text-decoration: none;
+  color: var(--color-text-heading);
+  font-size: 1.05rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  text-align: left;
+}
+
+.mobile-profile-page__link-icon {
+  font-size: 24px;
+  margin-right: 16px;
+  color: var(--color-text-body);
+}
+
+.mobile-profile-page__link-item span:nth-child(2) {
+  flex: 1;
+}
+
+.mobile-profile-page__chevron {
+  font-size: 24px;
+  color: var(--color-text-muted);
+}
+
+.mobile-profile-page__logout-wrap {
+  margin-top: 32px;
+}
+
+.mobile-profile-page__logout {
+  background: none;
+  border: none;
+  text-decoration: underline;
+  color: var(--color-text-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* On desktop this page is not strictly meant to be seen if we only have mobile routing, 
+   but just in case: */
+@media (min-width: 769px) {
+  .mobile-profile-page {
+    max-width: 600px;
+    margin: 0 auto;
+    padding-top: 48px;
+  }
+}

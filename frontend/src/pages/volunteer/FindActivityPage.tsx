@@ -8,6 +8,8 @@ import ScrollPane from '../../components/ScrollPane'
 import SectionErrorBoundary from '../../components/SectionErrorBoundary'
 import SectionState from '../../components/SectionState'
 import VolunteerSearchBar, { type EventFilters } from '../../components/VolunteerSearchBar'
+import MobileSearchHeader from '../../components/MobileSearchHeader'
+import MobileSearchModal from '../../components/MobileSearchModal'
 import { useRecommendations } from '../../hooks/useRecommendations'
 import './FindActivityPage.css'
 
@@ -28,6 +30,7 @@ export default function FindActivityPage() {
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS)
   const [sortBy, setSortBy] = useState<SortOption>('matchScore')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
 
   // Hasil personalisasi FR-005 dari backend (algoritma rule-based + AI).
   const { events, isLoading: isLoadingEvents, error: recommendationsError, aiEnabled, aiProvider, profileComplete } =
@@ -121,6 +124,14 @@ export default function FindActivityPage() {
     }
   }, [isLoadingEvents, sortedEvents, selectedEventId])
 
+  const handleSelectEvent = (eventId: string) => {
+    if (window.innerWidth <= 768) {
+      navigate(`/dashboard/activity/${eventId}`)
+    } else {
+      setSelectedEventId(eventId)
+    }
+  }
+
   if (isLoading || !user) {
     return null
   }
@@ -129,7 +140,18 @@ export default function FindActivityPage() {
 
   return (
     <main className="find-activity-page">
-      <VolunteerSearchBar filters={filters} onChange={setFilters} categories={categories} />
+      <div className="find-activity-page__desktop-search">
+        <VolunteerSearchBar filters={filters} onChange={setFilters} categories={categories} />
+      </div>
+      
+      <MobileSearchHeader onClick={() => setIsMobileSearchOpen(true)} />
+      <MobileSearchModal
+        isOpen={isMobileSearchOpen}
+        onClose={() => setIsMobileSearchOpen(false)}
+        filters={filters}
+        onChange={setFilters}
+        categories={categories}
+      />
 
       <div className="find-activity-page__results-row">
         <div>
@@ -190,7 +212,7 @@ export default function FindActivityPage() {
             <EventListSidebar
               events={sortedEvents}
               selectedEventId={selectedEventId}
-              onSelect={setSelectedEventId}
+              onSelect={handleSelectEvent}
             />
           </ScrollPane>
         )}

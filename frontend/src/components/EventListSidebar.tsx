@@ -33,7 +33,10 @@ export default function EventListSidebar({ events, selectedEventId, onSelect }: 
   // efeknya cukup terlihat lewat TTL cache 5 menit yang sudah ada.
   const handleSelect = (eventId: string) => {
     onSelect(eventId)
-    trackEventView(eventId).catch(() => {})
+    // Satu-satunya sumber list di sini adalah useRecommendations() (AI
+    // personalized, lihat FindActivityPage.tsx) — belum ada endpoint search
+    // terpisah, jadi traffic dari komponen ini selalu berasal dari rekomendasi.
+    trackEventView(eventId, 'recommendation').catch(() => {})
   }
 
   return (

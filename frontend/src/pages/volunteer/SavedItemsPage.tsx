@@ -4,6 +4,7 @@ import { FiSearch, FiBookmark, FiShare2 } from 'react-icons/fi'
 import AccountSidebar from '../../components/AccountSidebar'
 import InlineLoading from '../../components/InlineLoading'
 import SectionState from '../../components/SectionState'
+import MobileSearchHeader from '../../components/MobileSearchHeader'
 import { useBookmarkedEvents } from '../../hooks/useBookmarkedEvents'
 import { useRecommendations } from '../../hooks/useRecommendations'
 import { getCategoryStyle } from '../../utils/categoryStyle'
@@ -49,6 +50,9 @@ export default function SavedItemsPage() {
       <AccountSidebar active="tersimpan" />
 
       <div className="saved-items-page__content">
+        <div className="saved-items-page__mobile-header">
+          <MobileSearchHeader title="Wishlists" subtitle="Cari dan kelola kegiatan tersimpan" />
+        </div>
         <header className="saved-items-page__header">
           <h1>Kegiatan Tersimpan</h1>
         </header>

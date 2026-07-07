@@ -4,7 +4,10 @@ import AccountSidebar from '../../components/AccountSidebar'
 import Badge from '../../components/Badge'
 import InlineLoading from '../../components/InlineLoading'
 import SectionState from '../../components/SectionState'
+import RatingModal from '../../components/RatingModal'
+import MobileSearchHeader from '../../components/MobileSearchHeader'
 import { getMyApplications, type ApplicationRecord, type ApplicationStatus } from '../../lib/applicationApi'
+import { submitEventFeedbackRequest } from '../../lib/eventApi'
 import { getCategoryStyle } from '../../utils/categoryStyle'
 import { formatDateShort } from '../../utils/formatDate'
 import fallbackImage from '../../assets/png/pic1 1.png'
@@ -40,6 +43,7 @@ export default function ApplicationHistoryPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [applications, setApplications] = useState<ApplicationRecord[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [ratingTarget, setRatingTarget] = useState<ApplicationRecord | null>(null)
 
   // Event sekarang di-embed langsung oleh GET /applications/me (lihat
   // application.service.js getMyApplications) — tidak ada lagi join ke
@@ -67,6 +71,9 @@ export default function ApplicationHistoryPage() {
       <AccountSidebar active="riwayat" />
 
       <div className="application-history-page__content">
+        <div className="application-history-page__mobile-header">
+          <MobileSearchHeader title="Riwayat Pendaftaran" subtitle="Cari dan lihat status pendaftaran" />
+        </div>
         <header className="application-history-page__header">
           <h1>Riwayat Pendaftaran</h1>
         </header>
@@ -110,13 +117,37 @@ export default function ApplicationHistoryPage() {
                     </p>
                   </div>
 
-                  <Link to={`/dashboard?event=${event.id}`} className="btn btn--outline btn--sm">
-                    Lihat Detail
-                  </Link>
+                  <div className="application-history-page__actions">
+                    {application.status === 'COMPLETED' && !application.hasFeedback && (
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--sm"
+                        onClick={() => setRatingTarget(application)}
+                      >
+                        Beri Rating
+                      </button>
+                    )}
+                    <Link to={`/dashboard?event=${event.id}`} className="btn btn--outline btn--sm">
+                      Lihat Detail
+                    </Link>
+                  </div>
                 </div>
               )
             })}
           </div>
+        )}
+
+        {ratingTarget && (
+          <RatingModal
+            eventTitle={ratingTarget.event.title}
+            onClose={() => setRatingTarget(null)}
+            onSubmit={async (rating, comment) => {
+              await submitEventFeedbackRequest(ratingTarget.eventId, rating, comment)
+              setApplications((prev) =>
+                prev.map((a) => (a.eventId === ratingTarget.eventId ? { ...a, hasFeedback: true } : a)),
+              )
+            }}
+          />
         )}
       </div>
     </main>

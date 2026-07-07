@@ -1,6 +1,30 @@
 const EVENT_STATUSES = ['draft', 'pending_approval']
 const MOTIVATION_VALUES = ['CAREER', 'SOCIAL', 'VALUES', 'SKILL_GROWTH']
 const DAY_TYPE_VALUES = ['WEEKDAY', 'WEEKEND', 'BOTH']
+const EVENT_MODE_VALUES = ['ONLINE', 'OFFLINE']
+const ENTITY_TYPE_VALUES = ['INDIVIDU', 'PT', 'CV', 'YAYASAN', 'ORGANISASI']
+const LEGAL_DOC_TYPE_VALUES = ['NIB', 'AKTA', 'SK_KEMENKUMHAM', 'NPWP']
+const MAX_GALLERY_IMAGES = 6
+
+// Harus persis sama dengan frontend/src/lib/organizerDeclarationItems.ts —
+// tidak ada package bersama di monorepo ini, jadi disinkronkan manual.
+export const ORGANIZER_DECLARATION_KEYS = [
+  'infoAccurate',
+  'documentsValid',
+  'fullResponsibility',
+  'compliesWithLaw',
+  'notFictionalEvent',
+  'noProhibitedContent',
+  'permitsObtained',
+  'publicationOnlyAck',
+  'organizerLiabilityAck',
+  'platformModerationAck',
+  'agreesToTerms',
+]
+
+function isUploadedFile(value) {
+  return value && typeof value === 'object' && typeof value.url === 'string' && value.url.trim()
+}
 
 function isStringIdArray(value) {
   return Array.isArray(value) && value.every((v) => typeof v === 'string' && v.trim())
@@ -46,6 +70,14 @@ export function validateCreateEvent(body) {
     interestIds,
     motivationTags,
     dayType,
+    eventMode,
+    mapLink,
+    organizationEntityType,
+    onBehalfOfInstitution,
+    documents,
+    legalDocuments,
+    galleryImages,
+    declarationChecklist,
   } = body
 
   if (!title || typeof title !== 'string' || !title.trim()) {
@@ -99,6 +131,71 @@ export function validateCreateEvent(body) {
     return { valid: false, message: 'dayType tidak valid' }
   }
 
+  // --- Enhancement: verifikasi organizer, dokumen pendukung, galeri, peta lokasi ---
+  // Sanity check tipe/enum berlaku di draft maupun pending_approval (murah, bukan
+  // "wajib diisi"). Cek "wajib diisi sebelum publikasikan" ada di blok status
+  // pending_approval di bawah — draft TETAP selenggah field2 lama (autosave WIP).
+  if (eventMode !== undefined && !EVENT_MODE_VALUES.includes(eventMode)) {
+    return { valid: false, message: 'eventMode tidak valid' }
+  }
+  if (mapLink !== undefined && mapLink !== null && typeof mapLink !== 'string') {
+    return { valid: false, message: 'mapLink tidak valid' }
+  }
+  if (organizationEntityType !== undefined && !ENTITY_TYPE_VALUES.includes(organizationEntityType)) {
+    return { valid: false, message: 'organizationEntityType tidak valid' }
+  }
+  if (onBehalfOfInstitution !== undefined && typeof onBehalfOfInstitution !== 'boolean') {
+    return { valid: false, message: 'onBehalfOfInstitution harus boolean' }
+  }
+  if (galleryImages !== undefined) {
+    if (!Array.isArray(galleryImages) || galleryImages.length > MAX_GALLERY_IMAGES || !galleryImages.every(isUploadedFile)) {
+      return { valid: false, message: `Galeri maksimal ${MAX_GALLERY_IMAGES} gambar dan setiap gambar wajib punya url` }
+    }
+  }
+  if (legalDocuments !== undefined) {
+    if (
+      !Array.isArray(legalDocuments) ||
+      !legalDocuments.every((d) => d && LEGAL_DOC_TYPE_VALUES.includes(d.docType) && isUploadedFile(d))
+    ) {
+      return { valid: false, message: 'Format dokumen legal tidak valid' }
+    }
+  }
+
+  if (status === 'pending_approval') {
+    const docs = documents ?? {}
+    if (!isUploadedFile(docs.proposal)) {
+      return { valid: false, message: 'Proposal Kegiatan wajib diunggah sebelum dipublikasikan' }
+    }
+    if (!isUploadedFile(docs.rundown)) {
+      return { valid: false, message: 'Rundown Acara wajib diunggah sebelum dipublikasikan' }
+    }
+    if (!isUploadedFile(docs.poster)) {
+      return { valid: false, message: 'Poster Event wajib diunggah sebelum dipublikasikan' }
+    }
+    if (!isUploadedFile(docs.responsibilityLetter)) {
+      return { valid: false, message: 'Surat Pernyataan Penanggung Jawab wajib diunggah sebelum dipublikasikan' }
+    }
+    if ((eventMode ?? 'OFFLINE') === 'OFFLINE' && !isUploadedFile(docs.locationPermit)) {
+      return { valid: false, message: 'Surat Izin Penggunaan Lokasi wajib diunggah untuk event offline' }
+    }
+    if (onBehalfOfInstitution === true && !isUploadedFile(docs.assignmentLetter)) {
+      return { valid: false, message: 'Surat Penugasan wajib diunggah karena event atas nama instansi' }
+    }
+    if ((organizationEntityType ?? 'INDIVIDU') !== 'INDIVIDU' && (!Array.isArray(legalDocuments) || legalDocuments.length < 1)) {
+      return { valid: false, message: 'Minimal satu Dokumen Legal Organisasi wajib diunggah' }
+    }
+    if (!Array.isArray(galleryImages) || galleryImages.length < 1) {
+      return { valid: false, message: 'Minimal satu gambar dokumentasi event wajib diunggah' }
+    }
+    if (
+      !declarationChecklist ||
+      typeof declarationChecklist !== 'object' ||
+      !ORGANIZER_DECLARATION_KEYS.every((key) => declarationChecklist[key] === true)
+    ) {
+      return { valid: false, message: 'Seluruh pernyataan organizer wajib dicentang sebelum dipublikasikan' }
+    }
+  }
+
   return { valid: true }
 }
 
@@ -126,6 +223,17 @@ export function validateCloseEvent(body) {
   }
   if (typeof impactValue !== 'number' || impactValue < 0) {
     return { valid: false, message: 'Nilai impact wajib berupa angka >= 0' }
+  }
+  return { valid: true }
+}
+
+export function validateFeedback(body) {
+  const { rating, comment } = body
+  if (typeof rating !== 'number' || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { valid: false, message: 'Rating wajib berupa bilangan bulat 1-5' }
+  }
+  if (comment !== undefined && comment !== null && typeof comment !== 'string') {
+    return { valid: false, message: 'Komentar tidak valid' }
   }
   return { valid: true }
 }

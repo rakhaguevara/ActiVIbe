@@ -41,6 +41,11 @@
   color: var(--color-text-body);
 }
 
+.organization-search-bar__location {
+  flex: 1;
+  min-width: 200px;
+}
+
 .organization-search-bar__cause-select {
   font-family: var(--font-body);
   font-size: var(--text-body-sm);

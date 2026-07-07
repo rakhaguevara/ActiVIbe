@@ -1,0 +1,238 @@
+/* =====================================================================
+   LocationSelector — Dropdown Wilayah Indonesia
+   Style mengikuti design system ActiVibe (index.css design tokens).
+   Tidak ada hardcoded hex — selalu pakai var(--token-name).
+   ===================================================================== */
+
+.location-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* ── Satu field (label + dropdown wrapper) ── */
+.location-selector__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.location-selector__label {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.location-selector__required {
+  color: var(--color-danger);
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Wrapper posisi relatif untuk overlay search ── */
+.location-selector__dropdown-wrap {
+  position: relative;
+}
+
+/* ── Tombol trigger dropdown ── */
+.location-selector__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border-medium);
+  border-radius: 10px;
+  background: var(--color-bg-true);
+  color: var(--color-text-body);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 42px;
+}
+
+.location-selector__trigger:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.location-selector__trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.location-selector__trigger:disabled {
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.location-selector__trigger--placeholder {
+  color: var(--color-text-muted);
+}
+
+.location-selector__trigger--open {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.location-selector__trigger-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Chevron icon ── */
+.location-selector__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+  font-size: 12px;
+}
+
+.location-selector__chevron--open {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+/* ── Dropdown panel (menu) ── */
+.location-selector__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--color-bg-true);
+  border: 1.5px solid var(--color-primary);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(109, 80, 163, 0.12);
+  overflow: hidden;
+  animation: location-menu-in 0.15s ease;
+}
+
+@keyframes location-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Search input di dalam menu ── */
+.location-selector__search {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 1px solid var(--color-border-light);
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  background: var(--color-bg-surface);
+  outline: none;
+}
+
+.location-selector__search::placeholder {
+  color: var(--color-text-muted);
+}
+
+.location-selector__search:focus {
+  border-bottom-color: var(--color-primary);
+  background: var(--color-bg-true);
+}
+
+/* ── List opsi ── */
+.location-selector__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2xs) 0;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-medium) transparent;
+}
+
+.location-selector__list::-webkit-scrollbar {
+  width: 4px;
+}
+.location-selector__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.location-selector__list::-webkit-scrollbar-thumb {
+  background: var(--color-border-medium);
+  border-radius: 99px;
+}
+
+/* ── Item opsi ── */
+.location-selector__option {
+  padding: 9px 14px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.location-selector__option:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.location-selector__option--selected {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ── Loading state ── */
+.location-selector__loading {
+  padding: 12px 14px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.location-selector__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border-medium);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: location-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes location-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Empty state ── */
+.location-selector__empty {
+  padding: 12px 14px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ── Error message ── */
+.location-selector__error {
+  font-size: var(--text-body-xs);
+  color: var(--color-danger);
+  margin: 2px 0 0;
+}

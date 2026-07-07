@@ -99,6 +99,28 @@
   cursor: not-allowed;
 }
 
+.event-apply-form__discard {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.event-apply-form__discard:hover {
+  color: var(--color-text-body);
+  text-decoration: underline;
+}
+
+.event-apply-form__discard:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .event-apply-form__char-hint {
   font-weight: 400;
   color: var(--color-text-muted);

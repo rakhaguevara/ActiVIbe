@@ -1,0 +1,45 @@
+.rating-modal {
+  max-width: 400px;
+}
+
+.rating-modal__stars {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.rating-modal__star-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.rating-modal__star {
+  width: 28px;
+  height: 28px;
+  color: var(--color-border-light);
+}
+
+.rating-modal__star--filled {
+  color: var(--color-accent-yellow);
+  fill: var(--color-accent-yellow);
+}
+
+.rating-modal__comment {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  padding: var(--space-sm);
+  font-family: inherit;
+  font-size: var(--text-body-sm);
+  margin-bottom: var(--space-md);
+}
+
+.rating-modal__error {
+  color: var(--color-danger);
+  font-size: var(--text-body-sm);
+  margin: 0 0 var(--space-sm);
+}

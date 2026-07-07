@@ -14,7 +14,26 @@ import {
   type Motivation,
   type TaxonomyItem,
 } from '../../lib/profileApi'
+import { loadDraft, saveDraft, clearDraft } from '../../lib/formDraft'
 import './SettingsPage.css'
+
+// Field yang dipersist sbg draft lokal — SENGAJA TIDAK termasuk newPassword
+// (kredensial, jangan pernah masuk localStorage) dan deleteConfirmText (teks
+// konfirmasi aksi destruktif, aneh & berisiko kalau muncul lagi otomatis
+// setelah refresh). CV juga dikecualikan krn upload-nya langsung tersimpan
+// server-side, tidak ada "isian belum submit" yang perlu dipertahankan.
+interface SettingsDraft {
+  name: string
+  email: string
+  phone: string
+  bio: string
+  motivation: Motivation | null
+  selectedInterestIds: string[]
+  selectedSkillIds: string[]
+  availability: Availability | null
+  education: string
+  passportPublic: boolean
+}
 
 const MAX_EDUCATION_LENGTH = 200
 
@@ -49,10 +68,13 @@ export default function SettingsPage() {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
 
+  const draftKey = `volunteer-settings:${user?.id ?? 'anon'}`
+  const [draft] = useState(() => loadDraft<SettingsDraft>(draftKey))
+
   // Profil diri (belum ada endpoint update akun — mock lokal, konsisten dgn organizer/SettingsPage)
-  const [name, setName] = useState(user?.name ?? '')
-  const [email, setEmail] = useState(user?.email ?? '')
-  const [phone, setPhone] = useState('')
+  const [name, setName] = useState(() => draft?.name ?? user?.name ?? '')
+  const [email, setEmail] = useState(() => draft?.email ?? user?.email ?? '')
+  const [phone, setPhone] = useState(() => draft?.phone ?? '')
   const [personalSaved, setPersonalSaved] = useState(false)
 
   // Cerita & motivasi (real — profileApi)
@@ -84,34 +106,72 @@ export default function SettingsPage() {
   const [cvError, setCvError] = useState<string | null>(null)
 
   // Privasi Impact Passport (mock lokal)
-  const [passportPublic, setPassportPublic] = useState(true)
+  const [passportPublic, setPassportPublic] = useState(() => draft?.passportPublic ?? true)
   const [privacySaved, setPrivacySaved] = useState(false)
 
-  // Keamanan (mock lokal — belum ada endpoint ganti password)
+  // Keamanan (mock lokal — belum ada endpoint ganti password) — TIDAK dipersist
   const [newPassword, setNewPassword] = useState('')
   const [passwordSaved, setPasswordSaved] = useState(false)
 
-  // Hapus akun (mock lokal, dengan konfirmasi ketik ulang)
+  // Hapus akun (mock lokal, dengan konfirmasi ketik ulang) — TIDAK dipersist
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleteRequested, setDeleteRequested] = useState(false)
 
   useEffect(() => {
     Promise.all([getMyProfile(), getInterests(), getSkills()])
       .then(([profile, interests, skills]) => {
-        setBio(profile.bio ?? '')
-        setMotivation(profile.motivation)
-        setAvailability(profile.availability)
-        setEducation(profile.education ?? '')
+        // Draft (edit yang belum disimpan) menang atas nilai server yang baru
+        // di-fetch — kalau tidak, draft langsung ketimpa begitu profil selesai
+        // dimuat, bikin fitur "tahan refresh" ini tidak berguna sama sekali.
+        setBio(draft?.bio ?? profile.bio ?? '')
+        setMotivation(draft?.motivation ?? profile.motivation)
+        setAvailability(draft?.availability ?? profile.availability)
+        setEducation(draft?.education ?? profile.education ?? '')
         setCvFileName(profile.cvFileName)
         setCvUrl(profile.cvUrl)
-        setSelectedInterestIds(new Set(profile.interests.map((i) => i.id)))
-        setSelectedSkillIds(new Set(profile.skills.map((s) => s.id)))
+        setSelectedInterestIds(new Set(draft?.selectedInterestIds ?? profile.interests.map((i) => i.id)))
+        setSelectedSkillIds(new Set(draft?.selectedSkillIds ?? profile.skills.map((s) => s.id)))
         setInterestsAll(interests)
         setSkillsAll(skills)
       })
       .catch(() => {})
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [draft])
+
+  // Autosave draft lokal — bertahan lintas refresh/pindah halaman, cuma
+  // hilang kalau user klik "Buang Perubahan" (lihat handleDiscardDraft).
+  useEffect(() => {
+    saveDraft<SettingsDraft>(draftKey, {
+      name,
+      email: email ?? '',
+      phone,
+      bio,
+      motivation,
+      selectedInterestIds: Array.from(selectedInterestIds),
+      selectedSkillIds: Array.from(selectedSkillIds),
+      availability,
+      education,
+      passportPublic,
+    })
+  }, [draftKey, name, email, phone, bio, motivation, selectedInterestIds, selectedSkillIds, availability, education, passportPublic])
+
+  const handleDiscardDraft = () => {
+    clearDraft(draftKey)
+    setName(user?.name ?? '')
+    setEmail(user?.email ?? '')
+    setPhone('')
+    setPassportPublic(true)
+    getMyProfile()
+      .then((profile) => {
+        setBio(profile.bio ?? '')
+        setMotivation(profile.motivation)
+        setAvailability(profile.availability)
+        setEducation(profile.education ?? '')
+        setSelectedInterestIds(new Set(profile.interests.map((i) => i.id)))
+        setSelectedSkillIds(new Set(profile.skills.map((s) => s.id)))
+      })
+      .catch(() => {})
+  }
 
   const toggleInterest = (id: string) => {
     setSelectedInterestIds((prev) => {
@@ -248,8 +308,13 @@ export default function SettingsPage() {
 
       <div className="settings-page__content">
         <header className="settings-page__header">
-          <h1>Pengaturan</h1>
-          <p>Kelola profil, minat, ketersediaan, dan privasi Impact Passport-mu.</p>
+          <div>
+            <h1>Pengaturan</h1>
+            <p>Kelola profil, minat, ketersediaan, dan privasi Impact Passport-mu.</p>
+          </div>
+          <button type="button" className="btn btn--outline btn--sm" onClick={handleDiscardDraft}>
+            Buang Perubahan
+          </button>
         </header>
 
         <section className="card settings-page__section">

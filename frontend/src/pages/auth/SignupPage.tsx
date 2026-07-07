@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { FiChevronLeft } from 'react-icons/fi'
 import { useAuth } from '../../contexts/AuthContext'
 import type { AuthUser } from '../../lib/api'
+import { updateMyProfile } from '../../lib/profileApi'
+import LocationSelector, { EMPTY_LOCATION, type LocationValue } from '../../components/location/LocationSelector'
 import logo from '../../assets/svg/logo.svg'
 import './AuthPage.css'
 
@@ -18,6 +20,7 @@ export default function SignupPage({ role, homeRoute, loginRoute, title }: Signu
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'submitting'>('idle')
+  const [location, setLocation] = useState<LocationValue>(EMPTY_LOCATION)
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -34,6 +37,19 @@ export default function SignupPage({ role, homeRoute, loginRoute, title }: Signu
         password: String(formData.get('password')),
         role,
       })
+
+      // Simpan lokasi ke profil jika user memilih setidaknya kabupaten/kota.
+      // Disimpan sebagai string yang mudah dibaca, contoh: "Kota Yogyakarta, DI Yogyakarta"
+      if (location.regencyId) {
+        const locationString = location.provinceName
+          ? `${location.regencyName}, ${location.provinceName}`
+          : location.regencyName
+        // fire-and-forget — kegagalan tidak memblokir navigasi
+        updateMyProfile({ location: locationString }).catch(() => {})
+      } else if (location.provinceId) {
+        updateMyProfile({ location: location.provinceName }).catch(() => {})
+      }
+
       navigate(homeRoute)
     } catch (err) {
       setStatus('idle')
@@ -80,9 +96,16 @@ export default function SignupPage({ role, homeRoute, loginRoute, title }: Signu
             <input id="password" name="password" type="password" placeholder="••••••••" required />
           </div>
 
+          {/* Lokasi — menggunakan LocationSelector (Provinsi + Kabupaten/Kota) */}
           <div className="auth-page__field">
-            <label htmlFor="location">Lokasi</label>
-            <input id="location" name="location" type="text" placeholder="Yogyakarta, Indonesia" required />
+            <LocationSelector
+              value={location}
+              onChange={setLocation}
+              showDistrict={false}
+              showVillage={false}
+              label="Lokasi"
+              placeholder="Pilih kota / kabupaten..."
+            />
           </div>
 
           {error && <p className="auth-page__error">{error}</p>}

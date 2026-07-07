@@ -211,6 +211,10 @@
   white-space: nowrap;
 }
 
+.saved-items-page__mobile-header {
+  display: none;
+}
+
 @media (max-width: 1024px) {
   .saved-items-page {
     flex-direction: column;
@@ -218,12 +222,31 @@
   }
 }
 
+@media (max-width: 768px) {
+  .saved-items-page__tabs,
+  .saved-items-page__search,
+  .saved-items-page__header {
+    display: none;
+  }
+
+  .saved-items-page__mobile-header {
+    display: block;
+    margin-bottom: -10px;
+  }
+}
+
 @media (max-width: 600px) {
   .saved-items-page {
-    padding: 24px 20px 48px;
+    padding: 0 0 48px;
+    background: #ffffff; /* Match airbnb clean white background */
   }
 
   .saved-items-page__grid {
     grid-template-columns: 1fr;
+    padding: 0 20px;
+  }
+  
+  .saved-items-page__content {
+    gap: 16px;
   }
 }

@@ -26,6 +26,7 @@ import { env } from '../../config/env.js'
 import { claudeProvider } from './providers/claude.provider.js'
 import { openaiProvider } from './providers/openai.provider.js'
 import { geminiProvider } from './providers/gemini.provider.js'
+import { resolveAiProvider } from '../../utils/aiProviderResolver.js'
 
 const MAX_SCORE_DRIFT = 10
 
@@ -91,18 +92,7 @@ Aturan:
 - Kembalikan SEMUA event yang diberikan, jangan menambah event baru.`
 
 export function resolveProvider() {
-  const requested = (env.AI_PROVIDER || 'auto').toLowerCase()
-  if (requested !== 'auto') {
-    const provider = PROVIDERS.find((p) => p.name === requested)
-    if (provider?.isConfigured()) return provider
-    if (provider) {
-      console.warn(`[recommendations] AI_PROVIDER=${requested} tapi API key-nya kosong — pakai fallback rule-based`)
-    } else {
-      console.warn(`[recommendations] AI_PROVIDER=${requested} tidak dikenal (pilihan: claude|openai|gemini|auto)`)
-    }
-    return null
-  }
-  return PROVIDERS.find((p) => p.isConfigured()) ?? null
+  return resolveAiProvider(PROVIDERS, env.AI_PROVIDER, 'recommendations')
 }
 
 function clampScore(aiScore, anchor) {

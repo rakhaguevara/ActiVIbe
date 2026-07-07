@@ -59,3 +59,10 @@ export function validateAssign(body) {
   }
   return { valid: true }
 }
+
+export function validateCheckIn(body) {
+  if (!['qr', 'manual'].includes(body.method)) {
+    return { valid: false, message: 'method harus qr atau manual' }
+  }
+  return { valid: true }
+}

@@ -10,6 +10,7 @@ import CompletedEventsView from './events-views/CompletedEventsView'
 import ArchivedEventsView from './events-views/ArchivedEventsView'
 
 import './EventsPage.css'
+import '../admin/OverviewPage.css' // Import admin dashboard header styles
 
 export default function EventsPage() {
   const location = useLocation()
@@ -58,17 +59,28 @@ export default function EventsPage() {
   return (
     <div className="events-hub" style={{ flexDirection: 'column', gap: 'var(--space-md)' }}>
       {/* 1. Universal Page Header */}
-      <header className="events-header">
-        <div className="events-header__title">
-          <h1>{getTitle()}</h1>
-          <p className="events-header__subtitle">{getSubtitle()}</p>
+      <div className="admin-dashboard-header">
+        <div className="admin-dashboard-header__top">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <h1 className="admin-dashboard-header__title">{getTitle()}</h1>
+            <p className="events-header__subtitle" style={{ margin: 0, fontSize: '0.9rem' }}>{getSubtitle()}</p>
+          </div>
+          <div className="admin-dashboard-header__top-actions">
+            {/* No extra buttons here as requested */}
+          </div>
         </div>
-        <div className="events-header__actions">
-          <button type="button" className="btn btn--outline btn--sm"><FiUpload /> Import Event</button>
-          <button type="button" className="btn btn--outline btn--sm"><FiDownload /> Export</button>
-          <Link to="/organizer/events/new" className="btn btn--primary btn--sm"><FiPlus /> Create Event</Link>
+        
+        <div className="admin-dashboard-header__bottom">
+          <div className="admin-dashboard-header__updated">
+            {/* Empty space to push actions to the right */}
+          </div>
+          <div className="admin-dashboard-header__bottom-right">
+            <button type="button" className="admin-dashboard-btn"><FiUpload /> Import Event</button>
+            <button type="button" className="admin-dashboard-btn"><FiDownload /> Export</button>
+            <Link to="/organizer/events/new" className="admin-dashboard-btn admin-dashboard-btn--dark" style={{ textDecoration: 'none' }}><FiPlus /> Create Event</Link>
+          </div>
         </div>
-      </header>
+      </div>
 
       {/* Render the contextual content area below the header */}
       {renderView()}

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ChangeEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { applyToEvent, getMyApplications } from '../lib/applicationApi'
+import { loadDraft, saveDraft, clearDraft } from '../lib/formDraft'
 import type { Event } from '../types/event'
 import { formatDateShort } from '../utils/formatDate'
 import './EventApplyForm.css'
@@ -10,6 +11,16 @@ interface EventApplyFormProps {
 }
 
 type FormState = 'idle' | 'submitting' | 'success' | 'already-applied' | 'error'
+
+interface EventApplyDraft {
+  whatsapp: string
+  motivation: string
+  availability: string[]
+}
+
+function draftKeyFor(userId: string, eventId: string) {
+  return `apply-event:${userId}:${eventId}`
+}
 
 export default function EventApplyForm({ event }: EventApplyFormProps) {
   const { user } = useAuth()
@@ -24,9 +35,10 @@ export default function EventApplyForm({ event }: EventApplyFormProps) {
   useEffect(() => {
     if (!user) return
     setFormState('idle')
-    setWhatsapp('')
-    setMotivation('')
-    setAvailability([])
+    const draft = loadDraft<EventApplyDraft>(draftKeyFor(user.id, event.id))
+    setWhatsapp(draft?.whatsapp ?? '')
+    setMotivation(draft?.motivation ?? '')
+    setAvailability(draft?.availability ?? [])
     setErrorMsg('')
 
     getMyApplications()
@@ -39,6 +51,21 @@ export default function EventApplyForm({ event }: EventApplyFormProps) {
         // gagal cek tidak harus blokir form
       })
   }, [event.id, user])
+
+  // Autosave draft lokal per event — bertahan lintas refresh/pindah halaman,
+  // cuma hilang kalau user klik "Buang Perubahan" (lihat handleDiscardDraft).
+  useEffect(() => {
+    if (!user) return
+    saveDraft<EventApplyDraft>(draftKeyFor(user.id, event.id), { whatsapp, motivation, availability })
+  }, [user, event.id, whatsapp, motivation, availability])
+
+  const handleDiscardDraft = () => {
+    if (!user) return
+    clearDraft(draftKeyFor(user.id, event.id))
+    setWhatsapp('')
+    setMotivation('')
+    setAvailability([])
+  }
 
   function toggleAvailability(value: string) {
     setAvailability((prev) =>
@@ -197,6 +224,14 @@ export default function EventApplyForm({ event }: EventApplyFormProps) {
         disabled={formState === 'submitting'}
       >
         {formState === 'submitting' ? 'Mendaftar...' : 'Konfirmasi Pendaftaran'}
+      </button>
+      <button
+        type="button"
+        className="event-apply-form__discard"
+        onClick={handleDiscardDraft}
+        disabled={formState === 'submitting'}
+      >
+        Buang Perubahan
       </button>
     </form>
   )

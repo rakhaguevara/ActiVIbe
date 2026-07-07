@@ -41,6 +41,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/locations': {
+          target: apiUrl,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
   }

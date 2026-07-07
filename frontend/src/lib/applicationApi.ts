@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch'
+
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export type ApplicationStatus =
@@ -33,6 +35,7 @@ export interface ApplicationRecord {
   eventId: string
   status: ApplicationStatus
   appliedAt: string
+  hasFeedback: boolean
   event: ApplicationEventSummary
 }
 
@@ -45,7 +48,7 @@ async function parseResponse(res: Response) {
 }
 
 export async function applyToEvent(payload: ApplyPayload): Promise<ApplicationRecord> {
-  const res = await fetch(`${API_URL}/applications`, {
+  const res = await apiFetch(`${API_URL}/applications`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -56,7 +59,7 @@ export async function applyToEvent(payload: ApplyPayload): Promise<ApplicationRe
 }
 
 export async function getMyApplications(): Promise<ApplicationRecord[]> {
-  const res = await fetch(`${API_URL}/applications/me`, { credentials: 'include' })
+  const res = await apiFetch(`${API_URL}/applications/me`, { credentials: 'include' })
   const data = await parseResponse(res)
   return data.applications
 }

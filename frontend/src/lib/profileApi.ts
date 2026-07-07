@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch'
+
 export const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export interface TaxonomyItem {
@@ -43,25 +45,25 @@ async function parseResponse(res: Response) {
 }
 
 export async function getInterests(): Promise<TaxonomyItem[]> {
-  const res = await fetch(`${API_URL}/profile/interests`, { credentials: 'include' })
+  const res = await apiFetch(`${API_URL}/profile/interests`, { credentials: 'include' })
   const data = await parseResponse(res)
   return data.interests
 }
 
 export async function getSkills(): Promise<TaxonomyItem[]> {
-  const res = await fetch(`${API_URL}/profile/skills`, { credentials: 'include' })
+  const res = await apiFetch(`${API_URL}/profile/skills`, { credentials: 'include' })
   const data = await parseResponse(res)
   return data.skills
 }
 
 export async function getMyProfile(): Promise<ProfileData> {
-  const res = await fetch(`${API_URL}/profile/me`, { credentials: 'include' })
+  const res = await apiFetch(`${API_URL}/profile/me`, { credentials: 'include' })
   const data = await parseResponse(res)
   return data.profile
 }
 
 export async function updateMyProfile(payload: ProfileUpdatePayload): Promise<ProfileData> {
-  const res = await fetch(`${API_URL}/profile/me`, {
+  const res = await apiFetch(`${API_URL}/profile/me`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -76,7 +78,7 @@ export const MAX_CV_SIZE_BYTES = 5 * 1024 * 1024
 export async function uploadCv(file: File): Promise<ProfileData> {
   const formData = new FormData()
   formData.append('cv', file)
-  const res = await fetch(`${API_URL}/profile/me/cv`, {
+  const res = await apiFetch(`${API_URL}/profile/me/cv`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -86,7 +88,7 @@ export async function uploadCv(file: File): Promise<ProfileData> {
 }
 
 export async function deleteCv(): Promise<ProfileData> {
-  const res = await fetch(`${API_URL}/profile/me/cv`, { method: 'DELETE', credentials: 'include' })
+  const res = await apiFetch(`${API_URL}/profile/me/cv`, { method: 'DELETE', credentials: 'include' })
   const data = await parseResponse(res)
   return data.profile
 }

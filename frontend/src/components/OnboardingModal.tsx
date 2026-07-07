@@ -4,6 +4,7 @@ import illustrationChat from '../assets/svg/together 1.svg'
 import illustrationInterests from '../assets/svg/On1.svg'
 import illustrationSkills from '../assets/svg/On2.svg'
 import illustrationAvailability from '../assets/svg/On3.svg'
+import { useAuth } from '../contexts/AuthContext'
 import {
   getMyProfile,
   getInterests,
@@ -17,6 +18,7 @@ import {
   type ProfileData,
   type TaxonomyItem,
 } from '../lib/profileApi'
+import { loadDraft, saveDraft, clearDraft } from '../lib/formDraft'
 import './OnboardingModal.css'
 
 interface OnboardingModalProps {
@@ -24,8 +26,8 @@ interface OnboardingModalProps {
   onComplete: (profile: ProfileData) => void
 }
 
-type ChatTextPhase = 'bio' | 'origin' | 'education' | 'hobby'
-type ChatPhase = ChatTextPhase | 'motivation' | 'done'
+type ChatTextPhase = 'bio' | 'education' | 'hobby'
+type ChatPhase = ChatTextPhase | 'locationConfirm' | 'motivation' | 'done'
 
 interface ChatMessage {
   id: number
@@ -34,24 +36,27 @@ interface ChatMessage {
 }
 
 function isChatTextPhase(phase: ChatPhase): phase is ChatTextPhase {
-  return phase === 'bio' || phase === 'origin' || phase === 'education' || phase === 'hobby'
+  return phase === 'bio' || phase === 'education' || phase === 'hobby'
+}
+
+// Ditanya begitu 'bio' terjawab, sebelum masuk 'education' — teks yang sama
+// dipakai baik lewat jalur locationConfirm (ada lokasi dari signup) maupun
+// jalur skip langsung (belum ada lokasi tersimpan), lihat handleSubmitText.
+const EDUCATION_PROMPT = 'Ngomong-ngomong, riwayat pendidikanmu apa?'
+
+function buildLocationConfirmText(location: string | null): string | null {
+  if (!location) return null
+  return `Di halaman pendaftaran, kamu bilang berasal dari ${location}. Apakah kamu saat ini masih di ${location}?`
 }
 
 const CHAT_TEXT_STEPS: Record<
   ChatTextPhase,
-  { nextPhase: ChatPhase; nextBotText: string; placeholder: string; maxLength: number }
+  { nextPhase: ChatPhase; nextBotText?: string; placeholder: string; maxLength: number }
 > = {
   bio: {
-    nextPhase: 'origin',
-    nextBotText: 'Asal kamu dari mana?',
+    nextPhase: 'locationConfirm',
     placeholder: 'Tulis ceritamu di sini... (Shift+Enter untuk baris baru)',
     maxLength: 350,
-  },
-  origin: {
-    nextPhase: 'education',
-    nextBotText: 'Ngomong-ngomong, riwayat pendidikanmu apa?',
-    placeholder: 'Contoh: Yogyakarta',
-    maxLength: 100,
   },
   education: {
     nextPhase: 'hobby',
@@ -83,6 +88,26 @@ const AVAILABILITY_OPTIONS: { value: Availability; label: string }[] = [
 const MAX_CUSTOM_INTERESTS = 10
 const MAX_CUSTOM_INTEREST_LENGTH = 40
 
+// Draft progres wizard — tiap step yang sudah diklik "Lanjut" sebenarnya
+// SUDAH tersimpan ke server (updateMyProfile per step), draft ini cuma
+// menjaga posisi step & isian yang BELUM diklik lanjut supaya tidak hilang
+// kalau modal onboarding ini di-refresh di tengah jalan. CV dikecualikan
+// (tersimpan langsung ke server begitu diupload, tidak ada "isian" utk dijaga).
+interface OnboardingDraft {
+  step: 0 | 1 | 2 | 3 | 4
+  chatPhase: ChatPhase
+  chatMessages: ChatMessage[]
+  chatAnswers: Record<ChatTextPhase, string>
+  selectedMotivation: Motivation | null
+  textInput: string
+  selectedInterestIds: string[]
+  customInterests: string[]
+  interestSearch: string
+  customInterestInput: string
+  selectedSkillIds: string[]
+  availability: Availability | null
+}
+
 function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
 }
@@ -97,37 +122,44 @@ function groupByCategory(items: TaxonomyItem[]): [string, TaxonomyItem[]][] {
   return Array.from(map.entries())
 }
 
+const INTRO_BOT_MESSAGE: ChatMessage = {
+  id: 1,
+  from: 'bot',
+  text: 'Hei! Sebelum kita mulai, ceritakan sedikit tentang dirimu — apa yang membuatmu tertarik jadi volunteer?',
+}
+
 export default function OnboardingModal({ initialProfile, onComplete }: OnboardingModalProps) {
-  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0)
+  const { user } = useAuth()
+  const draftKey = `onboarding:${user?.id ?? 'anon'}`
+  const [draft] = useState(() => loadDraft<OnboardingDraft>(draftKey))
+
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(() => draft?.step ?? 0)
   const [direction, setDirection] = useState<'forward' | 'back'>('forward')
 
   // Chat step state
-  const [chatPhase, setChatPhase] = useState<ChatPhase>('bio')
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatPhase, setChatPhase] = useState<ChatPhase>(() => draft?.chatPhase ?? 'bio')
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => draft?.chatMessages ?? [])
   const [isBotTyping, setIsBotTyping] = useState(false)
-  const [textInput, setTextInput] = useState('')
-  const [chatAnswers, setChatAnswers] = useState<Record<ChatTextPhase, string>>({
-    bio: '',
-    origin: '',
-    education: '',
-    hobby: '',
-  })
-  const [selectedMotivation, setSelectedMotivation] = useState<Motivation | null>(null)
+  const [textInput, setTextInput] = useState(() => draft?.textInput ?? '')
+  const [chatAnswers, setChatAnswers] = useState<Record<ChatTextPhase, string>>(
+    () => draft?.chatAnswers ?? { bio: '', education: '', hobby: '' },
+  )
+  const [selectedMotivation, setSelectedMotivation] = useState<Motivation | null>(() => draft?.selectedMotivation ?? null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Selection steps state
   const [interests, setInterests] = useState<TaxonomyItem[]>([])
   const [skills, setSkills] = useState<TaxonomyItem[]>([])
   const [selectedInterestIds, setSelectedInterestIds] = useState<Set<string>>(
-    () => new Set(initialProfile.interests.map((i) => i.id)),
+    () => new Set(draft?.selectedInterestIds ?? initialProfile.interests.map((i) => i.id)),
   )
   const [selectedSkillIds, setSelectedSkillIds] = useState<Set<string>>(
-    () => new Set(initialProfile.skills.map((s) => s.id)),
+    () => new Set(draft?.selectedSkillIds ?? initialProfile.skills.map((s) => s.id)),
   )
-  const [interestSearch, setInterestSearch] = useState('')
-  const [customInterests, setCustomInterests] = useState<string[]>([])
-  const [customInterestInput, setCustomInterestInput] = useState('')
-  const [availability, setAvailability] = useState<Availability | null>(initialProfile.availability)
+  const [interestSearch, setInterestSearch] = useState(() => draft?.interestSearch ?? '')
+  const [customInterests, setCustomInterests] = useState<string[]>(() => draft?.customInterests ?? [])
+  const [customInterestInput, setCustomInterestInput] = useState(() => draft?.customInterestInput ?? '')
+  const [availability, setAvailability] = useState<Availability | null>(() => draft?.availability ?? initialProfile.availability)
   const [isLoadingOptions, setIsLoadingOptions] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -148,21 +180,77 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
       .finally(() => setIsLoadingOptions(false))
   }, [])
 
-  // Trigger first bot message on mount
+  // Trigger first bot message on mount — dilewati kalau sudah ada riwayat
+  // chat dari draft (user refresh di tengah step 0), supaya animasi intro
+  // tidak mengulang & menimpa jawaban yang sudah diketik.
   useEffect(() => {
+    if (draft?.chatMessages && draft.chatMessages.length > 0) return
     setIsBotTyping(true)
     const t = setTimeout(() => {
       setIsBotTyping(false)
-      setChatMessages([
-        {
-          id: 1,
-          from: 'bot',
-          text: 'Hei! Sebelum kita mulai, ceritakan sedikit tentang dirimu — apa yang membuatmu tertarik jadi volunteer?',
-        },
-      ])
+      setChatMessages([INTRO_BOT_MESSAGE])
     }, 1200)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Autosave draft lokal — bertahan lintas refresh, cuma hilang kalau user
+  // klik "Buang Perubahan" (lihat handleDiscardDraft). Field yang tiap step-nya
+  // sudah tersimpan ke server tetap ikut disave di sini supaya posisi step
+  // & histori chat juga ikut bertahan, bukan cuma isian yang belum disubmit.
+  useEffect(() => {
+    saveDraft<OnboardingDraft>(draftKey, {
+      step,
+      chatPhase,
+      chatMessages,
+      chatAnswers,
+      selectedMotivation,
+      textInput,
+      selectedInterestIds: Array.from(selectedInterestIds),
+      customInterests,
+      interestSearch,
+      customInterestInput,
+      selectedSkillIds: Array.from(selectedSkillIds),
+      availability,
+    })
+  }, [
+    draftKey,
+    step,
+    chatPhase,
+    chatMessages,
+    chatAnswers,
+    selectedMotivation,
+    textInput,
+    selectedInterestIds,
+    customInterests,
+    interestSearch,
+    customInterestInput,
+    selectedSkillIds,
+    availability,
+  ])
+
+  const handleDiscardDraft = () => {
+    clearDraft(draftKey)
+    setStep(0)
+    setDirection('forward')
+    setChatPhase('bio')
+    setChatAnswers({ bio: '', education: '', hobby: '' })
+    setSelectedMotivation(null)
+    setTextInput('')
+    setSelectedInterestIds(new Set(initialProfile.interests.map((i) => i.id)))
+    setSelectedSkillIds(new Set(initialProfile.skills.map((s) => s.id)))
+    setCustomInterests([])
+    setInterestSearch('')
+    setCustomInterestInput('')
+    setAvailability(initialProfile.availability)
+    setError(null)
+    setIsBotTyping(true)
+    setChatMessages([])
+    setTimeout(() => {
+      setIsBotTyping(false)
+      setChatMessages([INTRO_BOT_MESSAGE])
+    }, 1200)
+  }
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -181,15 +269,42 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
   const handleSubmitText = () => {
     const text = textInput.trim()
     if (!text || !isChatTextPhase(chatPhase)) return
-    const { nextPhase, nextBotText } = CHAT_TEXT_STEPS[chatPhase]
+
+    let { nextPhase } = CHAT_TEXT_STEPS[chatPhase]
+    let nextBotText = CHAT_TEXT_STEPS[chatPhase].nextBotText
+
+    // 'bio' tidak punya nextBotText statis — teksnya bergantung apakah profil
+    // sudah punya lokasi dari signup (konfirmasi) atau belum (skip langsung
+    // ke pertanyaan pendidikan tanpa nanya lokasi lagi di chat ini).
+    if (chatPhase === 'bio') {
+      const confirmText = buildLocationConfirmText(initialProfile.location)
+      if (confirmText) {
+        nextBotText = confirmText
+      } else {
+        nextPhase = 'education'
+        nextBotText = EDUCATION_PROMPT
+      }
+    }
+
     setChatAnswers((prev) => ({ ...prev, [chatPhase]: text }))
     setTextInput('')
     setChatMessages((prev) => [...prev, { id: Date.now(), from: 'user', text }])
     setIsBotTyping(true)
     setTimeout(() => {
       setIsBotTyping(false)
-      setChatMessages((prev) => [...prev, { id: Date.now(), from: 'bot', text: nextBotText }])
+      setChatMessages((prev) => [...prev, { id: Date.now(), from: 'bot', text: nextBotText! }])
       setChatPhase(nextPhase)
+    }, 900)
+  }
+
+  const handleLocationConfirm = (stillHere: boolean) => {
+    const label = stillHere ? 'Ya, masih di sini' : 'Tidak, sudah pindah'
+    setChatMessages((prev) => [...prev, { id: Date.now(), from: 'user', text: label }])
+    setIsBotTyping(true)
+    setTimeout(() => {
+      setIsBotTyping(false)
+      setChatMessages((prev) => [...prev, { id: Date.now(), from: 'bot', text: EDUCATION_PROMPT }])
+      setChatPhase('education')
     }, 900)
   }
 
@@ -207,7 +322,6 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
       const bio = chatAnswers.hobby ? `${chatAnswers.bio}\n\nKesukaan: ${chatAnswers.hobby}` : chatAnswers.bio
       await updateMyProfile({
         bio,
-        location: chatAnswers.origin || undefined,
         education: chatAnswers.education || undefined,
         motivation: selectedMotivation!,
       })
@@ -402,6 +516,9 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
             />
           ))}
         </div>
+        <button type="button" className="onboarding-modal__discard" onClick={handleDiscardDraft}>
+          Buang Perubahan
+        </button>
 
         {/* ── Step 0: Chat intro ── */}
         {step === 0 && (
@@ -450,6 +567,27 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
                       onClick={handleSubmitText}
                     >
                       Kirim
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {chatPhase === 'locationConfirm' && !isBotTyping && (
+                <div className="onboarding-chat__input-area">
+                  <div className="onboarding-chat__quick-replies">
+                    <button
+                      type="button"
+                      className="onboarding-chat__quick-reply"
+                      onClick={() => handleLocationConfirm(true)}
+                    >
+                      Ya, masih di sini
+                    </button>
+                    <button
+                      type="button"
+                      className="onboarding-chat__quick-reply"
+                      onClick={() => handleLocationConfirm(false)}
+                    >
+                      Tidak, sudah pindah
                     </button>
                   </div>
                 </div>

@@ -1,4 +1,6 @@
-import { FiSearch, FiMapPin } from 'react-icons/fi'
+import { useState } from 'react'
+import { FiSearch } from 'react-icons/fi'
+import LocationSelector, { EMPTY_LOCATION, type LocationValue } from './location/LocationSelector'
 import './OrganizationSearchBar.css'
 
 export interface OrganizationFilters {
@@ -13,8 +15,21 @@ interface OrganizationSearchBarProps {
   causeAreas: string[]
 }
 
+function locationValueToFilterString(value: LocationValue): string {
+  if (value.regencyId) {
+    return value.provinceName ? `${value.regencyName}, ${value.provinceName}` : value.regencyName
+  }
+  return value.provinceName
+}
+
 export default function OrganizationSearchBar({ filters, onChange, causeAreas }: OrganizationSearchBarProps) {
+  const [locationValue, setLocationValue] = useState<LocationValue>(EMPTY_LOCATION)
   const update = (patch: Partial<OrganizationFilters>) => onChange({ ...filters, ...patch })
+
+  const handleLocationChange = (value: LocationValue) => {
+    setLocationValue(value)
+    update({ location: locationValueToFilterString(value) })
+  }
 
   return (
     <form className="organization-search-bar" onSubmit={(e) => e.preventDefault()}>
@@ -30,13 +45,14 @@ export default function OrganizationSearchBar({ filters, onChange, causeAreas }:
         />
       </div>
 
-      <div className="organization-search-bar__input-group">
-        <FiMapPin aria-hidden="true" />
-        <input
-          type="text"
+      <div className="organization-search-bar__location">
+        <LocationSelector
+          value={locationValue}
+          onChange={handleLocationChange}
+          showDistrict={false}
+          showVillage={false}
+          label="Lokasi"
           placeholder="Lokasi (cth. Yogyakarta)"
-          value={filters.location}
-          onChange={(e) => update({ location: e.target.value })}
         />
       </div>
 

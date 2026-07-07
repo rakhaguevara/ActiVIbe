@@ -100,3 +100,9 @@ a.account-sidebar__nav-item:hover {
     width: 100%;
   }
 }
+
+@media (max-width: 768px) {
+  .account-sidebar {
+    display: none;
+  }
+}

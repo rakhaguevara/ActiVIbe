@@ -6,6 +6,8 @@ import { FaFacebookF, FaApple } from 'react-icons/fa'
 import logo from '../assets/svg/logo.svg'
 import { useAuth } from '../contexts/AuthContext'
 import { PORTAL_URLS } from '../config/portalUrls'
+import { updateMyProfile } from '../lib/profileApi'
+import LocationSelector, { EMPTY_LOCATION, type LocationValue } from './location/LocationSelector'
 import './AuthModal.css'
 
 export type AuthMode = 'login' | 'signup'
@@ -22,6 +24,7 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
   const [canScrollDown, setCanScrollDown] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle')
+  const [location, setLocation] = useState<LocationValue>(EMPTY_LOCATION)
   const navigate = useNavigate()
   const { login, register, logout } = useAuth()
 
@@ -64,6 +67,7 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
   useEffect(() => {
     setError(null)
     setStatus('idle')
+    setLocation(EMPTY_LOCATION)
   }, [mode])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -95,6 +99,18 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
           email: String(formData.get('email')),
           password: String(formData.get('password')),
         })
+
+        // Simpan lokasi ke profil jika user memilih setidaknya kabupaten/kota.
+        // Disimpan sebagai string yang mudah dibaca, contoh: "Kota Yogyakarta, DI Yogyakarta"
+        if (location.regencyId) {
+          const locationString = location.provinceName
+            ? `${location.regencyName}, ${location.provinceName}`
+            : location.regencyName
+          // fire-and-forget — kegagalan tidak memblokir navigasi
+          updateMyProfile({ location: locationString }).catch(() => {})
+        } else if (location.provinceId) {
+          updateMyProfile({ location: location.provinceName }).catch(() => {})
+        }
       }
 
       setStatus('success')
@@ -189,8 +205,15 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
 
               {!isLogin && (
                 <div className="auth-modal__field">
-                  <label htmlFor="location">Lokasi</label>
-                  <input id="location" name="location" type="text" placeholder="Yogyakarta, Indonesia" required />
+                  <LocationSelector
+                    value={location}
+                    onChange={setLocation}
+                    showDistrict={false}
+                    showVillage={false}
+                    required
+                    label="Lokasi"
+                    placeholder="Pilih kota / kabupaten..."
+                  />
                 </div>
               )}
 

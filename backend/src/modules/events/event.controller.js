@@ -5,6 +5,14 @@ import {
   addRole,
   addRequirement,
   closeEvent,
+  getEventAttendance,
+  generateEventCertificates,
+  listEventCertificates,
+  submitEventFeedback,
+  getEventFeedbackSummary,
+  getOrganizerTrafficSummary,
+  archiveEvent,
+  restoreEvent,
   listPublishedEventsForVolunteer,
   getPublishedEventById,
   logEventView,
@@ -67,6 +75,78 @@ export async function close(req, res, next) {
   }
 }
 
+export async function getAttendance(req, res, next) {
+  try {
+    const records = await getEventAttendance(req.user.id, req.params.id)
+    return res.json({ records })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function generateCertificates(req, res, next) {
+  try {
+    const result = await generateEventCertificates(req.user.id, req.params.id)
+    return res.json(result)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getCertificates(req, res, next) {
+  try {
+    const certificates = await listEventCertificates(req.user.id, req.params.id)
+    return res.json({ certificates })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function submitFeedback(req, res, next) {
+  try {
+    const feedback = await submitEventFeedback(req.user.id, req.params.id, req.body)
+    return res.status(201).json({ feedback })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getFeedbackSummary(req, res, next) {
+  try {
+    const summary = await getEventFeedbackSummary(req.user.id, req.params.id)
+    return res.json(summary)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getTrafficSummary(req, res, next) {
+  try {
+    const summary = await getOrganizerTrafficSummary(req.user.id)
+    return res.json(summary)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function archive(req, res, next) {
+  try {
+    const event = await archiveEvent(req.user.id, req.params.id)
+    return res.json({ event })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function restore(req, res, next) {
+  try {
+    const event = await restoreEvent(req.user.id, req.params.id)
+    return res.json({ event })
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function listPublic(req, res, next) {
   try {
     const { keyword, category, location, skill } = req.query
@@ -88,7 +168,7 @@ export async function getPublic(req, res, next) {
 
 export async function trackView(req, res, next) {
   try {
-    await logEventView(req.params.id, req.user.id)
+    await logEventView(req.params.id, req.user.id, req.body?.source)
     return res.status(204).end()
   } catch (err) {
     next(err)
