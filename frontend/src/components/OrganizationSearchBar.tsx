@@ -53,6 +53,7 @@ export default function OrganizationSearchBar({ filters, onChange, causeAreas }:
           showVillage={false}
           label="Lokasi"
           placeholder="Lokasi (cth. Yogyakarta)"
+          variant="bar"
         />
       </div>
 

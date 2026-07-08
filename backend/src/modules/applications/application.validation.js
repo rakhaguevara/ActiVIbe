@@ -66,3 +66,13 @@ export function validateCheckIn(body) {
   }
   return { valid: true }
 }
+
+export function validateTicketCheckIn(body) {
+  if (!body.ticketCode || typeof body.ticketCode !== 'string' || !body.ticketCode.trim()) {
+    return { valid: false, message: 'ticketCode wajib diisi' }
+  }
+  if (body.method !== undefined && !['qr', 'manual'].includes(body.method)) {
+    return { valid: false, message: 'method harus qr atau manual' }
+  }
+  return { valid: true }
+}

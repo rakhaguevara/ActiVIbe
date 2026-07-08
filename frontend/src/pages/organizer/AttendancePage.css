@@ -24,6 +24,25 @@
   font-family: var(--font-body);
 }
 
+.attendance-page__ticket-form {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.attendance-page__ticket-form input {
+  border: 1px solid var(--color-border-medium);
+  border-radius: 12px;
+  padding: var(--space-xs) var(--space-md);
+  font-family: var(--font-body);
+  min-width: 220px;
+}
+
+.attendance-page__ticket-error {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-danger);
+}
+
 .attendance-page__summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

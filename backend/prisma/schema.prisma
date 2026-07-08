@@ -36,10 +36,10 @@ model User {
   // jadi organizer sekaligus (di kesempatan lain) admin yang approve event.
   organizedEvents Event[]       @relation("EventOrganizer")
   approvedEvents  Event[]       @relation("EventApprovedBy")
-  // Satu User (role ORGANIZER) memiliki paling banyak satu Organization —
-  // lihat model Organization untuk alasan kenapa ini model terpisah, bukan
-  // sekadar query User role=ORGANIZER.
-  organization    Organization? @relation("OrganizationOwner")
+  // Satu User bisa memiliki lebih dari satu Organization (lihat komentar di
+  // model Organization) — lihat model Organization untuk alasan kenapa ini
+  // model terpisah, bukan sekadar query User role=ORGANIZER.
+  organizations   Organization[] @relation("OrganizationOwner")
 
   assignmentsMade      VolunteerAssignment[] @relation("AssignmentAssignedBy")
   organizerNotes       OrganizerNote[]       @relation("OrganizerNoteAuthor")
@@ -326,6 +326,11 @@ enum OrganizationEntityType {
   ORGANISASI
 }
 
+enum OrganizationStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+}
+
 enum LegalDocType {
   NIB
   AKTA
@@ -393,26 +398,33 @@ model EventInterest {
 // Domain "Organisasi" untuk fitur volunteer FindOrganizationPage — dibuat
 // sebagai model penuh (bukan sekadar query User role=ORGANIZER) karena butuh
 // field presentasi (logo, deskripsi, cause area) yang tidak masuk akal
-// disimpan di User/Profile. Satu Organization dimiliki satu User organizer
-// (ownerId unique); dibuat otomatis (upsert) saat organizer pertama kali
-// membuat event — lihat ensureOrganizationForOwner di event.service.js.
+// disimpan di User/Profile. Satu User bisa memiliki lebih dari satu
+// Organization (ownerId TIDAK unique) — lewat dua jalur terpisah:
+// (1) auto-provision saat organizer pertama kali membuat event (lihat
+// ensureOrganizationForOwner di organization.service.js, langsung ACTIVE),
+// atau (2) form pendaftaran self-service ("Daftarkan Organisasimu") yang
+// butuh aktivasi email dulu (status PENDING_VERIFICATION -> ACTIVE lewat
+// activationTokenHash, lihat registerOrganization/activateOrganization).
 model Organization {
-  id           String   @id @default(uuid())
-  ownerId      String   @unique
-  name         String
-  logoUrl      String?
-  shortProfile String
-  location     String
-  address      String?
-  website      String?
-  email        String
-  phone        String
-  causeAreas   String[]
-  isVerified   Boolean  @default(false)
-  mission      String?
-  aboutUs      String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                       String              @id @default(uuid())
+  ownerId                  String
+  name                     String
+  logoUrl                  String?
+  shortProfile             String
+  location                 String
+  address                  String?
+  website                  String?
+  email                    String
+  phone                    String
+  causeAreas               String[]
+  isVerified               Boolean             @default(false)
+  status                   OrganizationStatus  @default(PENDING_VERIFICATION)
+  activationTokenHash      String?             @unique
+  activationTokenExpiresAt DateTime?
+  mission                  String?
+  aboutUs                  String?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
 
   owner  User    @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   events Event[]
@@ -470,6 +482,11 @@ model Application {
   // Diisi organizer saat close event (FR-017/FR-048-049), bukan saat daftar
   attended     Boolean?
   impactValue  Float?
+  // FR-007/FR-044: kode tiket unik (dgn QR) dikirim via email setelah
+  // mendaftar — nullable krn Application lama (sebelum fitur ini) tidak
+  // punya tiket. Dipakai checkInByTicketCode() utk check-in tanpa perlu
+  // VolunteerAssignment (role/shift opsional per event).
+  ticketCode   String?           @unique
   appliedAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 

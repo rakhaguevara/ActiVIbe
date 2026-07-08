@@ -42,8 +42,8 @@
 }
 
 .organization-search-bar__location {
-  flex: 1;
-  min-width: 200px;
+  flex: 1.6;
+  min-width: 320px;
 }
 
 .organization-search-bar__cause-select {

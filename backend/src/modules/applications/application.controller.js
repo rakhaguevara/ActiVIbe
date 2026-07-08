@@ -7,6 +7,7 @@ import {
   assignApplicant,
   checkInAssignment,
   markAssignmentNoShow,
+  checkInByTicketCode,
 } from './application.service.js'
 
 export async function apply(req, res, next) {
@@ -87,6 +88,16 @@ export async function noShow(req, res, next) {
   try {
     const record = await markAssignmentNoShow(req.user.id, req.params.assignmentId)
     return res.json({ record })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function checkInByTicket(req, res, next) {
+  try {
+    const { ticketCode, method } = req.body
+    const attendance = await checkInByTicketCode(req.user.id, ticketCode.trim(), method ?? 'qr')
+    return res.json({ attendance })
   } catch (err) {
     next(err)
   }

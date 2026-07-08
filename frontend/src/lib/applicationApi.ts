@@ -39,6 +39,17 @@ export interface ApplicationRecord {
   event: ApplicationEventSummary
 }
 
+// FR-007: bentuk respons POST /applications yang sesungguhnya — bukan
+// ApplicationRecord (yang punya `event` ter-embed, dipakai GET /applications/me).
+export interface ApplyResult {
+  id: string
+  eventId: string
+  status: ApplicationStatus
+  appliedAt: string
+  ticketCode: string
+  qrDataUrl: string
+}
+
 async function parseResponse(res: Response) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -47,7 +58,7 @@ async function parseResponse(res: Response) {
   return data
 }
 
-export async function applyToEvent(payload: ApplyPayload): Promise<ApplicationRecord> {
+export async function applyToEvent(payload: ApplyPayload): Promise<ApplyResult> {
   const res = await apiFetch(`${API_URL}/applications`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

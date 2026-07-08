@@ -235,6 +235,27 @@ export async function checkInRequest(assignmentId: string, method: 'qr' | 'manua
   return data.record
 }
 
+export interface TicketCheckInResult {
+  applicationId: string
+  eventId: string
+  status: 'checked_in'
+  checkedInAt: string
+  method: 'qr' | 'manual'
+}
+
+// FR-044: check-in langsung lewat kode tiket (dari email tiket volunteer) —
+// tidak butuh assignment role/shift, beda dari checkInRequest() di atas.
+export async function checkInByTicketRequest(ticketCode: string): Promise<TicketCheckInResult> {
+  const res = await apiFetch(`${API_URL}/applications/ticket/check-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ ticketCode, method: 'qr' }),
+  })
+  const data = await parseResponse(res)
+  return data.attendance
+}
+
 export async function markNoShowRequest(assignmentId: string): Promise<AttendanceRecord> {
   const res = await apiFetch(`${API_URL}/applications/assignments/${assignmentId}/no-show`, {
     method: 'POST',

@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import crypto from 'crypto'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import request from 'supertest'
 import fs from 'fs'
 import path from 'path'
 import { app } from '../../app.js'
 import { prisma } from '../../config/prisma.js'
 import { CV_UPLOAD_DIR } from './cv.upload.js'
+
+const FIXED_OTP = '123456'
 
 let outdoorInterest
 let designSkill
@@ -32,9 +35,18 @@ afterEach(() => {
 })
 
 async function registerAndGetCookie() {
-  const res = await request(app)
-    .post('/auth/register')
-    .send({ firstName: 'Casey', lastName: 'Smith', email: 'casey@example.com', password: 'password123' })
+  const randomIntSpy = vi.spyOn(crypto, 'randomInt').mockReturnValue(Number(FIXED_OTP))
+  let res
+  try {
+    await request(app)
+      .post('/auth/register')
+      .send({ firstName: 'Casey', lastName: 'Smith', email: 'casey@example.com', password: 'password123' })
+    res = await request(app)
+      .post('/auth/verify-otp')
+      .send({ email: 'casey@example.com', code: FIXED_OTP })
+  } finally {
+    randomIntSpy.mockRestore()
+  }
   return res.headers['set-cookie'].find((c) => c.startsWith('accessToken='))
 }
 

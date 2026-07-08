@@ -47,6 +47,12 @@ export interface LocationSelectorProps {
   placeholder?: string
   /** Label grup (opsional) */
   label?: string
+  /**
+   * 'default' = field disusun vertikal dengan label terlihat (form biasa).
+   * 'bar' = field disusun sejajar horizontal, label disembunyikan secara visual
+   * (untuk dipakai di search bar satu baris seperti VolunteerSearchBar/OrganizationSearchBar).
+   */
+  variant?: 'default' | 'bar'
 }
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
@@ -70,7 +76,11 @@ interface DropdownProps {
   isLoading: boolean
   isDisabled: boolean
   required?: boolean
+  hideLabel?: boolean
   onSelect: (item: LocationItem) => void
+  /** Label opsi "hapus pilihan" yang selalu tampil di atas list, mis. "Semua Provinsi" */
+  clearLabel: string
+  onClear: () => void
 }
 
 function SearchableDropdown({
@@ -84,7 +94,10 @@ function SearchableDropdown({
   isLoading,
   isDisabled,
   required,
+  hideLabel,
   onSelect,
+  clearLabel,
+  onClear,
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -128,6 +141,12 @@ function SearchableDropdown({
     setSearch('')
   }
 
+  function handleClear() {
+    onClear()
+    setIsOpen(false)
+    setSearch('')
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
     if (e.key === 'Escape') {
       setIsOpen(false)
@@ -139,7 +158,10 @@ function SearchableDropdown({
 
   return (
     <div className="location-selector__field">
-      <label htmlFor={`${id}-trigger`} className="location-selector__label">
+      <label
+        htmlFor={`${id}-trigger`}
+        className={hideLabel ? 'location-selector__label location-selector__label--sr-only' : 'location-selector__label'}
+      >
         {label}
         {required && (
           <span className="location-selector__required" aria-hidden="true">
@@ -202,33 +224,60 @@ function SearchableDropdown({
                 <span className="location-selector__spinner" aria-hidden="true" />
                 Memuat {label.toLowerCase()}...
               </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="location-selector__empty">Tidak ada data</div>
             ) : (
               <ul className="location-selector__list">
-                {filteredItems.map((item) => (
-                  <li
-                    key={item.id}
-                    role="option"
-                    aria-selected={item.id === selectedId}
-                    className={[
-                      'location-selector__option',
-                      item.id === selectedId ? 'location-selector__option--selected' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    onClick={() => handleSelect(item)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        handleSelect(item)
-                      }
-                    }}
-                    tabIndex={0}
-                  >
-                    {item.name}
-                  </li>
-                ))}
+                {/* Opsi "hapus pilihan" — selalu tampil pinned di atas (tidak
+                    ikut kefilter search) supaya user tidak pernah "terjebak"
+                    tanpa cara balik ke semua wilayah, mis. saat pilih provinsi
+                    yang ternyata tidak ada event-nya sama sekali. */}
+                <li
+                  role="option"
+                  aria-selected={!selectedId}
+                  className={[
+                    'location-selector__option',
+                    'location-selector__option--clear',
+                    !selectedId ? 'location-selector__option--selected' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={handleClear}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleClear()
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  {clearLabel}
+                </li>
+                {filteredItems.length === 0 ? (
+                  <li className="location-selector__empty" aria-disabled="true">Tidak ada data</li>
+                ) : (
+                  filteredItems.map((item) => (
+                    <li
+                      key={item.id}
+                      role="option"
+                      aria-selected={item.id === selectedId}
+                      className={[
+                        'location-selector__option',
+                        item.id === selectedId ? 'location-selector__option--selected' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      onClick={() => handleSelect(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleSelect(item)
+                        }
+                      }}
+                      tabIndex={0}
+                    >
+                      {item.name}
+                    </li>
+                  ))
+                )}
               </ul>
             )}
           </div>
@@ -251,6 +300,7 @@ export default function LocationSelector({
   disabled = false,
   placeholder = 'Pilih...',
   label,
+  variant = 'default',
 }: LocationSelectorProps) {
   const [provinces, setProvinces] = useState<LocationItem[]>([])
   const [regencies, setRegencies] = useState<LocationItem[]>([])
@@ -429,10 +479,39 @@ export default function LocationSelector({
     })
   }
 
+  // Hapus pilihan — tiap level cascade reset ke downstream-nya sendiri (sama
+  // seperti handle*Select), tapi tanpa mengisi id/name baru.
+  function handleProvinceClear() {
+    setRegencies([])
+    setDistricts([])
+    setVillages([])
+    onChange(EMPTY_LOCATION)
+  }
+
+  function handleRegencyClear() {
+    setDistricts([])
+    setVillages([])
+    onChange({ ...value, regencyId: '', regencyName: '', districtId: '', districtName: '', villageId: '', villageName: '' })
+  }
+
+  function handleDistrictClear() {
+    setVillages([])
+    onChange({ ...value, districtId: '', districtName: '', villageId: '', villageName: '' })
+  }
+
+  function handleVillageClear() {
+    onChange({ ...value, villageId: '', villageName: '' })
+  }
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
+  const isBar = variant === 'bar'
+
   return (
-    <div className="location-selector" aria-label={label ?? 'Pilih wilayah'}>
+    <div
+      className={isBar ? 'location-selector location-selector--bar' : 'location-selector'}
+      aria-label={label ?? 'Pilih wilayah'}
+    >
       {showProvince && (
         <SearchableDropdown
           id="location-province"
@@ -445,7 +524,10 @@ export default function LocationSelector({
           isLoading={loadingProvinces}
           isDisabled={disabled || loadingProvinces}
           required={required && showProvince}
+          hideLabel={isBar}
           onSelect={handleProvinceSelect}
+          clearLabel="Semua Provinsi"
+          onClear={handleProvinceClear}
         />
       )}
 
@@ -454,14 +536,17 @@ export default function LocationSelector({
           id="location-regency"
           label="Kabupaten / Kota"
           ariaLabel="Pilih kabupaten atau kota"
-          placeholder={value.provinceId ? placeholder : 'Pilih provinsi terlebih dahulu'}
+          placeholder={value.provinceId ? (isBar ? 'Kab/Kota' : placeholder) : (isBar ? 'Kab/Kota' : 'Pilih provinsi terlebih dahulu')}
           items={regencies}
           selectedId={value.regencyId}
           selectedName={value.regencyName}
           isLoading={loadingRegencies}
           isDisabled={disabled || !value.provinceId || loadingRegencies}
           required={required && showRegency}
+          hideLabel={isBar}
           onSelect={handleRegencySelect}
+          clearLabel="Semua Kabupaten/Kota"
+          onClear={handleRegencyClear}
         />
       )}
 
@@ -478,6 +563,8 @@ export default function LocationSelector({
           isDisabled={disabled || !value.regencyId || loadingDistricts}
           required={required && showDistrict}
           onSelect={handleDistrictSelect}
+          clearLabel="Semua Kecamatan"
+          onClear={handleDistrictClear}
         />
       )}
 
@@ -494,6 +581,8 @@ export default function LocationSelector({
           isDisabled={disabled || !value.districtId || loadingVillages}
           required={required && showVillage}
           onSelect={handleVillageSelect}
+          clearLabel="Semua Desa/Kelurahan"
+          onClear={handleVillageClear}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { FiCheck, FiUserX } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
@@ -7,8 +7,25 @@ import './AttendancePage.css'
 
 export default function AttendancePage() {
   const { eventId } = useParams<{ eventId: string }>()
-  const { isLoading, events, applicants, attendanceRecords, checkInAttendance, markNoShow } = useOrganizerData()
+  const { isLoading, events, applicants, attendanceRecords, checkInAttendance, checkInByTicket, markNoShow } = useOrganizerData()
   const [selectedShiftId, setSelectedShiftId] = useState('')
+  const [ticketCode, setTicketCode] = useState('')
+  const [ticketStatus, setTicketStatus] = useState<'idle' | 'submitting'>('idle')
+  const [ticketError, setTicketError] = useState('')
+
+  const handleTicketCheckIn = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setTicketError('')
+    setTicketStatus('submitting')
+    try {
+      await checkInByTicket(ticketCode.trim())
+      setTicketCode('')
+    } catch (err) {
+      setTicketError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi.')
+    } finally {
+      setTicketStatus('idle')
+    }
+  }
 
   const effectiveEventId = eventId || ''
   const selectedEvent = events.find((e) => e.id === effectiveEventId)
@@ -44,10 +61,20 @@ export default function AttendancePage() {
             <option key={s.id} value={s.id}>{s.roleName} — {s.shiftDate} {s.startTime}</option>
           ))}
         </select>
-        <button type="button" className="btn btn--outline btn--sm" disabled>
-          Scan QR
-        </button>
+        <form className="attendance-page__ticket-form" onSubmit={handleTicketCheckIn}>
+          <input
+            type="text"
+            placeholder="Kode tiket (mis. AV-XXXXXXXXXX)"
+            value={ticketCode}
+            onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
+            required
+          />
+          <button type="submit" className="btn btn--outline btn--sm" disabled={ticketStatus === 'submitting'}>
+            {ticketStatus === 'submitting' ? 'Memproses...' : 'Cek-in via Tiket'}
+          </button>
+        </form>
       </div>
+      {ticketError && <p className="attendance-page__ticket-error">{ticketError}</p>}
 
       <div className="attendance-page__summary">
         <div className="card attendance-page__summary-item"><strong>{expected.length}</strong><span>Belum Hadir</span></div>

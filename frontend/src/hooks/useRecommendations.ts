@@ -15,6 +15,7 @@ import {
   subscribeRecommendations,
   type RecommendedEvent,
 } from '../services/recommendation.service'
+import { resolveAssetUrl } from '../lib/assetUrl'
 import pic1 from '../assets/png/pic1 1.png'
 import pic2 from '../assets/png/pic2 1.png'
 
@@ -41,11 +42,18 @@ const DEFAULT_PRESENTATION = {
 }
 
 function toEvent(rec: RecommendedEvent, index: number): Event {
+  // Foto galeri asli (EventGalleryImage) kalau organizer sudah upload —
+  // fallback ke gambar statis cuma kalau event belum ada galerinya sama
+  // sekali, bukan selalu dipaksa pakai gambar generik seperti sebelumnya.
+  // resolveAssetUrl krn backend mengembalikan path relatif ("/uploads/...").
+  const photos = rec.photos.map(resolveAssetUrl)
+
   return {
     ...DEFAULT_PRESENTATION,
     id: rec.id,
     title: rec.title,
-    imageUrl: FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
+    imageUrl: photos[0] ?? FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
+    photos,
     description: rec.description,
     category: rec.category,
     location: rec.location,

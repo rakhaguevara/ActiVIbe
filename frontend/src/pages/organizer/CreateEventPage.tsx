@@ -14,6 +14,7 @@ import EventGalleryUploader from '../../components/organizer/EventGalleryUploade
 import OrganizerDeclarationChecklist from '../../components/organizer/OrganizerDeclarationChecklist'
 import { emptyDeclarationChecklist, type DeclarationKey } from '../../lib/organizerDeclarationItems'
 import { validatePendingApproval } from '../../lib/createEventValidation'
+import { resolveAssetUrl } from '../../lib/assetUrl'
 import type {
   EventMode,
   EventRole,
@@ -433,7 +434,7 @@ export default function CreateEventPage() {
     cancellationPolicy: 'Kebijakan pembatalan standar',
     eventRules: 'Tata tertib standar',
     safetyInfo: 'Informasi keselamatan standar',
-    photos: galleryImages.map((image) => image.url),
+    photos: galleryImages.map((image) => resolveAssetUrl(image.url)),
     mapLink: mapLink || undefined,
     eventMode,
   }

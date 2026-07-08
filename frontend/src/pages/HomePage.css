@@ -851,8 +851,12 @@
   position: relative;
   overflow: hidden;
   background: var(--color-bg-true);
-  padding: 80px 40px 88px;
-  margin-top: -290px;
+  padding: 90px 40px 88px;
+  /* % margin-top resolves against containing-block WIDTH, so this overlap
+     scales in lockstep with .join__wave--bottom (width:100% height:auto) —
+     a fixed px value would under-cover the wave on screens wider than the
+     1440px design width, leaving a hard flat edge across the curve. */
+  margin-top: calc(-20.14% + 124px);
 }
 
 .about__deco {

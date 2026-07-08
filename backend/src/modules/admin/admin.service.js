@@ -333,7 +333,7 @@ export async function getRegionDistribution() {
       where: { location: { not: null } },
       select: { location: true, user: { select: { role: true, createdAt: true } } },
     }),
-    prisma.organization.findMany({ select: { location: true, createdAt: true } }),
+    prisma.organization.findMany({ where: { status: 'ACTIVE' }, select: { location: true, createdAt: true } }),
     prisma.event.findMany({ where: { status: { in: REAL_EVENT_STATUSES } }, select: { location: true } }),
     prisma.application.findMany({
       where: { attended: true },
@@ -418,7 +418,9 @@ async function getPendingEventsAgingCount() {
 }
 
 async function getUnverifiedOrganizationCount() {
-  return prisma.organization.count({ where: { isVerified: false } })
+  // status: ACTIVE saja — organisasi PENDING_VERIFICATION belum diaktivasi
+  // pemiliknya (belum klik link email), jadi belum relevan utk admin verifikasi.
+  return prisma.organization.count({ where: { isVerified: false, status: 'ACTIVE' } })
 }
 
 // Ringkasan angka nyata dipakai admin.service.js sendiri (getOverviewStats)

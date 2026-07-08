@@ -146,10 +146,13 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
                   >
                     Semua Organisasi
                   </Link>
-                  <div className="app-topbar__mega-item app-topbar__mega-item--disabled">
-                    Organisasi Terverifikasi
-                    <span className="app-topbar__mega-badge">Segera Hadir</span>
-                  </div>
+                  <Link
+                    to="/dashboard/organisasi/daftar"
+                    className="app-topbar__mega-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    Daftarkan Organisasimu
+                  </Link>
                 </div>
                 <div className="app-topbar__mega-col">
                   <p className="app-topbar__mega-eyebrow">RESOURCES</p>
@@ -289,10 +292,17 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
             >
               Semua Organisasi
             </NavLink>
-            <div className="app-topbar__mobile-link app-topbar__mobile-link--disabled">
-              Organisasi Terverifikasi
-              <span className="app-topbar__mega-badge">Segera Hadir</span>
-            </div>
+            <NavLink
+              to="/dashboard/organisasi/daftar"
+              className={({ isActive }) =>
+                ['app-topbar__mobile-link', 'app-topbar__mobile-link--secondary', isActive ? 'is-active' : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Daftarkan Organisasimu
+            </NavLink>
             <NavLink
               to="/donasi"
               className={({ isActive }) =>

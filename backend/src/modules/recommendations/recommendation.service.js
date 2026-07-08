@@ -112,6 +112,10 @@ export async function getRecommendations(userId) {
         startDate: event.startDate,
         endDate: event.endDate,
         skills: event.skills,
+        // Foto galeri dokumentasi event (dari EventGalleryImage, lihat
+        // serializePublicEvent) — sebelumnya tidak ikut diteruskan ke sini,
+        // jadi dashboard volunteer selalu pakai gambar fallback statis.
+        photos: event.photos,
         // Hasil personalisasi
         matchScore,
         matchReasoning: ai.matchReasoning,

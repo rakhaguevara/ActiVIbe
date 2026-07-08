@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import {
   registerRequest,
   loginRequest,
+  verifyOtpRequest,
+  resendOtpRequest,
   meRequest,
   logoutRequest,
   type AuthUser,
@@ -12,7 +14,9 @@ import {
 interface AuthContextValue {
   user: AuthUser | null
   isLoading: boolean
-  register: (payload: RegisterPayload) => Promise<AuthUser>
+  register: (payload: RegisterPayload) => Promise<{ otpRequired: true; email: string }>
+  verifyOtp: (email: string, code: string) => Promise<AuthUser>
+  resendOtp: (email: string) => Promise<void>
   login: (payload: LoginPayload) => Promise<AuthUser>
   logout: () => Promise<void>
 }
@@ -31,9 +35,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const register = async (payload: RegisterPayload) => {
-    const { user } = await registerRequest(payload)
+    // Tidak set user di sini — sesi baru terbit setelah OTP diverifikasi.
+    return registerRequest(payload)
+  }
+
+  const verifyOtp = async (email: string, code: string) => {
+    const { user } = await verifyOtpRequest({ email, code })
     setUser(user)
     return user
+  }
+
+  const resendOtp = async (email: string) => {
+    await resendOtpRequest({ email })
   }
 
   const login = async (payload: LoginPayload) => {
@@ -48,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, register, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, register, verifyOtp, resendOtp, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

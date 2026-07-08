@@ -15,7 +15,7 @@ export default function PublicLayout({ onLoginClick, onSignupClick }: PublicLayo
   return (
     <>
       {user ? (
-        <AppTopbar logoTo="/" />
+        <AppTopbar logoTo="/dashboard" />
       ) : (
         <>
           <Navbar onLoginClick={onLoginClick} onSignupClick={onSignupClick} />

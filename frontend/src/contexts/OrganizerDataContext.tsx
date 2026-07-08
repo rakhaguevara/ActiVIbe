@@ -24,6 +24,7 @@ import {
   assignApplicantRequest,
   getEventAttendanceRequest,
   checkInRequest,
+  checkInByTicketRequest,
   markNoShowRequest,
   generateCertificatesRequest,
   listCertificatesRequest,
@@ -53,6 +54,7 @@ interface OrganizerDataContextValue {
   addCommunicationLog: (log: CommunicationLogEntry) => void
   addRequirement: (eventId: string, requirement: { title: string; type: EventRequirement['type']; isMandatory: boolean }) => Promise<void>
   checkInAttendance: (attendanceId: string, method: 'qr' | 'manual') => Promise<void>
+  checkInByTicket: (ticketCode: string) => Promise<void>
   markNoShow: (attendanceId: string) => Promise<void>
   closeEvent: (eventId: string, result: CloseEventResult) => Promise<void>
   generateCertificates: (eventId: string) => Promise<void>
@@ -188,6 +190,17 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // FR-044: check-in lewat kode tiket (dari email tiket volunteer) — tidak
+  // selalu ada baris di attendanceRecords (roster itu keyed by assignment,
+  // sedangkan tiket bisa dipakai walau applicant belum di-assign ke shift),
+  // jadi cukup patch status di `applicants` supaya badge pipeline ter-update.
+  const checkInByTicket = async (ticketCode: string) => {
+    const result = await checkInByTicketRequest(ticketCode)
+    setApplicants((prev) =>
+      prev.map((a) => (a.id === result.applicationId ? { ...a, status: 'checked_in' } : a)),
+    )
+  }
+
   const markNoShow = async (attendanceId: string) => {
     try {
       const updated = await markNoShowRequest(attendanceId)
@@ -257,6 +270,7 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         addCommunicationLog,
         addRequirement,
         checkInAttendance,
+        checkInByTicket,
         markNoShow,
         generateCertificates,
         archiveEvent,

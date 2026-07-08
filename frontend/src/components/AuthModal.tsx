@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { PORTAL_URLS } from '../config/portalUrls'
 import { updateMyProfile } from '../lib/profileApi'
 import LocationSelector, { EMPTY_LOCATION, type LocationValue } from './location/LocationSelector'
+import OtpVerifyForm from './OtpVerifyForm'
 import './AuthModal.css'
 
 export type AuthMode = 'login' | 'signup'
@@ -23,7 +24,8 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
   const bodyRef = useRef<HTMLDivElement>(null)
   const [canScrollDown, setCanScrollDown] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle')
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'otp-pending' | 'success'>('idle')
+  const [pendingEmail, setPendingEmail] = useState('')
   const [location, setLocation] = useState<LocationValue>(EMPTY_LOCATION)
   const navigate = useNavigate()
   const { login, register, logout } = useAuth()
@@ -67,6 +69,7 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
   useEffect(() => {
     setError(null)
     setStatus('idle')
+    setPendingEmail('')
     setLocation(EMPTY_LOCATION)
   }, [mode])
 
@@ -92,36 +95,48 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
           )
           return
         }
-      } else {
-        await register({
-          firstName: String(formData.get('firstName')),
-          lastName: String(formData.get('lastName')),
-          email: String(formData.get('email')),
-          password: String(formData.get('password')),
-        })
-
-        // Simpan lokasi ke profil jika user memilih setidaknya kabupaten/kota.
-        // Disimpan sebagai string yang mudah dibaca, contoh: "Kota Yogyakarta, DI Yogyakarta"
-        if (location.regencyId) {
-          const locationString = location.provinceName
-            ? `${location.regencyName}, ${location.provinceName}`
-            : location.regencyName
-          // fire-and-forget — kegagalan tidak memblokir navigasi
-          updateMyProfile({ location: locationString }).catch(() => {})
-        } else if (location.provinceId) {
-          updateMyProfile({ location: location.provinceName }).catch(() => {})
-        }
+        setStatus('success')
+        setTimeout(() => {
+          onClose()
+          navigate('/dashboard')
+        }, 1200)
+        return
       }
 
-      setStatus('success')
-      setTimeout(() => {
-        onClose()
-        navigate('/dashboard')
-      }, 1200)
+      const { email } = await register({
+        firstName: String(formData.get('firstName')),
+        lastName: String(formData.get('lastName')),
+        email: String(formData.get('email')),
+        password: String(formData.get('password')),
+      })
+
+      setPendingEmail(email)
+      setStatus('otp-pending')
     } catch (err) {
       setStatus('idle')
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi.')
     }
+  }
+
+  // Dipanggil setelah OtpVerifyForm berhasil verifikasi kode — sesi (cookie)
+  // baru terbit di titik ini, jadi update lokasi profil baru boleh dikirim
+  // sekarang (bukan langsung setelah register(), krn belum ada sesi otentikasi).
+  const handleOtpVerified = () => {
+    if (location.regencyId) {
+      const locationString = location.provinceName
+        ? `${location.regencyName}, ${location.provinceName}`
+        : location.regencyName
+      // fire-and-forget — kegagalan tidak memblokir navigasi
+      updateMyProfile({ location: locationString }).catch(() => {})
+    } else if (location.provinceId) {
+      updateMyProfile({ location: location.provinceName }).catch(() => {})
+    }
+
+    setStatus('success')
+    setTimeout(() => {
+      onClose()
+      navigate('/dashboard')
+    }, 1200)
   }
 
   return (
@@ -155,29 +170,35 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
             </button>
           </p>
 
-          <div className="auth-modal__social">
-            <button type="button" className="auth-modal__social-btn">
-              <FcGoogle className="auth-modal__social-icon" aria-hidden="true" />
-              Lanjutkan dengan Google
-            </button>
-            <button type="button" className="auth-modal__social-btn">
-              <FaFacebookF className="auth-modal__social-icon" aria-hidden="true" />
-              Lanjutkan dengan Facebook
-            </button>
-            <button type="button" className="auth-modal__social-btn">
-              <FaApple className="auth-modal__social-icon" aria-hidden="true" />
-              Lanjutkan dengan Apple
-            </button>
-          </div>
+          {status !== 'otp-pending' && (
+            <>
+              <div className="auth-modal__social">
+                <button type="button" className="auth-modal__social-btn">
+                  <FcGoogle className="auth-modal__social-icon" aria-hidden="true" />
+                  Lanjutkan dengan Google
+                </button>
+                <button type="button" className="auth-modal__social-btn">
+                  <FaFacebookF className="auth-modal__social-icon" aria-hidden="true" />
+                  Lanjutkan dengan Facebook
+                </button>
+                <button type="button" className="auth-modal__social-btn">
+                  <FaApple className="auth-modal__social-icon" aria-hidden="true" />
+                  Lanjutkan dengan Apple
+                </button>
+              </div>
 
-          <div className="auth-modal__divider">
-            <span>atau</span>
-          </div>
+              <div className="auth-modal__divider">
+                <span>atau</span>
+              </div>
+            </>
+          )}
 
           {status === 'success' ? (
             <p className="auth-modal__success">
               {isLogin ? 'Berhasil masuk!' : 'Berhasil daftar!'}
             </p>
+          ) : status === 'otp-pending' ? (
+            <OtpVerifyForm email={pendingEmail} onVerified={handleOtpVerified} />
           ) : (
             <form className="auth-modal__form" onSubmit={handleSubmit}>
               {!isLogin && (

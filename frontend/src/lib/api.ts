@@ -22,6 +22,15 @@ export interface LoginPayload {
   password: string
 }
 
+export interface VerifyOtpPayload {
+  email: string
+  code: string
+}
+
+export interface ResendOtpPayload {
+  email: string
+}
+
 async function parseResponse(res: Response) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -30,8 +39,30 @@ async function parseResponse(res: Response) {
   return data
 }
 
-export async function registerRequest(payload: RegisterPayload): Promise<{ user: AuthUser }> {
+// FR-002: registrasi tidak lagi langsung membuat sesi — respons cuma menandai
+// OTP sudah dikirim; sesi (cookie) baru terbit setelah verifyOtpRequest().
+export async function registerRequest(payload: RegisterPayload): Promise<{ otpRequired: true; email: string }> {
   const res = await apiFetch(`${API_URL}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+export async function verifyOtpRequest(payload: VerifyOtpPayload): Promise<{ user: AuthUser }> {
+  const res = await apiFetch(`${API_URL}/auth/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+export async function resendOtpRequest(payload: ResendOtpPayload): Promise<{ success: true }> {
+  const res = await apiFetch(`${API_URL}/auth/resend-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

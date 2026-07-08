@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { ChangeEvent, DragEvent } from 'react'
 import { FiTrash2 } from 'react-icons/fi'
 import { uploadEventGalleryImageRequest } from '../../lib/organizerApi'
+import { resolveAssetUrl } from '../../lib/assetUrl'
 import type { UploadedFile } from '../../types/organizer'
 import './DocumentUploadField.css'
 import './EventGalleryUploader.css'
@@ -96,7 +97,7 @@ export default function EventGalleryUploader({ images, onChange, maxCount = 6 }:
               onDragOver={handleDragOver}
               onDrop={handleDrop(index)}
             >
-              <img src={image.url} alt={image.fileName} />
+              <img src={resolveAssetUrl(image.url)} alt={image.fileName} />
               {index === 0 && <span className="event-gallery-uploader__badge">Thumbnail Utama</span>}
               <button
                 type="button"

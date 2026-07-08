@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ChangeEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { applyToEvent, getMyApplications } from '../lib/applicationApi'
+import { applyToEvent, getMyApplications, type ApplyResult } from '../lib/applicationApi'
 import { loadDraft, saveDraft, clearDraft } from '../lib/formDraft'
 import type { Event } from '../types/event'
 import { formatDateShort } from '../utils/formatDate'
@@ -31,6 +31,7 @@ export default function EventApplyForm({ event }: EventApplyFormProps) {
 
   const [formState, setFormState] = useState<FormState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [ticket, setTicket] = useState<ApplyResult | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -84,12 +85,13 @@ export default function EventApplyForm({ event }: EventApplyFormProps) {
     setErrorMsg('')
 
     try {
-      await applyToEvent({
+      const result = await applyToEvent({
         eventId: event.id,
         whatsapp: whatsapp.trim(),
         motivation: motivation.trim(),
         availability,
       })
+      setTicket(result)
       setFormState('success')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan. Coba lagi.'
@@ -128,8 +130,16 @@ export default function EventApplyForm({ event }: EventApplyFormProps) {
           <span className="event-apply-form__ticket-label">Status</span>
           <span className="event-apply-form__ticket-status">Menunggu konfirmasi</span>
         </div>
+
+        {ticket && (
+          <div className="event-apply-form__ticket-qr">
+            <img src={ticket.qrDataUrl} alt="QR Tiket" width={160} height={160} />
+            <p className="event-apply-form__ticket-code">{ticket.ticketCode}</p>
+          </div>
+        )}
+
         <p className="event-apply-form__ticket-note">
-          Organizer akan menghubungimu via WhatsApp setelah pendaftaran dikonfirmasi.
+          Tiket ini juga sudah dikirim ke emailmu — tunjukkan QR-nya ke panitia saat check-in di lokasi.
         </p>
       </div>
     )

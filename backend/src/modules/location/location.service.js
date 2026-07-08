@@ -1,6 +1,9 @@
 import { AppError } from '../../utils/AppError.js'
 
-const EMSIFA_BASE = 'https://www.emsifa.com/api-wilayah-indonesia/api'
+// Domain asli EMSIFA (www.emsifa.com) sertifikat TLS-nya expired dan belum
+// diperpanjang pemiliknya — pakai mirror data yang sama persis (repo GitHub
+// emsifa/api-wilayah-indonesia) lewat jsdelivr, skema {id,name} identik.
+const EMSIFA_BASE = 'https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@master/static/api'
 
 /**
  * Petakan array wilayah EMSIFA ke format ringkas { id, name }.

@@ -5,8 +5,11 @@ import { prisma } from '../../config/prisma.js'
 import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } from '../../utils/jwt.js'
 import { hashToken } from '../../utils/hash.js'
 import { AppError } from '../../utils/AppError.js'
+import { sendOtpEmail } from '../../utils/mailer.js'
+import { env } from '../../config/env.js'
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const OTP_MAX_VERIFY_ATTEMPTS = 5
 
 function toPublicUser(user) {
   return { id: user.id, name: user.name, email: user.email, role: user.role }
@@ -31,24 +34,51 @@ async function issueTokens(user) {
   return { accessToken, refreshToken }
 }
 
+function generateOtpCode() {
+  return String(crypto.randomInt(100000, 1000000))
+}
+
+// Dipakai register (kode pertama) & resendRegistrationOtp (kirim ulang) —
+// satu tempat supaya expiry/hash/pengiriman selalu konsisten.
+async function issueRegistrationOtp(user) {
+  const code = generateOtpCode()
+  await prisma.otpRequest.create({
+    data: {
+      userId: user.id,
+      code: hashToken(code),
+      purpose: 'REGISTER',
+      expiresAt: new Date(Date.now() + env.OTP_EXPIRY_MINUTES * 60 * 1000),
+    },
+  })
+  await sendOtpEmail(user.email, { name: user.name, code, expiryMinutes: env.OTP_EXPIRY_MINUTES })
+}
+
+// FR-002/003: registrasi tidak lagi langsung membuat sesi — user dibuat
+// isVerified:false, kode OTP dikirim ke email, sesi (tokens/cookies) baru
+// terbit setelah verifyRegistrationOtp() berhasil (lihat auth.controller.js).
 export async function registerUser({ firstName, lastName, email, password, role }) {
   const existing = await prisma.user.findUnique({ where: { email } })
-  if (existing) {
+  if (existing && existing.isVerified) {
     throw new AppError(409, 'Email sudah terdaftar')
   }
 
   const hashedPassword = await bcrypt.hash(password, 10)
+  const name = `${firstName} ${lastName}`.trim()
   let user
   try {
-    user = await prisma.user.create({
-      data: {
-        name: `${firstName} ${lastName}`.trim(),
-        email,
-        password: hashedPassword,
-        isVerified: true,
-        ...(role ? { role } : {}),
-      },
-    })
+    // Sudah pernah daftar tapi belum verifikasi OTP — perbarui data & kirim
+    // ulang kode, jangan 409 (supaya user yang menutup tab sebelum verifikasi
+    // bisa mencoba daftar ulang dengan email yang sama).
+    if (existing) {
+      user = await prisma.user.update({
+        where: { id: existing.id },
+        data: { name, password: hashedPassword, ...(role ? { role } : {}) },
+      })
+    } else {
+      user = await prisma.user.create({
+        data: { name, email, password: hashedPassword, isVerified: false, ...(role ? { role } : {}) },
+      })
+    }
   } catch (error) {
     // Race condition: another request created the same email between our
     // findUnique check above and this create. The DB's @unique constraint
@@ -60,8 +90,55 @@ export async function registerUser({ firstName, lastName, email, password, role 
     throw error
   }
 
+  await issueRegistrationOtp(user)
+  return { email: user.email }
+}
+
+export async function verifyRegistrationOtp({ email, code }) {
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user || user.isVerified) {
+    throw new AppError(400, 'Kode OTP tidak valid')
+  }
+
+  const otp = await prisma.otpRequest.findFirst({
+    where: { userId: user.id, purpose: 'REGISTER', verifiedAt: null },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!otp || otp.expiresAt < new Date()) {
+    throw new AppError(400, 'Kode OTP sudah kedaluwarsa, minta kode baru')
+  }
+  if (otp.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+    throw new AppError(429, 'Terlalu banyak percobaan salah, minta kode baru')
+  }
+  if (hashToken(code) !== otp.code) {
+    await prisma.otpRequest.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } })
+    throw new AppError(400, 'Kode OTP salah')
+  }
+
+  await prisma.$transaction([
+    prisma.otpRequest.update({ where: { id: otp.id }, data: { verifiedAt: new Date() } }),
+    prisma.user.update({ where: { id: user.id }, data: { isVerified: true } }),
+  ])
+
   const tokens = await issueTokens(user)
-  return { user: toPublicUser(user), ...tokens }
+  return { user: toPublicUser({ ...user, isVerified: true }), ...tokens }
+}
+
+// FR-003: maks OTP_MAX_RESEND_ATTEMPTS kali kirim ulang (di luar kode pertama
+// saat register) — dihitung dari total baris OtpRequest yang pernah dibuat
+// utk user+purpose ini, bukan counter terpisah.
+export async function resendRegistrationOtp({ email }) {
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user || user.isVerified) {
+    throw new AppError(400, 'Tidak ada registrasi yang menunggu verifikasi untuk email ini')
+  }
+
+  const sentCount = await prisma.otpRequest.count({ where: { userId: user.id, purpose: 'REGISTER' } })
+  if (sentCount >= 1 + env.OTP_MAX_RESEND_ATTEMPTS) {
+    throw new AppError(429, 'Batas permintaan ulang kode OTP tercapai')
+  }
+
+  await issueRegistrationOtp(user)
 }
 
 export async function loginUser({ email, password }) {
@@ -77,6 +154,9 @@ export async function loginUser({ email, password }) {
 
   // Cek status SETELAH password cocok — supaya orang yang tidak tahu password
   // tidak bisa dipakai buat mengetes/enumerasi akun mana yang ditangguhkan.
+  if (!user.isVerified) {
+    throw new AppError(403, 'Akun belum diverifikasi. Cek email untuk kode OTP registrasi.')
+  }
   if (user.status === 'SUSPENDED') {
     throw new AppError(403, 'Akun Anda telah ditangguhkan. Hubungi admin untuk informasi lebih lanjut.')
   }

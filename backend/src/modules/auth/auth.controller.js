@@ -1,4 +1,12 @@
-import { registerUser, loginUser, getUserFromAccessToken, logoutUser, refreshUserSession } from './auth.service.js'
+import {
+  registerUser,
+  loginUser,
+  getUserFromAccessToken,
+  logoutUser,
+  refreshUserSession,
+  verifyRegistrationOtp,
+  resendRegistrationOtp,
+} from './auth.service.js'
 import { env } from '../../config/env.js'
 import { accessCookieName, refreshCookieName } from '../../utils/sessionSlot.js'
 
@@ -19,9 +27,27 @@ function setAuthCookies(res, { accessToken, refreshToken }, slot) {
 
 export async function register(req, res, next) {
   try {
-    const { user, accessToken, refreshToken } = await registerUser(req.body)
+    const { email } = await registerUser(req.body)
+    res.status(200).json({ otpRequired: true, email })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function verifyOtp(req, res, next) {
+  try {
+    const { user, accessToken, refreshToken } = await verifyRegistrationOtp(req.body)
     setAuthCookies(res, { accessToken, refreshToken }, req.sessionSlot)
     res.status(200).json({ user })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function resendOtp(req, res, next) {
+  try {
+    await resendRegistrationOtp(req.body)
+    res.status(200).json({ success: true })
   } catch (err) {
     next(err)
   }

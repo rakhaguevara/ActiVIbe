@@ -35,3 +35,28 @@ export function validateLoginInput(body) {
 
   return { valid: true }
 }
+
+const OTP_CODE_REGEX = /^\d{6}$/
+
+export function validateVerifyOtpInput(body) {
+  const { email, code } = body
+
+  if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
+    return { valid: false, message: 'Email tidak valid' }
+  }
+  if (!code || typeof code !== 'string' || !OTP_CODE_REGEX.test(code)) {
+    return { valid: false, message: 'Kode OTP harus 6 digit angka' }
+  }
+
+  return { valid: true }
+}
+
+export function validateResendOtpInput(body) {
+  const { email } = body
+
+  if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
+    return { valid: false, message: 'Email tidak valid' }
+  }
+
+  return { valid: true }
+}

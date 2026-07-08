@@ -56,6 +56,8 @@ export interface RecommendedEvent {
   startDate: string
   endDate: string
   skills: string[]
+  /** Foto galeri dokumentasi event (0-6), index 0 = thumbnail utama */
+  photos: string[]
   /** Predictive Match Score final 0–100 (AI, atau rule-based saat fallback) */
   matchScore: number
   /** Satu kalimat reasoning kenapa event ini cocok (FR-005) */

@@ -55,6 +55,7 @@ export default function VolunteerSearchBar({ filters, onChange, categories }: Vo
           showVillage={false}
           label="Lokasi"
           placeholder="Lokasi (cth. Yogyakarta)"
+          variant="bar"
         />
       </div>
 

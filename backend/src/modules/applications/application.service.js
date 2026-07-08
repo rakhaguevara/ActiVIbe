@@ -1,20 +1,56 @@
+import crypto from 'crypto'
+import QRCode from 'qrcode'
 import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
+import { sendEventTicketEmail } from '../../utils/mailer.js'
 
+function generateTicketCode() {
+  return `AV-${crypto.randomBytes(5).toString('hex').toUpperCase()}`
+}
+
+// Fire-and-forget — kegagalan kirim email tiket tidak boleh menggagalkan
+// pendaftaran yang sudah tersimpan (pola sama dgn fallback AI provider).
+async function sendApplicationTicketEmail(userId, application, qrDataUrl) {
+  const [user, event] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } }),
+    prisma.event.findUnique({
+      where: { id: application.eventId },
+      select: { title: true, location: true, startDate: true, endDate: true, organizer: { select: { name: true } } },
+    }),
+  ])
+  if (!user?.email || !event) return
+
+  await sendEventTicketEmail(user.email, {
+    volunteerName: user.name,
+    eventTitle: event.title,
+    eventLocation: event.location,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    organizerName: event.organizer.name,
+    ticketCode: application.ticketCode,
+    qrDataUrl,
+  })
+}
+
+// FR-006/007: setelah mendaftar, volunteer dapat tiket digital (kode + QR)
+// yang bisa discan panitia utk check-in hari-H (FR-044).
 export async function applyToEvent({ userId, eventId, whatsapp, motivation, availability }) {
+  const ticketCode = generateTicketCode()
+  let application
   try {
-    const application = await prisma.application.create({
-      data: { userId, eventId, whatsapp, motivation, availability },
+    application = await prisma.application.create({
+      data: { userId, eventId, whatsapp, motivation, availability, ticketCode },
       select: {
         id: true,
         eventId: true,
         status: true,
         appliedAt: true,
+        ticketCode: true,
       },
     })
-    return application
   } catch (err) {
-    // P2002 = unique constraint violation (sudah pernah mendaftar)
+    // P2002 = unique constraint violation (sudah pernah mendaftar, atau —
+    // sangat kecil kemungkinan — tabrakan ticketCode)
     if (err?.code === 'P2002') {
       const conflict = new Error('Kamu sudah mendaftar ke kegiatan ini.')
       conflict.statusCode = 409
@@ -28,6 +64,13 @@ export async function applyToEvent({ userId, eventId, whatsapp, motivation, avai
     }
     throw err
   }
+
+  const qrDataUrl = await QRCode.toDataURL(application.ticketCode)
+  sendApplicationTicketEmail(userId, application, qrDataUrl).catch((err) =>
+    console.error('[applyToEvent] gagal mengirim email tiket:', err),
+  )
+
+  return { ...application, qrDataUrl }
 }
 
 // Event di-embed langsung (bukan cuma eventId) supaya frontend tidak perlu
@@ -259,5 +302,49 @@ export async function markAssignmentNoShow(organizerId, assignmentId) {
     eventId,
     shiftId: assignment.eventShiftId,
     status: 'no_show',
+  }
+}
+
+// Check-in langsung lewat kode tiket (FR-044) — beda dari checkInAssignment()
+// di atas krn tidak butuh VolunteerAssignment (role/shift opsional per event,
+// lihat event.service.js createEvent). Kalau applicant kebetulan sudah py
+// assignment, eventRoleId/eventShiftId ikut dicatat di AttendanceLog; kalau
+// tidak, keduanya null (kolom ini memang nullable).
+export async function checkInByTicketCode(organizerId, ticketCode, method = 'QR') {
+  const application = await prisma.application.findUnique({
+    where: { ticketCode },
+    include: {
+      event: true,
+      assignments: { orderBy: { assignedAt: 'desc' }, take: 1 },
+    },
+  })
+  if (!application || application.event.organizerId !== organizerId) {
+    throw new AppError(404, 'Tiket tidak ditemukan')
+  }
+  if (['CHECKED_IN', 'COMPLETED', 'NO_SHOW'].includes(application.status)) {
+    throw new AppError(409, 'Volunteer ini sudah tercatat sebelumnya')
+  }
+
+  const latestAssignment = application.assignments[0]
+
+  const [log] = await prisma.$transaction([
+    prisma.attendanceLog.create({
+      data: {
+        applicationId: application.id,
+        eventRoleId: latestAssignment?.eventRoleId ?? null,
+        eventShiftId: latestAssignment?.eventShiftId ?? null,
+        method: method.toUpperCase(),
+        checkedById: organizerId,
+      },
+    }),
+    prisma.application.update({ where: { id: application.id }, data: { status: 'CHECKED_IN' } }),
+  ])
+
+  return {
+    applicationId: application.id,
+    eventId: application.eventId,
+    status: 'checked_in',
+    checkedInAt: log.checkedInAt.toISOString(),
+    method: log.method.toLowerCase(),
   }
 }

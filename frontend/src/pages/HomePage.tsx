@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import Lenis from 'lenis'
 import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
 import bg from '../assets/svg/background-1.svg'
 import wave from '../assets/svg/wave.svg'
@@ -255,6 +256,32 @@ export default function HomePage() {
   const [statsVisible, setStatsVisible] = useState(false)
   const statsRef = useRef<HTMLDivElement>(null)
   const [pageLoaded, setPageLoaded] = useState(false)
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return
+
+    const lenis = new Lenis({
+      lerp: 0.08,
+      smoothWheel: true,
+      smoothTouch: false,
+      allowNestedScroll: true,
+    })
+
+    let rafId = 0
+    const raf = (time: number) => {
+      lenis.raf(time)
+      rafId = requestAnimationFrame(raf)
+    }
+
+    rafId = requestAnimationFrame(raf)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      lenis.destroy()
+    }
+  }, [])
+
   const featuresReveal = useRevealOnScroll(0.1)
   const joinReveal     = useRevealOnScroll(0.08)
   const aboutReveal    = useRevealOnScroll(0.1)
@@ -384,6 +411,7 @@ export default function HomePage() {
 
       {/* ═══ Features ═══ */}
       <section
+        id="features"
         ref={featuresReveal.ref as React.RefObject<HTMLElement>}
         className={`features${featuresReveal.visible ? ' features--visible' : ''}`}
       >
@@ -407,12 +435,13 @@ export default function HomePage() {
         </div>
 
         <div className="features__footer">
-          <a href="#" className="features__cta">Cari Aktivitas</a>
+          <a href="#activities" className="features__cta">Cari Aktivitas</a>
         </div>
       </section>
 
       {/* ═══ Join ═══ */}
       <section
+        id="join"
         ref={joinReveal.ref as React.RefObject<HTMLElement>}
         className={`join${joinReveal.visible ? ' join--visible' : ''}`}
       >
@@ -455,7 +484,7 @@ export default function HomePage() {
               Sebagai organisasi, kelola seluruh siklus volunteer dari satu dashboard — publikasi event, seleksi pendaftar berbasis Match Score AI, hingga distribusi sertifikat otomatis.
             </p>
 
-            <a href="#" className="join__cta">Mengenal Program</a>
+            <a href="#about" className="join__cta">Mengenal Program</a>
           </div>
         </div>
 
@@ -489,7 +518,7 @@ export default function HomePage() {
           </div>
 
           {/* button — static, does NOT participate in fade */}
-          <a href="#" className="join__cta join__cta--mobile">Mengenal Program</a>
+          <a href="#about" className="join__cta join__cta--mobile">Mengenal Program</a>
         </div>
 
         {/* wave bottom */}
@@ -498,6 +527,7 @@ export default function HomePage() {
 
       {/* ═══ About ═══ */}
       <section
+        id="about"
         ref={aboutReveal.ref as React.RefObject<HTMLElement>}
         className={`about${aboutReveal.visible ? ' about--visible' : ''}`}
       >
@@ -529,7 +559,7 @@ export default function HomePage() {
       </section>
 
       {/* ═══ Symbols Carousel ═══ */}
-      <section className="symbols">
+      <section id="symbols" className="symbols">
         <div className="symbols__inner">
           <div className="symbols__header">
             <h2 className="symbols__title">
@@ -539,7 +569,7 @@ export default function HomePage() {
               <p className="symbols__desc">
                 Setiap simbol dalam logo Activibe punya cerita dan makna tersendiri. Kenali filosofi di balik setiap elemen yang merepresentasikan nilai-nilai kami.
               </p>
-              <a href="#" className="symbols__cta">Lihat Semua Simbol →</a>
+              <a href="#activities" className="symbols__cta">Lihat Semua Simbol →</a>
             </div>
           </div>
 
@@ -556,7 +586,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="symbols__card-title">{title}</h3>
                 <p className="symbols__card-desc">{desc}</p>
-                <a href="#" className="symbols__card-link">Pelajari Lebih Lanjut →</a>
+                <a href="#gallery" className="symbols__card-link">Pelajari Lebih Lanjut →</a>
               </article>
             ))}
           </div>
@@ -575,7 +605,7 @@ export default function HomePage() {
                   </div>
                   <h3 className="scroll-stack-card__title">{title}</h3>
                   <p className="scroll-stack-card__desc">{desc}</p>
-                  <a href="#" className="scroll-stack-card__link">Pelajari Lebih Lanjut →</a>
+                  <a href="#gallery" className="scroll-stack-card__link">Pelajari Lebih Lanjut →</a>
                 </ScrollStackItem>
               ))}
             </ScrollStack>
@@ -620,7 +650,7 @@ export default function HomePage() {
       </section>
 
       {/* ═══ Activities ═══ */}
-      <section className="activities">
+      <section id="activities" className="activities">
         <img src={flowerDeco} alt="" className="activities__deco activities__deco--flower" aria-hidden="true" />
 
         <div className="activities__inner">
@@ -667,7 +697,7 @@ export default function HomePage() {
 
                     <div className="activity-card__footer">
                       <span className="activity-card__quota">Kuota: {quota} tersisa</span>
-                      <a href="#" className="activity-card__cta">Daftar Sekarang</a>
+                      <Link to="/dashboard" className="activity-card__cta">Daftar Sekarang</Link>
                     </div>
                   </div>
                 </article>
@@ -685,7 +715,7 @@ export default function HomePage() {
           </div>
 
           <div className="activities__footer">
-            <a href="#" className="activities__cta">Lihat Semua Kegiatan</a>
+            <a href="#gallery" className="activities__cta">Lihat Semua Kegiatan</a>
           </div>
         </div>
       </section>
@@ -708,7 +738,7 @@ export default function HomePage() {
       </section>
 
       {/* ═══ Gallery ═══ */}
-      <section className="gallery">
+      <section id="gallery" className="gallery">
         <div className="gallery__inner">
           <h2 className="gallery__title">
             GALERI MOMEN<br />VOLUNTEER KAMI.
@@ -771,7 +801,7 @@ export default function HomePage() {
                 <p className="gallery__feature-label">{GALLERY_MOMENTS[activeMoment].tag}</p>
                 <h3 className="gallery__feature-title">{GALLERY_MOMENTS[activeMoment].title}</h3>
                 <p className="gallery__feature-desc">{GALLERY_MOMENTS[activeMoment].desc}</p>
-                <a href="#" className="gallery__feature-cta">Lihat Galeri →</a>
+                <a href="#rating" className="gallery__feature-cta">Lihat Galeri →</a>
               </div>
             </article>
 
@@ -791,7 +821,7 @@ export default function HomePage() {
       </section>
 
       {/* ═══ Rating ═══ */}
-      <section className="rating">
+      <section id="rating" className="rating">
         <div className="rating__inner">
           <div className="rating__eyebrow-row">
             <span className="rating__eyebrow">Ulasan</span>

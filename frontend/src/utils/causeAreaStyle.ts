@@ -27,3 +27,7 @@ const DEFAULT_STYLE: CauseAreaStyle = { icon: FiGlobe, bgToken: 'var(--color-sec
 export function getCauseAreaStyle(causeArea: string): CauseAreaStyle {
   return CAUSE_AREA_STYLES[causeArea] ?? DEFAULT_STYLE
 }
+
+// Daftar cause area baku (dipakai form pendaftaran organisasi) — sumber
+// tunggal supaya konsisten dgn styling/ikon yang sudah dipetakan di atas.
+export const CAUSE_AREA_OPTIONS = Object.keys(CAUSE_AREA_STYLES)

@@ -10,6 +10,30 @@
   gap: var(--space-md);
 }
 
+/* ── Varian "bar": field disusun sejajar horizontal, label disembunyikan
+   secara visual — dipakai di search bar satu baris (Volunteer/Organization). ── */
+.location-selector--bar {
+  flex-direction: row;
+  gap: 8px;
+}
+
+.location-selector--bar .location-selector__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.location-selector__label--sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ── Satu field (label + dropdown wrapper) ── */
 .location-selector__field {
   display: flex;
@@ -196,6 +220,18 @@
   background: var(--color-primary-soft);
   color: var(--color-primary);
   font-weight: 600;
+}
+
+/* ── Opsi "hapus pilihan" (Semua Provinsi/Kab-Kota/dst) — dipisah dari list
+   dengan border bawah supaya kelihatan beda dari opsi wilayah biasa ── */
+.location-selector__option--clear {
+  font-style: italic;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.location-selector__option--clear.location-selector__option--selected {
+  color: var(--color-primary);
 }
 
 /* ── Loading state ── */

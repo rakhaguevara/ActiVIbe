@@ -10,6 +10,7 @@ import DonatePage from '../pages/DonatePage'
 import NotFoundPage from '../pages/NotFoundPage'
 import FindActivityPage from '../pages/volunteer/FindActivityPage'
 import FindOrganizationPage from '../pages/volunteer/FindOrganizationPage'
+import OrganizationRegisterPage from '../pages/volunteer/OrganizationRegisterPage'
 import PassportPage from '../pages/volunteer/PassportPage'
 import VolunteerSettingsPage from '../pages/volunteer/SettingsPage'
 import SavedItemsPage from '../pages/volunteer/SavedItemsPage'
@@ -142,6 +143,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
       <Route element={<DashboardLayout />}>
         <Route path="/dashboard" element={<FindActivityPage />} />
         <Route path="/dashboard/organisasi" element={<FindOrganizationPage />} />
+        <Route path="/dashboard/organisasi/daftar" element={<OrganizationRegisterPage />} />
         <Route path="/dashboard/passport" element={<PassportPage />} />
         <Route path="/dashboard/settings" element={<VolunteerSettingsPage />} />
         <Route path="/dashboard/saved" element={<SavedItemsPage />} />
