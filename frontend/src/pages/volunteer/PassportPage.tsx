@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { FiAward, FiClock, FiUsers, FiStar, FiCopy, FiCheck } from 'react-icons/fi'
 import { FaWhatsapp, FaLinkedin, FaInstagram } from 'react-icons/fa'
+import PassportBook from '../../components/passport-book/PassportBook'
+import { MOCK_CHAPTERS } from '../../components/passport-book/passportBook.mockData'
 import './PassportPage.css'
 
 interface SkillProgress {
@@ -11,16 +13,6 @@ interface SkillProgress {
   level: number
 }
 
-interface TimelineEntry {
-  id: string
-  eventTitle: string
-  organizerName: string
-  date: string
-  category: string
-  impactMetric: string
-  narrative: string
-}
-
 const SKILLS: SkillProgress[] = [
   { name: 'Kerja Tim', xp: 340, xpTarget: 500, level: 3 },
   { name: 'Mengajar', xp: 210, xpTarget: 300, level: 2 },
@@ -28,40 +20,10 @@ const SKILLS: SkillProgress[] = [
   { name: 'Kreativitas', xp: 90, xpTarget: 200, level: 1 },
 ]
 
-const TIMELINE: TimelineEntry[] = [
-  {
-    id: 'hist-1',
-    eventTitle: 'Taman Bacaan Komunitas Malioboro',
-    organizerName: 'Gerakan Literasi Yogyakarta',
-    date: '2026-06-14',
-    category: 'Pendidikan',
-    impactMetric: '18 anak diajar',
-    narrative: 'Mendampingi sesi mendongeng dan membaca untuk anak-anak di taman bacaan komunitas selama 6 kali pertemuan akhir pekan.',
-  },
-  {
-    id: 'hist-2',
-    eventTitle: 'Penghijauan Lereng Merapi',
-    organizerName: 'Komunitas Hijau Merapi',
-    date: '2026-05-03',
-    category: 'Lingkungan',
-    impactMetric: '240 bibit ditanam',
-    narrative: 'Ikut menanam bibit pohon di area resapan air sebagai bagian dari program konservasi jangka panjang lereng Merapi.',
-  },
-  {
-    id: 'hist-3',
-    eventTitle: 'Bersih Pantai Parangtritis',
-    organizerName: 'Komunitas Laut Lestari',
-    date: '2026-03-21',
-    category: 'Lingkungan',
-    impactMetric: '18 kg sampah diangkat',
-    narrative: 'Membersihkan sampah plastik di sepanjang pesisir bersama komunitas pesisir, dilanjutkan edukasi pengelolaan sampah untuk warga.',
-  },
-]
-
 const STATS = {
   totalHours: 42,
-  eventsCompleted: TIMELINE.length,
-  ngoCount: new Set(TIMELINE.map((t) => t.organizerName)).size,
+  eventsCompleted: MOCK_CHAPTERS.length,
+  ngoCount: new Set(MOCK_CHAPTERS.map((c) => c.organizerName)).size,
   points: 950,
 }
 
@@ -185,26 +147,12 @@ export default function PassportPage() {
         </div>
       </section>
 
-      <section className="passport-page__timeline">
-        <h2 className="passport-page__section-title">Timeline Kegiatan</h2>
-        <ol className="passport-page__timeline-list">
-          {TIMELINE.map((entry) => (
-            <li key={entry.id} className="passport-page__timeline-item">
-              <div className="passport-page__timeline-dot" />
-              <div className="card passport-page__timeline-card">
-                <div className="passport-page__timeline-head">
-                  <span className="passport-page__timeline-date">
-                    {new Date(entry.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
-                  <span className="badge badge--success">{entry.impactMetric}</span>
-                </div>
-                <h3 className="passport-page__timeline-title">{entry.eventTitle}</h3>
-                <p className="passport-page__timeline-org">{entry.organizerName} &middot; {entry.category}</p>
-                <p className="passport-page__timeline-narrative">{entry.narrative}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+      <section className="passport-page__book-section">
+        <h2 className="passport-page__section-title">Buku Perjalananmu</h2>
+        <p className="passport-page__book-hint">Klik sampul untuk membuka riwayat kegiatanmu, bab demi bab.</p>
+        <div className="passport-page__book-wrap">
+          <PassportBook title="Impact Passport" chapters={MOCK_CHAPTERS} />
+        </div>
       </section>
     </main>
   )
