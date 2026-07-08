@@ -1,0 +1,456 @@
+/* Fondasi/prototype — belum styling final, lihat src/assets/passport/README.md */
+
+.passport-book {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.passport-book__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 46, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 998;
+}
+
+/* Bungkus buku + baris navigasi supaya keduanya ikut ter-center sebagai satu
+   kelompok saat buku terbuka. Tertutup: transparan terhadap layout (display:
+   contents) supaya .passport-book (flex) tetap nge-center surface langsung,
+   sama seperti sebelum ada wrapper ini. */
+.passport-book__frame {
+  display: contents;
+}
+
+.passport-book__frame--open {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  z-index: 999;
+}
+
+.passport-book__surface {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  z-index: 999;
+  box-shadow:
+    0 1px 0 1px var(--color-border-medium),
+    0 2px 0 2px var(--color-bg-surface),
+    0 3px 0 3px var(--color-border-medium),
+    0 10px 24px rgba(26, 26, 46, 0.25);
+}
+
+.passport-book__surface--closed {
+  width: 220px;
+  height: 314px;
+}
+
+.passport-book__surface--open {
+  width: min(92vw, 420px);
+  height: min(78vh, 600px);
+  cursor: default;
+}
+
+/* Di layar laptop/PC ada ruang cukup buat 2 halaman berdampingan (spread) —
+   react-pageflip (usePortrait) yang memutuskan single vs spread berdasarkan
+   lebar kontainer ini, bukan media query terpisah; di sini kita cuma kasih
+   dia ruang yang cukup lebar untuk itu. */
+@media (min-width: 1024px) {
+  .passport-book__surface--open {
+    width: min(88vw, 900px);
+    height: min(78vh, 620px);
+  }
+}
+
+.passport-book__cover-face {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  text-align: center;
+  background: linear-gradient(160deg, var(--color-primary-soft), var(--color-bg-surface));
+  border: 2px dashed var(--color-border-medium);
+  background-size: cover;
+  background-position: center;
+}
+
+.passport-book__cover-placeholder-tag {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.passport-book__cover-title {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  color: var(--color-text-heading);
+}
+
+.passport-book__cover-hint {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-primary);
+}
+
+.passport-book__reader {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-page-alt);
+}
+
+.passport-book__close-btn {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-bg-surface);
+  color: var(--color-text-heading);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 6px rgba(26, 26, 46, 0.15);
+}
+
+.passport-book__flipbook {
+  box-shadow: none;
+}
+
+.passport-book__nav-row {
+  width: min(92vw, 420px);
+  display: flex;
+  justify-content: space-between;
+  z-index: 999;
+}
+
+@media (min-width: 1024px) {
+  .passport-book__nav-row {
+    width: min(88vw, 900px);
+  }
+}
+
+.passport-book__nav {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-surface);
+  color: var(--color-text-heading);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(26, 26, 46, 0.15);
+}
+
+.passport-book__nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Margin konten standar tiap halaman buku: 16px (var(--space-md)) dari tepi
+   ke tepi — patokan ini yang harus diikuti kalau nanti desain custom-mu
+   ditempel di sini, supaya semua halaman (punyaku maupun punyamu) rapat ke
+   tepi yang sama. */
+.passport-book__page {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+}
+
+.passport-book__page-label {
+  font-family: var(--font-display);
+  font-size: var(--text-body-lg);
+  color: var(--color-text-heading);
+}
+
+.passport-book__page-slot {
+  flex: 1;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--color-border-medium);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+.passport-book__page--blank {
+  background: var(--color-bg-page-alt);
+}
+
+/* --- 1/2. Foto kegiatan + share --- */
+
+.passport-book__photo-slot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-bg-page-alt);
+  border: 1px dashed var(--color-border-medium);
+}
+
+.passport-book__photo-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.passport-book__photo-placeholder {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+.passport-book__page-meta {
+  display: flex;
+  gap: var(--space-md);
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+.passport-book__page-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.passport-book__page-org {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.passport-book__share-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.passport-book__share-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.passport-book__share-btn:hover {
+  background: var(--color-primary);
+  color: var(--color-text-on-dark);
+}
+
+/* --- Ringkasan + dampak --- */
+
+.passport-book__summary-text {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.passport-book__stat-tile {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-lg);
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  text-align: center;
+}
+
+.passport-book__stat-value {
+  font-family: var(--font-display);
+  font-size: var(--text-display-md);
+  color: var(--color-primary);
+  line-height: var(--leading-tight);
+}
+
+.passport-book__stat-unit {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-primary);
+}
+
+.passport-book__stat-label {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+/* --- Dampak lingkungan / kata dari yang terdampak --- */
+
+.passport-book__page--highlight {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--color-secondary-soft);
+}
+
+.passport-book__highlight-icon {
+  font-size: 28px;
+  color: var(--color-secondary-dark);
+}
+
+.passport-book__highlight-text {
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  line-height: var(--leading-normal);
+  color: var(--color-text-body);
+}
+
+.passport-book__highlight-text--quote {
+  font-style: italic;
+}
+
+.passport-book__highlight-author {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+/* --- Galeri foto --- */
+
+.passport-book__gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+}
+
+.passport-book__gallery-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.passport-book__gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.passport-book__gallery-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(26, 26, 46, 0.6);
+  color: var(--color-text-on-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.passport-book__gallery-add {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 8px;
+  border: 1px dashed var(--color-border-medium);
+  background: none;
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  cursor: pointer;
+}
+
+.passport-book__gallery-hint {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+.passport-book__gallery-error {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-danger);
+}
+
+/* --- Kesan & pesan --- */
+
+.passport-book__rating-row {
+  display: flex;
+  gap: 4px;
+  color: var(--color-accent-yellow);
+  font-size: 1.1rem;
+}
+
+.passport-book__feedback-hint {
+  margin-top: auto;
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
+/* --- CTA "Cari Event Lagi" --- */
+
+.passport-book__page--cta {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-md);
+}
+
+.passport-book__cta-icon {
+  font-size: 28px;
+  color: var(--color-text-muted);
+}
+
+.passport-book__cta-text {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}

@@ -174,64 +174,16 @@
   color: var(--color-text-muted);
 }
 
-.passport-page__timeline-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.passport-page__timeline-item {
-  display: flex;
-  gap: 16px;
-}
-
-.passport-page__timeline-dot {
-  flex-shrink: 0;
-  width: 12px;
-  height: 12px;
-  margin-top: 20px;
-  border-radius: 999px;
-  background: var(--color-secondary);
-}
-
-.passport-page__timeline-card {
-  flex: 1;
-  border-radius: 20px;
-}
-
-.passport-page__timeline-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.passport-page__timeline-date {
-  font-size: var(--text-body-xs);
-  color: var(--color-text-muted);
-}
-
-.passport-page__timeline-title {
-  margin: 0 0 4px;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  color: var(--color-text-heading);
-}
-
-.passport-page__timeline-org {
-  margin: 0 0 8px;
+.passport-page__book-hint {
+  margin: 0 0 var(--space-lg);
   font-size: var(--text-body-sm);
   color: var(--color-text-muted);
 }
 
-.passport-page__timeline-narrative {
-  margin: 0;
-  font-size: var(--text-body-sm);
-  color: var(--color-text-body);
+.passport-page__book-wrap {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-lg) 0;
 }
 
 @media (max-width: 1024px) {
