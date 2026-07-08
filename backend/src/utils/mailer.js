@@ -45,14 +45,50 @@ export async function sendOtpEmail(to, { name, code, expiryMinutes }) {
   })
 }
 
+function formatDateRange(startDate, endDate) {
+  return startDate.toDateString() === endDate.toDateString()
+    ? startDate.toLocaleDateString('id-ID', { dateStyle: 'long' })
+    : `${startDate.toLocaleDateString('id-ID', { dateStyle: 'long' })} – ${endDate.toLocaleDateString('id-ID', { dateStyle: 'long' })}`
+}
+
+// Dikirim begitu volunteer apply, sebelum organizer meninjau — belum ada
+// tiket/QR di titik ini (lihat sendEventTicketEmail, dikirim saat ACCEPTED).
+export async function sendApplicationPendingEmail(
+  to,
+  { volunteerName, eventTitle, eventLocation, startDate, endDate, organizerName },
+) {
+  const dateRange = formatDateRange(startDate, endDate)
+
+  if (!resendClient) {
+    console.log(`[mailer] RESEND_API_KEY kosong — konfirmasi pendaftaran "${eventTitle}" untuk ${to} (menunggu tinjauan organizer)`)
+    return
+  }
+
+  await resendClient.emails.send({
+    from: env.RESEND_FROM_EMAIL,
+    to,
+    subject: `Pendaftaranmu ke "${eventTitle}" sedang ditinjau`,
+    html: `
+      <p>Halo ${volunteerName},</p>
+      <p>Pendaftaranmu ke <strong>${eventTitle}</strong> sudah kami terima dan sedang ditinjau oleh penyelenggara.</p>
+      <p>
+        <strong>Tanggal:</strong> ${dateRange}<br/>
+        <strong>Lokasi:</strong> ${eventLocation}<br/>
+        <strong>Penyelenggara:</strong> ${organizerName}
+      </p>
+      <p>Kamu akan menerima email tiket beserta QR check-in begitu pendaftaranmu diterima.</p>
+    `,
+  })
+}
+
+// qrBuffer = PNG Buffer (QRCode.toBuffer), dikirim sbg attachment inline
+// (content_id) bukan data: URI di <img src> — Gmail dkk. memblokir/strip
+// data: URI di email HTML, jadi QR tidak pernah tampil kalau di-inline langsung.
 export async function sendEventTicketEmail(
   to,
-  { volunteerName, eventTitle, eventLocation, startDate, endDate, organizerName, ticketCode, qrDataUrl },
+  { volunteerName, eventTitle, eventLocation, startDate, endDate, organizerName, ticketCode, qrBuffer },
 ) {
-  const dateRange =
-    startDate.toDateString() === endDate.toDateString()
-      ? startDate.toLocaleDateString('id-ID', { dateStyle: 'long' })
-      : `${startDate.toLocaleDateString('id-ID', { dateStyle: 'long' })} – ${endDate.toLocaleDateString('id-ID', { dateStyle: 'long' })}`
+  const dateRange = formatDateRange(startDate, endDate)
 
   if (!resendClient) {
     console.log(`[mailer] RESEND_API_KEY kosong — tiket "${eventTitle}" untuk ${to}, kode tiket: ${ticketCode}`)
@@ -65,14 +101,22 @@ export async function sendEventTicketEmail(
     subject: `Tiket pendaftaran "${eventTitle}" di ActiVibe`,
     html: `
       <p>Halo ${volunteerName},</p>
-      <p>Pendaftaranmu ke <strong>${eventTitle}</strong> berhasil. Simpan tiket ini dan tunjukkan QR-nya ke panitia saat check-in di lokasi.</p>
+      <p>Pendaftaranmu ke <strong>${eventTitle}</strong> diterima. Simpan tiket ini dan tunjukkan QR-nya ke panitia saat check-in di lokasi.</p>
       <p>
         <strong>Tanggal:</strong> ${dateRange}<br/>
         <strong>Lokasi:</strong> ${eventLocation}<br/>
         <strong>Penyelenggara:</strong> ${organizerName}
       </p>
-      <p><img src="${qrDataUrl}" alt="QR Tiket" width="200" height="200" /></p>
+      <p><img src="cid:qr-ticket" alt="QR Tiket" width="200" height="200" /></p>
       <p>Kode tiket: <strong>${ticketCode}</strong> (kalau QR tidak bisa dipindai, panitia bisa input kode ini secara manual)</p>
     `,
+    attachments: [
+      {
+        filename: 'tiket-qr.png',
+        content: qrBuffer.toString('base64'),
+        contentType: 'image/png',
+        contentId: 'qr-ticket',
+      },
+    ],
   })
 }

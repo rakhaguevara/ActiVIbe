@@ -205,27 +205,3 @@
   margin: 8px 0 0;
   line-height: 1.5;
 }
-
-.event-apply-form__ticket-qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 16px 0;
-  border-bottom: 1px dashed var(--color-border-light);
-}
-
-.event-apply-form__ticket-qr img {
-  border-radius: 12px;
-  border: 1px solid var(--color-border-light);
-}
-
-.event-apply-form__ticket-code {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: var(--text-body-sm);
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: var(--color-text-heading);
-}

@@ -67,3 +67,20 @@ export interface PassportBookChapter {
 
 export const MAX_GALLERY_PHOTOS = 5
 export const ALLOWED_GALLERY_MIME_TYPES = ['image/png', 'image/jpeg']
+
+// Halaman ringkasan (bio page) di depan buku — dulu ini section terpisah di
+// PassportPage.tsx (hero tagline, stats, skill tracker, share card),
+// sekarang dipindah jadi bagian dari buku itu sendiri.
+export interface PassportStats {
+  totalHours: number
+  eventsCompleted: number
+  ngoCount: number
+  points: number
+}
+
+export interface PassportSkill {
+  name: string
+  xp: number
+  xpTarget: number
+  level: number
+}

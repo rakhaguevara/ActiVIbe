@@ -2,44 +2,65 @@ import crypto from 'crypto'
 import QRCode from 'qrcode'
 import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
-import { sendEventTicketEmail } from '../../utils/mailer.js'
+import { sendEventTicketEmail, sendApplicationPendingEmail } from '../../utils/mailer.js'
 
 function generateTicketCode() {
   return `AV-${crypto.randomBytes(5).toString('hex').toUpperCase()}`
 }
 
-// Fire-and-forget — kegagalan kirim email tiket tidak boleh menggagalkan
-// pendaftaran yang sudah tersimpan (pola sama dgn fallback AI provider).
-async function sendApplicationTicketEmail(userId, application, qrDataUrl) {
+async function fetchApplicationEmailContext(userId, eventId) {
   const [user, event] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } }),
     prisma.event.findUnique({
-      where: { id: application.eventId },
+      where: { id: eventId },
       select: { title: true, location: true, startDate: true, endDate: true, organizer: { select: { name: true } } },
     }),
   ])
-  if (!user?.email || !event) return
+  if (!user?.email || !event) return null
+  return { user, event }
+}
 
-  await sendEventTicketEmail(user.email, {
-    volunteerName: user.name,
-    eventTitle: event.title,
-    eventLocation: event.location,
-    startDate: event.startDate,
-    endDate: event.endDate,
-    organizerName: event.organizer.name,
-    ticketCode: application.ticketCode,
-    qrDataUrl,
+// Fire-and-forget — kegagalan kirim email tidak boleh menggagalkan
+// pendaftaran/perubahan status yang sudah tersimpan (pola sama dgn fallback AI provider).
+async function sendApplicationReceivedEmail(userId, application) {
+  const ctx = await fetchApplicationEmailContext(userId, application.eventId)
+  if (!ctx) return
+
+  await sendApplicationPendingEmail(ctx.user.email, {
+    volunteerName: ctx.user.name,
+    eventTitle: ctx.event.title,
+    eventLocation: ctx.event.location,
+    startDate: ctx.event.startDate,
+    endDate: ctx.event.endDate,
+    organizerName: ctx.event.organizer.name,
   })
 }
 
-// FR-006/007: setelah mendaftar, volunteer dapat tiket digital (kode + QR)
-// yang bisa discan panitia utk check-in hari-H (FR-044).
+async function sendApplicationTicketEmail(userId, application, qrBuffer) {
+  const ctx = await fetchApplicationEmailContext(userId, application.eventId)
+  if (!ctx) return
+
+  await sendEventTicketEmail(ctx.user.email, {
+    volunteerName: ctx.user.name,
+    eventTitle: ctx.event.title,
+    eventLocation: ctx.event.location,
+    startDate: ctx.event.startDate,
+    endDate: ctx.event.endDate,
+    organizerName: ctx.event.organizer.name,
+    ticketCode: application.ticketCode,
+    qrBuffer,
+  })
+}
+
+// FR-006/007: mendaftar hanya membuat Application berstatus APPLIED (belum
+// ada ticketCode/QR) + email konfirmasi "sedang ditinjau". Tiket digital
+// (kode + QR yg bisa discan panitia utk check-in, FR-044) baru diterbitkan
+// saat organizer menerima aplikasi ini (lihat updateApplicationStatus).
 export async function applyToEvent({ userId, eventId, whatsapp, motivation, availability }) {
-  const ticketCode = generateTicketCode()
   let application
   try {
     application = await prisma.application.create({
-      data: { userId, eventId, whatsapp, motivation, availability, ticketCode },
+      data: { userId, eventId, whatsapp, motivation, availability },
       select: {
         id: true,
         eventId: true,
@@ -49,8 +70,7 @@ export async function applyToEvent({ userId, eventId, whatsapp, motivation, avai
       },
     })
   } catch (err) {
-    // P2002 = unique constraint violation (sudah pernah mendaftar, atau —
-    // sangat kecil kemungkinan — tabrakan ticketCode)
+    // P2002 = unique constraint violation (sudah pernah mendaftar)
     if (err?.code === 'P2002') {
       const conflict = new Error('Kamu sudah mendaftar ke kegiatan ini.')
       conflict.statusCode = 409
@@ -65,12 +85,11 @@ export async function applyToEvent({ userId, eventId, whatsapp, motivation, avai
     throw err
   }
 
-  const qrDataUrl = await QRCode.toDataURL(application.ticketCode)
-  sendApplicationTicketEmail(userId, application, qrDataUrl).catch((err) =>
-    console.error('[applyToEvent] gagal mengirim email tiket:', err),
+  sendApplicationReceivedEmail(userId, application).catch((err) =>
+    console.error('[applyToEvent] gagal mengirim email konfirmasi pendaftaran:', err),
   )
 
-  return { ...application, qrDataUrl }
+  return application
 }
 
 // Event di-embed langsung (bukan cuma eventId) supaya frontend tidak perlu
@@ -216,12 +235,29 @@ export async function listApplicantsForEvent(organizerId, eventId) {
   return applications.map((app) => serializeApplicant(app, completedByUser.get(app.userId) ?? 0))
 }
 
+// FR-006/007: tiket+QR (kode unik, dipakai checkInByTicketCode) baru terbit
+// begitu volunteer diterima — bukan saat apply — supaya applicant yang
+// ditolak/di-waitlist tidak pernah punya tiket check-in yang valid.
 export async function updateApplicationStatus(organizerId, applicationId, status) {
-  await assertOwnsApplication(organizerId, applicationId)
-  await prisma.application.update({
-    where: { id: applicationId },
-    data: { status: status.toUpperCase() },
-  })
+  const application = await assertOwnsApplication(organizerId, applicationId)
+  const normalizedStatus = status.toUpperCase()
+  const data = { status: normalizedStatus }
+
+  const shouldIssueTicket = normalizedStatus === 'ACCEPTED' && !application.ticketCode
+  if (shouldIssueTicket) {
+    data.ticketCode = generateTicketCode()
+  }
+
+  await prisma.application.update({ where: { id: applicationId }, data })
+
+  if (shouldIssueTicket) {
+    QRCode.toBuffer(data.ticketCode, { type: 'png' })
+      .then((qrBuffer) =>
+        sendApplicationTicketEmail(application.userId, { eventId: application.eventId, ticketCode: data.ticketCode }, qrBuffer),
+      )
+      .catch((err) => console.error('[updateApplicationStatus] gagal mengirim email tiket:', err))
+  }
+
   return getApplicantDetail(applicationId)
 }
 

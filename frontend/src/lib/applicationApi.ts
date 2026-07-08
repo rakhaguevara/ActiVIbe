@@ -41,13 +41,13 @@ export interface ApplicationRecord {
 
 // FR-007: bentuk respons POST /applications yang sesungguhnya — bukan
 // ApplicationRecord (yang punya `event` ter-embed, dipakai GET /applications/me).
+// Belum ada ticketCode/QR di titik ini — tiket baru terbit & dikirim via
+// email begitu organizer menerima aplikasinya (lihat CLAUDE.md).
 export interface ApplyResult {
   id: string
   eventId: string
   status: ApplicationStatus
   appliedAt: string
-  ticketCode: string
-  qrDataUrl: string
 }
 
 async function parseResponse(res: Response) {

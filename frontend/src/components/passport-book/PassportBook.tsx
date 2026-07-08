@@ -4,13 +4,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import HTMLFlipBook from 'react-pageflip'
 import type { FlipBookHandle, PageFlipEvent } from 'react-pageflip'
 import { PhotoSharePage, SummaryImpactPage, CategoryHighlightPage, GalleryPage, FeedbackPage, CtaFillerPage } from './ChapterPages'
+import { SummaryStatsPage, SkillsPage, SharePage } from './SummaryPages'
 import { MAX_GALLERY_PHOTOS, ALLOWED_GALLERY_MIME_TYPES } from './passportBook.types'
-import type { PassportBookChapter } from './passportBook.types'
+import type { PassportBookChapter, PassportSkill, PassportStats } from './passportBook.types'
 import './PassportBook.css'
 
 interface PassportBookProps {
   title?: string
   chapters?: PassportBookChapter[]
+  // Bio page di depan buku — dulu section terpisah (hero/stats/skills/share)
+  // di PassportPage.tsx, sekarang jadi 3 halaman pertama buku.
+  tagline: string
+  stats: PassportStats
+  skills: PassportSkill[]
+  publicUrl: string
   // Berapa halaman CTA "Cari Event Lagi" ditambahkan di akhir buku. Sengaja
   // kecil & tetap (bukan mengisi sampai jumlah halaman tertentu) — kalau
   // dipaksa mengisi banyak halaman kosong, beberapa spread berturut-turut
@@ -20,7 +27,7 @@ interface PassportBookProps {
 }
 
 type RenderPage =
-  | { id: string; kind: 'cover' | 'blank' | 'cta' }
+  | { id: string; kind: 'summary' | 'skills' | 'share' | 'cta' }
   | { id: string; kind: 'chapter'; chapter: PassportBookChapter; pageType: 'photo-share' | 'summary-impact' | 'highlight' | 'gallery' | 'feedback' }
 
 function chapterHasHighlight(chapter: PassportBookChapter) {
@@ -30,15 +37,17 @@ function chapterHasHighlight(chapter: PassportBookChapter) {
   )
 }
 
-// Cover (sendirian lewat showCover) -> halaman blank (verso, meniru buku
-// fisik) -> tiap bab dipecah jadi beberapa halaman sesuai urutan yang
-// diminta: foto+share, ringkasan+dampak, dampak lingkungan/kata penerima
-// manfaat (kondisional), galeri, kesan & pesan -> ditutup beberapa halaman
-// CTA di akhir (jumlah tetap & kecil, lihat komentar fillerPages).
+// Bio page (tagline+stats, sendirian lewat showCover, kayak halaman biodata
+// di paspor asli) -> skill tracker + share card (sepasang) -> tiap bab
+// dipecah jadi beberapa halaman sesuai urutan yang diminta: foto+share,
+// ringkasan+dampak, dampak lingkungan/kata penerima manfaat (kondisional),
+// galeri, kesan & pesan -> ditutup beberapa halaman CTA di akhir (jumlah
+// tetap & kecil, lihat komentar fillerPages).
 function buildPages(chapters: PassportBookChapter[], fillerPages: number): RenderPage[] {
   const pages: RenderPage[] = [
-    { id: 'cover', kind: 'cover' },
-    { id: 'cover-blank', kind: 'blank' },
+    { id: 'summary', kind: 'summary' },
+    { id: 'skills', kind: 'skills' },
+    { id: 'share', kind: 'share' },
   ]
 
   chapters.forEach((chapter) => {
@@ -68,7 +77,17 @@ const coverModules = import.meta.glob('/src/assets/passport/cover.*', {
 }) as Record<string, string>
 const coverUrl = Object.values(coverModules)[0]
 
-export default function PassportBook({ title = 'Impact Passport', chapters = [], fillerPages = 1 }: PassportBookProps) {
+export default function PassportBook({
+  title = 'Impact Passport',
+  chapters = [],
+  tagline,
+  stats,
+  skills,
+  publicUrl,
+  fillerPages = 1,
+}: PassportBookProps) {
+  const shareText = `Aku baru saja menyelesaikan ${stats.eventsCompleted} kegiatan volunteer dan berkontribusi ${stats.totalHours} jam bersama ${stats.ngoCount} organisasi lewat ActiVibe!`
+
   const [isExpanded, setIsExpanded] = useState(false)
   const [isBookMounted, setIsBookMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
@@ -154,15 +173,12 @@ export default function PassportBook({ title = 'Impact Passport', chapters = [],
 
   const renderPage = (page: RenderPage): ReactNode => {
     switch (page.kind) {
-      case 'cover':
-        return (
-          <div key={page.id} className="passport-book__page">
-            <span className="passport-book__page-label">{title}</span>
-            <p className="passport-book__summary-text">Rangkuman perjalanan volunteer-mu ada di halaman berikutnya.</p>
-          </div>
-        )
-      case 'blank':
-        return <div key={page.id} className="passport-book__page passport-book__page--blank" />
+      case 'summary':
+        return <SummaryStatsPage key={page.id} tagline={tagline} stats={stats} />
+      case 'skills':
+        return <SkillsPage key={page.id} skills={skills} />
+      case 'share':
+        return <SharePage key={page.id} publicUrl={publicUrl} shareText={shareText} />
       case 'cta':
         return <CtaFillerPage key={page.id} />
       case 'chapter':
