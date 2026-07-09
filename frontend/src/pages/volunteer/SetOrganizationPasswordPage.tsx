@@ -1,7 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { FiCheckCircle, FiChevronLeft } from 'react-icons/fi'
-import { requestOrganizationSetPasswordOtp, setOrganizationPassword } from '../../lib/organizationApi'
+import { useSearchParams } from 'react-router-dom'
+import { FiCheckCircle } from 'react-icons/fi'
+import { motion } from 'framer-motion'
+import {
+  getOrganizationSetPasswordInfo,
+  requestOrganizationSetPasswordOtp,
+  setOrganizationPassword,
+} from '../../lib/organizationApi'
 import { PORTAL_URLS } from '../../config/portalUrls'
 import './SetOrganizationPasswordPage.css'
 
@@ -32,12 +37,27 @@ export default function SetOrganizationPasswordPage() {
   const [info, setInfo] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'submitting'>('idle')
   const [cooldown, setCooldown] = useState(0)
+  // existingAccount = email ini sudah terhubung ke akun ActiVibe yang aktif —
+  // lanjut berarti mengganti password akun itu, jadi wajib konfirmasi
+  // eksplisit (checkbox) sebelum tombol "Lanjut" bisa dipakai.
+  const [existingAccount, setExistingAccount] = useState(false)
+  const [confirmedExistingAccount, setConfirmedExistingAccount] = useState(false)
 
   useEffect(() => {
     if (cooldown <= 0) return
     const timer = setInterval(() => setCooldown((s) => Math.max(0, s - 1)), 1000)
     return () => clearInterval(timer)
   }, [cooldown])
+
+  useEffect(() => {
+    if (!token) return
+    getOrganizationSetPasswordInfo(token)
+      .then((data) => {
+        setOrganizationName(data.organizationName)
+        setExistingAccount(data.existingAccount)
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi.'))
+  }, [token])
 
   const handleSubmitPassword = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -53,6 +73,10 @@ export default function SetOrganizationPasswordPage() {
     }
     if (password !== confirmPassword) {
       setError('Konfirmasi password tidak sama.')
+      return
+    }
+    if (existingAccount && !confirmedExistingAccount) {
+      setError('Centang konfirmasi di atas dulu sebelum melanjutkan.')
       return
     }
 
@@ -97,11 +121,12 @@ export default function SetOrganizationPasswordPage() {
 
   return (
     <main className="set-org-password-page">
-      <div className="set-org-password-page__panel card">
-        <Link to="/" className="set-org-password-page__back">
-          <FiChevronLeft /> Kembali ke ActiVibe
-        </Link>
-
+      <motion.div 
+        className="set-org-password-page__panel card"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
         {step === 'done' && (
           <div className="set-org-password-page__confirmation">
             <FiCheckCircle className="set-org-password-page__confirmation-icon" />
@@ -124,6 +149,13 @@ export default function SetOrganizationPasswordPage() {
             </p>
 
             <form className="set-org-password-page__form" onSubmit={handleSubmitPassword}>
+              {existingAccount && (
+                <p className="set-org-password-page__warning">
+                  <strong>Perhatian:</strong> email ini sudah terhubung ke akun ActiVibe yang sudah ada. Melanjutkan
+                  akan <strong>mengganti password akun tersebut</strong> dan menambahkan akses organizer padanya.
+                </p>
+              )}
+
               <label className="set-org-password-page__field">
                 <span>Password Baru</span>
                 <input
@@ -148,9 +180,24 @@ export default function SetOrganizationPasswordPage() {
                 />
               </label>
 
+              {existingAccount && (
+                <label className="set-org-password-page__confirm-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={confirmedExistingAccount}
+                    onChange={(e) => setConfirmedExistingAccount(e.target.checked)}
+                  />
+                  <span>Saya paham password akun ActiVibe yang sudah ada akan diganti.</span>
+                </label>
+              )}
+
               {error && <p className="set-org-password-page__error">{error}</p>}
 
-              <button type="submit" className="btn btn--primary" disabled={status === 'submitting'}>
+              <button
+                type="submit"
+                className="btn btn--primary"
+                disabled={status === 'submitting' || (existingAccount && !confirmedExistingAccount)}
+              >
                 {status === 'submitting' ? 'Mengirim kode...' : 'Lanjut'}
               </button>
             </form>
@@ -201,7 +248,7 @@ export default function SetOrganizationPasswordPage() {
             </form>
           </>
         )}
-      </div>
+      </motion.div>
     </main>
   )
 }

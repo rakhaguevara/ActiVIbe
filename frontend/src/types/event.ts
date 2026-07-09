@@ -49,4 +49,8 @@ export interface Event {
   /** Link share Google Maps atau alamat/koordinat teks — lihat lib/mapsEmbed.ts */
   mapLink?: string
   eventMode?: 'ONLINE' | 'OFFLINE'
+  /** Fitur "women respect" (KAI-style) — gender organizer & jumlah peserta perempuan
+   * yang sudah diterima (ACCEPTED+). Cuma dirender kalau volunteer yg login FEMALE. */
+  organizerGender?: 'MALE' | 'FEMALE' | null
+  femaleAcceptedCount?: number
 }

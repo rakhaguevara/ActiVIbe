@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FiShare2, FiBookmark } from 'react-icons/fi'
+import type { Gender } from '../lib/profileApi'
 import type { Event } from '../types/event'
 import { getMatchTier } from '../utils/matchScore'
 import { useBookmarkedEvents } from '../hooks/useBookmarkedEvents'
@@ -19,9 +20,11 @@ import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
   event: Event
+  /** Fitur "women respect" — badge jumlah peserta perempuan cuma tampil kalau FEMALE */
+  currentUserGender?: Gender | null
 }
 
-export default function EventDetailPanel({ event }: EventDetailPanelProps) {
+export default function EventDetailPanel({ event, currentUserGender }: EventDetailPanelProps) {
   const [showFullDescription, setShowFullDescription] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const { isBookmarked, toggle } = useBookmarkedEvents()
@@ -69,6 +72,11 @@ export default function EventDetailPanel({ event }: EventDetailPanelProps) {
           {event.matchScore}% Match Score{event.relevanceLabel ? ` · ${event.relevanceLabel}` : ''}
         </span>
         <span className="event-detail-panel__fit-badge">{event.symbol ?? '✨'} {event.fitBadgeLabel}</span>
+        {currentUserGender === 'FEMALE' && event.femaleAcceptedCount !== undefined && (
+          <span className="event-detail-panel__women-badge">
+            👩 {event.femaleAcceptedCount} perempuan terdaftar
+          </span>
+        )}
       </div>
       <p className="event-detail-panel__match-reasoning">{event.matchReasoning}</p>
 

@@ -107,6 +107,11 @@ export async function getRecommendations(userId) {
         category: event.category,
         location: event.location,
         organizerName: event.organizerName,
+        // Women respect (fitur KAI-style, lihat serializePublicEvent) —
+        // gender organizer & jumlah peserta perempuan diterima, cuma
+        // ditampilkan frontend kalau volunteer yg login FEMALE.
+        organizerGender: event.organizerGender,
+        femaleAcceptedCount: event.femaleAcceptedCount,
         quota: event.quota,
         filledSlots: event.filledSlots,
         startDate: event.startDate,

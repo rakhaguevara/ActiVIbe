@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { FiCheck } from 'react-icons/fi'
 import { useAuth } from '../../contexts/AuthContext'
 import { loadDraft, saveDraft, clearDraft } from '../../lib/formDraft'
-import type { Applicant, OrganizerEvent } from '../../types/organizer'
+import CloseEventReportFields, { type CloseEventReportDraft } from './CloseEventReportFields'
+import type { Applicant, EventCloseReport, OrganizerEvent } from '../../types/organizer'
 import './CloseEventWizard.css'
 
 type FinalStatus = 'completed' | 'no_show' | 'cancelled_by_organizer' | 'cancelled_by_volunteer'
@@ -17,6 +18,7 @@ const FINAL_STATUS_LABEL: Record<FinalStatus, string> = {
 export interface CloseEventResult {
   finalStatuses: Record<string, FinalStatus>
   impactValue: number
+  closeReport: EventCloseReport
 }
 
 interface CloseEventWizardProps {
@@ -29,15 +31,29 @@ interface CloseEventWizardProps {
 const STEP_TITLES = [
   'Final Attendance Review',
   'Input Impact Value',
+  'Laporan Penutupan Kegiatan',
   'Review Volunteer Outcomes',
   'Preview Final Output',
   'Confirm & Close',
 ]
 
+function emptyReportDraft(): CloseEventReportDraft {
+  return {
+    narrativeSummary: '',
+    volunteersPresentCount: 0,
+    totalContributionHours: 0,
+    photos: [],
+    constraintsNotes: '',
+    impactSummary: '',
+    categoryMetrics: {},
+  }
+}
+
 interface CloseEventDraft {
   step: number
   finalStatuses: Record<string, FinalStatus>
   impactValue: number
+  report: CloseEventReportDraft
 }
 
 export default function CloseEventWizard({ event, applicants, onClose, onConfirm }: CloseEventWizardProps) {
@@ -49,22 +65,38 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
   const [finalStatuses, setFinalStatuses] = useState<Record<string, FinalStatus>>(() => {
     if (draft?.finalStatuses) return draft.finalStatuses
     const initial: Record<string, FinalStatus> = {}
+    // Default hanya 'completed' utk volunteer yang benar-benar sudah
+    // check-in (Applicant.status === 'checked_in', diisi dari Attendance tab
+    // — lihat AttendancePage.tsx checkInAttendance/checkInByTicket). Kalau
+    // kehadiran belum dikonfirmasi, default ke 'no_show' — organizer TETAP
+    // bisa override manual per baris di step ini, tapi defaultnya tidak
+    // pernah diam-diam meloloskan volunteer yang belum di-cek ke Impact
+    // Passport (poin/ImpactLog cuma dibuat utk status 'completed').
     applicants.forEach((a) => {
-      initial[a.id] = a.status === 'no_show' ? 'no_show' : 'completed'
+      initial[a.id] = a.status === 'checked_in' ? 'completed' : 'no_show'
     })
     return initial
   })
   const [impactValue, setImpactValue] = useState(() => draft?.impactValue ?? event.impactValue ?? applicants.length * 5)
+  const [report, setReport] = useState<CloseEventReportDraft>(() => {
+    if (draft?.report) return draft.report
+    const initialPresentCount = applicants.filter((a) => finalStatuses[a.id] === 'completed').length
+    return { ...emptyReportDraft(), volunteersPresentCount: initialPresentCount }
+  })
 
   // Autosave draft lokal per event — bertahan lintas refresh, cuma hilang
   // kalau organizer klik "Batal" (lihat handleCancel, dianggap aksi discard
   // eksplisit di wizard ini).
   useEffect(() => {
-    saveDraft<CloseEventDraft>(draftKey, { step, finalStatuses, impactValue })
-  }, [draftKey, step, finalStatuses, impactValue])
+    saveDraft<CloseEventDraft>(draftKey, { step, finalStatuses, impactValue, report })
+  }, [draftKey, step, finalStatuses, impactValue, report])
 
   const setStatus = (applicantId: string, status: FinalStatus) => {
     setFinalStatuses((prev) => ({ ...prev, [applicantId]: status }))
+  }
+
+  const updateReport = (patch: Partial<CloseEventReportDraft>) => {
+    setReport((prev) => ({ ...prev, ...patch }))
   }
 
   const counts = useMemo(() => {
@@ -82,7 +114,19 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
 
   const handleConfirm = () => {
     clearDraft(draftKey)
-    onConfirm({ finalStatuses, impactValue })
+    onConfirm({
+      finalStatuses,
+      impactValue,
+      closeReport: {
+        narrativeSummary: report.narrativeSummary,
+        volunteersPresentCount: report.volunteersPresentCount,
+        totalContributionHours: report.totalContributionHours,
+        photoUrls: report.photos.map((p) => p.url),
+        constraintsNotes: report.constraintsNotes || undefined,
+        impactSummary: report.impactSummary || undefined,
+        categoryMetrics: Object.keys(report.categoryMetrics).length > 0 ? report.categoryMetrics : undefined,
+      },
+    })
     onClose()
   }
 
@@ -90,7 +134,7 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
     <div className="close-wizard__backdrop" onClick={handleCancel}>
       <div className="close-wizard" onClick={(e) => e.stopPropagation()}>
         <header className="close-wizard__header">
-          <p className="close-wizard__step-label">Step {step} dari 5</p>
+          <p className="close-wizard__step-label">Step {step} dari {STEP_TITLES.length}</p>
           <h2>{STEP_TITLES[step - 1]}</h2>
           <div className="close-wizard__dots">
             {STEP_TITLES.map((title, i) => (
@@ -102,6 +146,10 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
         <div className="close-wizard__body">
           {step === 1 && (
             <div className="close-wizard__attendance-list">
+              <p className="close-wizard__attendance-hint">
+                Status diisi otomatis berdasarkan data check-in di tab Attendance — hanya volunteer yang sudah
+                check-in yang default &ldquo;Hadir&rdquo;. Ubah manual di bawah kalau ada koreksi.
+              </p>
               {applicants.length === 0 && <p className="close-wizard__empty">Tidak ada volunteer accepted/assigned untuk event ini.</p>}
               {applicants.map((a) => (
                 <div key={a.id} className="close-wizard__attendance-row">
@@ -135,6 +183,10 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
           )}
 
           {step === 3 && (
+            <CloseEventReportFields category={event.category} value={report} onChange={updateReport} />
+          )}
+
+          {step === 4 && (
             <div className="close-wizard__summary">
               <p>Ringkasan volunteer yang akan menerima completion status, poin, sertifikat, dan update Impact Passport:</p>
               <ul>
@@ -146,7 +198,7 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
             </div>
           )}
 
-          {step === 4 && sampleApplicant && (
+          {step === 5 && sampleApplicant && (
             <div className="close-wizard__preview card">
               <p className="close-wizard__preview-eyebrow">Contoh preview untuk {sampleApplicant.volunteerName}</p>
               <p className="close-wizard__preview-headline">
@@ -154,15 +206,16 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
                 {impactValue} {event.impactMetricUnit} ({event.impactMetricLabel.toLowerCase()}).&rdquo;
               </p>
               <p className="close-wizard__preview-meta">Status kehadiran: {FINAL_STATUS_LABEL[finalStatuses[sampleApplicant.id]]}</p>
+              {report.narrativeSummary && <p className="close-wizard__preview-meta">{report.narrativeSummary}</p>}
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="close-wizard__confirm">
               <p>
-                Menekan konfirmasi akan menandai volunteer sesuai status di atas, membuat ImpactLog, meng-generate
-                sertifikat batch, memperbarui Skill Progress, dan mengirim notifikasi personal. Aksi ini tidak bisa
-                dibatalkan.
+                Menekan konfirmasi akan menandai volunteer sesuai status di atas, membuat ImpactLog, menyimpan laporan
+                penutupan kegiatan (arsip resmi ActiVibe &amp; sumber Impact Passport), meng-generate sertifikat
+                batch, memperbarui Skill Progress, dan mengirim notifikasi personal. Aksi ini tidak bisa dibatalkan.
               </p>
             </div>
           )}
@@ -172,7 +225,7 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
           <button type="button" className="btn btn--outline btn--sm" onClick={step === 1 ? handleCancel : () => setStep((s) => s - 1)}>
             {step === 1 ? 'Batal' : 'Kembali'}
           </button>
-          {step < 5 ? (
+          {step < STEP_TITLES.length ? (
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setStep((s) => s + 1)}>
               Lanjut
             </button>

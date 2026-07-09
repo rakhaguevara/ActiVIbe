@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useRecommendations } from '../../hooks/useRecommendations'
@@ -6,6 +6,7 @@ import EventDetailPanel from '../../components/EventDetailPanel'
 import EventApplyForm from '../../components/EventApplyForm'
 import SectionState from '../../components/SectionState'
 import SectionErrorBoundary from '../../components/SectionErrorBoundary'
+import { getMyProfile, type Gender } from '../../lib/profileApi'
 import { FiChevronLeft } from 'react-icons/fi'
 import './ActivityDetailPage.css'
 
@@ -14,6 +15,14 @@ export default function ActivityDetailPage() {
   const navigate = useNavigate()
   const { user, isLoading } = useAuth()
   const { events, isLoading: isLoadingEvents, error: recommendationsError } = useRecommendations()
+  // Fitur "women respect" — lihat FindActivityPage.tsx utk pola yang sama.
+  const [currentUserGender, setCurrentUserGender] = useState<Gender | null>(null)
+
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => setCurrentUserGender(profile.gender))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -66,11 +75,11 @@ export default function ActivityDetailPage() {
 
       <div className="activity-detail-page__content">
         <SectionErrorBoundary>
-          <EventDetailPanel event={selectedEvent} />
+          <EventDetailPanel event={selectedEvent} currentUserGender={currentUserGender} />
         </SectionErrorBoundary>
-        
+
         <SectionErrorBoundary>
-          <EventApplyForm event={selectedEvent} />
+          <EventApplyForm event={selectedEvent} currentUserGender={currentUserGender} />
         </SectionErrorBoundary>
       </div>
     </div>

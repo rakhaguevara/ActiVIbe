@@ -34,8 +34,8 @@ model User {
 
   // Organizer domain — dua relasi terpisah ke Event karena satu User bisa
   // jadi organizer sekaligus (di kesempatan lain) admin yang approve event.
-  organizedEvents Event[]       @relation("EventOrganizer")
-  approvedEvents  Event[]       @relation("EventApprovedBy")
+  organizedEvents Event[]        @relation("EventOrganizer")
+  approvedEvents  Event[]        @relation("EventApprovedBy")
   // Satu User bisa memiliki lebih dari satu Organization (lihat komentar di
   // model Organization) — lihat model Organization untuk alasan kenapa ini
   // model terpisah, bukan sekadar query User role=ORGANIZER.
@@ -116,6 +116,13 @@ model Profile {
   // cvUrl cuma path publik (`/uploads/cv/...`), cvFileName nama asli buat ditampilkan di UI.
   cvUrl        String?
   cvFileName   String?
+  // Jenis kelamin — dikumpulkan wajib lewat OnboardingModal (fitur "women
+  // respect": info jumlah peserta perempuan & gender organizer di halaman
+  // pendaftaran/card event, hanya tampil kalau volunteer yg login FEMALE).
+  // Nullable di DB (pola sama motivation/availability) supaya user yang
+  // sudah onboarding sebelum fitur ini ada tidak perlu backfill paksa —
+  // mereka isi belakangan lewat SettingsPage.
+  gender       Gender?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -126,6 +133,11 @@ enum Availability {
   WEEKDAY
   WEEKEND
   BOTH
+}
+
+enum Gender {
+  MALE
+  FEMALE
 }
 
 enum Motivation {
@@ -282,9 +294,31 @@ model Event {
   declarationAcceptedAt DateTime?
   declarationChecklist  Json?
 
-  organizer    User          @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
-  approvedBy   User?         @relation("EventApprovedBy", fields: [approvedById], references: [id])
-  organization Organization? @relation(fields: [organizationId], references: [id])
+  // Business rule 1: PIC/pengurus penanggung jawab lapangan per event — dipakai
+  // utk cek konflik saat organizer punya >1 event di tanggal yang sama (lihat
+  // assertNoPicConflict di event.service.js). Dokumen pendukungnya reuse
+  // responsibilityLetterUrl (tidak ada upload baru).
+  picName           String?
+  picContact        String?
+  // Email PIC (baru, wajib bareng picContact sejak fitur Sub Organizer) —
+  // dikirim ke volunteer di email tiket (lihat sendEventTicketEmail) supaya
+  // ada kontak jelas kalau ada pertanyaan di lokasi.
+  picEmail          String?
+  // FK opsional ke SubOrganizer yang dipilih/dibuat organizer saat isi PIC —
+  // picName/picContact/picEmail di atas tetap snapshot teks yang dipakai di
+  // semua alur baca (conflict-check, email tiket, dst), field ini murni
+  // bookkeeping "PIC ini diambil dari Sub Organizer mana" (SetNull kalau
+  // SubOrganizer-nya dihapus, snapshot Event tidak ikut hilang).
+  picSubOrganizerId String?
+
+  // Ditandai saat organizer menutup pendaftaran (aksi terpisah dari closeEvent
+  // penuh) — begitu terisi, applyToEvent() menolak pendaftaran baru.
+  registrationClosedAt DateTime?
+
+  organizer       User          @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  approvedBy      User?         @relation("EventApprovedBy", fields: [approvedById], references: [id])
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  picSubOrganizer SubOrganizer? @relation(fields: [picSubOrganizerId], references: [id], onDelete: SetNull)
 
   eventSkills       EventSkill[]
   eventInterests    EventInterest[]
@@ -298,6 +332,7 @@ model Event {
   feedbacks         EventFeedback[]
   galleryImages     EventGalleryImage[]
   legalDocuments    EventLegalDocument[]
+  closeReport       EventCloseReport?
 
   @@index([organizerId])
   @@index([organizationId])
@@ -407,7 +442,7 @@ model EventInterest {
 // butuh aktivasi email dulu (status PENDING_VERIFICATION -> ACTIVE lewat
 // activationTokenHash, lihat registerOrganization/activateOrganization).
 model Organization {
-  id                       String              @id @default(uuid())
+  id                       String             @id @default(uuid())
   ownerId                  String
   name                     String
   logoUrl                  String?
@@ -418,19 +453,43 @@ model Organization {
   email                    String
   phone                    String
   causeAreas               String[]
-  isVerified               Boolean             @default(false)
-  status                   OrganizationStatus  @default(PENDING_VERIFICATION)
-  activationTokenHash      String?             @unique
+  isVerified               Boolean            @default(false)
+  status                   OrganizationStatus @default(PENDING_VERIFICATION)
+  activationTokenHash      String?            @unique
   activationTokenExpiresAt DateTime?
   mission                  String?
   aboutUs                  String?
-  createdAt                DateTime            @default(now())
-  updatedAt                DateTime            @updatedAt
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
 
-  owner  User    @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  events Event[]
+  owner         User           @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  events        Event[]
+  subOrganizers SubOrganizer[]
 
   @@index([ownerId])
+}
+
+// Kontak koordinator/PIC reusable ("Sub Organizer") — bukan akun User (orangnya
+// tidak harus punya akun ActiVibe), cuma record kontak milik satu Organization
+// supaya organizer tidak perlu ketik ulang nama+email+WA PIC tiap bikin event
+// baru. Dipilih dari daftar ini saat isi PIC di CreateEventPage, tapi datanya
+// di-snapshot ke Event.picName/picContact/picEmail saat event dibuat (lihat
+// komentar picSubOrganizerId di model Event) — menghapus baris ini TIDAK
+// mengubah data PIC di event yang sudah ada.
+model SubOrganizer {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  email          String
+  whatsapp       String
+  title          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events       Event[]
+
+  @@index([organizationId])
 }
 
 // Log setiap kali volunteer membuka detail event — sinyal perilaku "buka"
@@ -567,6 +626,33 @@ model EventFeedback {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
+}
+
+// Business rule 1b: laporan penutupan kegiatan yang WAJIB diisi organizer saat
+// closeEvent() — jadi arsip resmi ActiVibe DAN sumber data yang diarsipkan ke
+// Impact Passport tiap volunteer (lihat passport.service.js). categoryMetrics
+// sengaja Json fleksibel (bukan kolom per-kategori) krn field yang relevan
+// beda-beda per Event.category (Lingkungan vs Seni & Budaya, dst) dan daftar
+// kategori bisa berubah tanpa migrasi lagi. Bentuk per kategori (lihat
+// CATEGORY_OPTIONS di CreateEventPage.tsx):
+//   Lingkungan -> { treesPlanted?, hectaresImpacted?, peopleImpacted? }
+//   Pendidikan/Kesehatan/Sosial -> { peopleImpacted?, breakdown?: { children?, adults?, elderly? } }
+//   Seni & Budaya -> { successRatePercent? } (0-100)
+//   Teknologi/Umum -> null
+model EventCloseReport {
+  id                     String   @id @default(uuid())
+  eventId                String   @unique
+  narrativeSummary       String
+  volunteersPresentCount Int
+  totalContributionHours Float
+  photoUrls              String[]
+  constraintsNotes       String?
+  impactSummary          String?
+  categoryMetrics        Json?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 // ============================================

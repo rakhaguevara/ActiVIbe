@@ -2,12 +2,21 @@ import { useEffect, useState, type FormEvent, type ChangeEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { applyToEvent, getMyApplications } from '../lib/applicationApi'
 import { loadDraft, saveDraft, clearDraft } from '../lib/formDraft'
+import type { Gender } from '../lib/profileApi'
 import type { Event } from '../types/event'
 import { formatDateShort } from '../utils/formatDate'
 import './EventApplyForm.css'
 
 interface EventApplyFormProps {
   event: Event
+  /** Fitur "women respect" — banner info jumlah peserta perempuan & gender
+   * organizer cuma tampil kalau volunteer yg login FEMALE. */
+  currentUserGender?: Gender | null
+}
+
+const ORGANIZER_GENDER_LABEL: Record<'MALE' | 'FEMALE', string> = {
+  FEMALE: 'Perempuan',
+  MALE: 'Laki-laki',
 }
 
 type FormState = 'idle' | 'submitting' | 'success' | 'already-applied' | 'error'
@@ -22,7 +31,7 @@ function draftKeyFor(userId: string, eventId: string) {
   return `apply-event:${userId}:${eventId}`
 }
 
-export default function EventApplyForm({ event }: EventApplyFormProps) {
+export default function EventApplyForm({ event, currentUserGender }: EventApplyFormProps) {
   const { user } = useAuth()
 
   const [whatsapp, setWhatsapp] = useState('')
@@ -158,6 +167,26 @@ export default function EventApplyForm({ event }: EventApplyFormProps) {
         {formatDateShort(event.startDate)}
         {event.startDate !== event.endDate && ` – ${formatDateShort(event.endDate)}`}
       </p>
+
+      {currentUserGender === 'FEMALE' && (
+        <div className="event-apply-form__women-info">
+          <p>
+            👩{' '}
+            {event.femaleAcceptedCount ? (
+              <>
+                <strong>{event.femaleAcceptedCount} peserta perempuan</strong> lain sudah bergabung di kegiatan ini.
+              </>
+            ) : (
+              'Kamu bisa jadi salah satu peserta perempuan pertama di kegiatan ini.'
+            )}
+          </p>
+          <p>
+            Pembina kegiatan: <strong>{event.organizerName}</strong>
+            {' · '}
+            {event.organizerGender ? ORGANIZER_GENDER_LABEL[event.organizerGender] : 'Jenis kelamin belum diisi'}
+          </p>
+        </div>
+      )}
 
       <div className="event-apply-form__field">
         <label htmlFor="apply-name">Nama</label>

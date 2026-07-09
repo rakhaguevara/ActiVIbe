@@ -23,9 +23,23 @@ function logSendResult(context, { error }) {
 // Klik link -> SetOrganizationPasswordPage (frontend) -> isi password &
 // konfirmasi -> baru di titik itu OTP dikirim (lihat sendOrganizationActivationOtpEmail)
 // sbg pembuktian pemilik email sebelum password beneran disimpan & organisasi aktif.
-export async function sendOrganizationSetPasswordEmail(to, { organizationName, contactName, setPasswordUrl }) {
+export async function sendOrganizationSetPasswordEmail(
+  to,
+  { organizationName, contactName, setPasswordUrl, existingAccount = false },
+) {
+  // existingAccount=true = email ini sudah punya akun ActiVibe aktif —
+  // beri peringatan eksplisit di sini karena melanjutkan akan MENGGANTI
+  // password akun itu & menambahkan akses organizer (lihat
+  // verifyOrganizationActivationOtp di organization.service.js).
+  const warningHtml = existingAccount
+    ? `<p style="padding:12px 16px;background:#FEF3C7;border-radius:8px;color:#92400E;"><strong>Perhatian:</strong> email ini sudah terhubung ke akun ActiVibe yang sudah ada. Melanjutkan proses ini akan <strong>mengganti password akun tersebut</strong> dan menambahkan akses organizer padanya.</p>`
+    : ''
+  const warningText = existingAccount
+    ? `\nPerhatian: email ini sudah terhubung ke akun ActiVibe yang sudah ada. Melanjutkan proses ini akan MENGGANTI PASSWORD akun tersebut dan menambahkan akses organizer padanya.\n`
+    : ''
+
   if (!resendClient) {
-    console.log(`[mailer] RESEND_API_KEY kosong — link atur password utk "${organizationName}" (${to}): ${setPasswordUrl}`)
+    console.log(`[mailer] RESEND_API_KEY kosong — link atur password utk "${organizationName}" (${to}): ${setPasswordUrl}${existingAccount ? ' [existingAccount=true]' : ''}`)
     return
   }
 
@@ -36,6 +50,7 @@ export async function sendOrganizationSetPasswordEmail(to, { organizationName, c
     html: `
       <p>Halo ${contactName},</p>
       <p>Terima kasih sudah mendaftarkan <strong>${organizationName}</strong> di ActiVibe.</p>
+      ${warningHtml}
       <p>Klik tombol di bawah untuk mengatur password akunmu sekaligus mengaktifkan organisasi:</p>
       <p><a href="${setPasswordUrl}" style="display:inline-block;padding:12px 20px;background:#5B21B6;color:#fff;border-radius:8px;text-decoration:none;">Atur Password & Aktifkan</a></p>
       <p>Setelah ini kamu bisa login sebagai organizer memakai email <strong>${to}</strong> dan password yang kamu atur.</p>
@@ -44,7 +59,7 @@ export async function sendOrganizationSetPasswordEmail(to, { organizationName, c
     text: `Halo ${contactName},
 
 Terima kasih sudah mendaftarkan ${organizationName} di ActiVibe.
-
+${warningText}
 Buka link berikut untuk mengatur password akunmu sekaligus mengaktifkan organisasi:
 ${setPasswordUrl}
 
@@ -164,9 +179,31 @@ Kamu akan menerima email tiket beserta QR check-in begitu pendaftaranmu diterima
 // data: URI di email HTML, jadi QR tidak pernah tampil kalau di-inline langsung.
 export async function sendEventTicketEmail(
   to,
-  { volunteerName, eventTitle, eventLocation, startDate, endDate, organizerName, ticketCode, qrBuffer },
+  {
+    volunteerName,
+    eventTitle,
+    eventLocation,
+    startDate,
+    endDate,
+    organizerName,
+    ticketCode,
+    qrBuffer,
+    coordinatorName,
+    coordinatorPhone,
+    coordinatorEmail,
+  },
 ) {
   const dateRange = formatDateRange(startDate, endDate)
+  // Event lama (sebelum PIC wajib diisi email+WA) bisa saja belum punya
+  // coordinatorName — tampilkan blok kontak PIC cuma kalau datanya ada.
+  const coordinatorHtml = coordinatorName
+    ? `<p>
+        <strong>Kontak PIC/koordinator kegiatan:</strong> ${coordinatorName}${coordinatorPhone ? ` — WA: ${coordinatorPhone}` : ''}${coordinatorEmail ? ` — Email: ${coordinatorEmail}` : ''}
+      </p>`
+    : ''
+  const coordinatorText = coordinatorName
+    ? `\nKontak PIC/koordinator kegiatan: ${coordinatorName}${coordinatorPhone ? ` — WA: ${coordinatorPhone}` : ''}${coordinatorEmail ? ` — Email: ${coordinatorEmail}` : ''}\n`
+    : ''
 
   if (!resendClient) {
     console.log(`[mailer] RESEND_API_KEY kosong — tiket "${eventTitle}" untuk ${to}, kode tiket: ${ticketCode}`)
@@ -187,6 +224,7 @@ export async function sendEventTicketEmail(
       </p>
       <p><img src="cid:qr-ticket" alt="QR Tiket" width="200" height="200" /></p>
       <p>Kode tiket: <strong>${ticketCode}</strong> (kalau QR tidak bisa dipindai, panitia bisa input kode ini secara manual)</p>
+      ${coordinatorHtml}
     `,
     text: `Halo ${volunteerName},
 
@@ -196,7 +234,8 @@ Tanggal: ${dateRange}
 Lokasi: ${eventLocation}
 Penyelenggara: ${organizerName}
 
-Kode tiket: ${ticketCode}`,
+Kode tiket: ${ticketCode}
+${coordinatorText}`,
     attachments: [
       {
         filename: 'tiket-qr.png',

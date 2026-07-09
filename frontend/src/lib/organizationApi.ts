@@ -57,6 +57,18 @@ export async function registerOrganization(
   return parseResponse(res)
 }
 
+// Dipanggil saat SetOrganizationPasswordPage dibuka — read-only, dipakai utk
+// menampilkan warning "email ini sudah terhubung ke akun yang aktif" SEBELUM
+// user submit password sama sekali.
+export async function getOrganizationSetPasswordInfo(
+  token: string,
+): Promise<{ organizationName: string; existingAccount: boolean }> {
+  const res = await apiFetch(`${API_URL}/organizations/set-password/info?token=${encodeURIComponent(token)}`, {
+    credentials: 'include',
+  })
+  return parseResponse(res)
+}
+
 // Langkah 1 di SetOrganizationPasswordPage — trigger kirim OTP ke email
 // organisasi begitu user submit password+konfirmasi (password sendiri belum
 // dikirim di sini, cuma divalidasi client-side; baru dikirim di langkah 2).

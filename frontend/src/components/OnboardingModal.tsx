@@ -14,6 +14,7 @@ import {
   deleteCv,
   MAX_CV_SIZE_BYTES,
   type Availability,
+  type Gender,
   type Motivation,
   type ProfileData,
   type TaxonomyItem,
@@ -27,7 +28,7 @@ interface OnboardingModalProps {
 }
 
 type ChatTextPhase = 'bio' | 'education' | 'hobby'
-type ChatPhase = ChatTextPhase | 'locationConfirm' | 'motivation' | 'done'
+type ChatPhase = ChatTextPhase | 'gender' | 'locationConfirm' | 'motivation' | 'done'
 
 interface ChatMessage {
   id: number
@@ -72,6 +73,11 @@ const CHAT_TEXT_STEPS: Record<
   },
 }
 
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'FEMALE', label: 'Perempuan' },
+  { value: 'MALE', label: 'Laki-laki' },
+]
+
 const MOTIVATION_OPTIONS: { value: Motivation; label: string }[] = [
   { value: 'CAREER', label: 'Pengembangan karier & portofolio' },
   { value: 'SOCIAL', label: 'Membangun relasi & komunitas' },
@@ -99,6 +105,7 @@ interface OnboardingDraft {
   chatMessages: ChatMessage[]
   chatAnswers: Record<ChatTextPhase, string>
   selectedMotivation: Motivation | null
+  selectedGender: Gender | null
   textInput: string
   selectedInterestIds: string[]
   customInterests: string[]
@@ -122,10 +129,19 @@ function groupByCategory(items: TaxonomyItem[]): [string, TaxonomyItem[]][] {
   return Array.from(map.entries())
 }
 
-const INTRO_BOT_MESSAGE: ChatMessage = {
+// Pertanyaan paling awal di chat onboarding — jawabannya (wajib, quick-reply)
+// dipakai fitur "women respect" (info jumlah peserta perempuan & gender
+// organizer di halaman pendaftaran/card event), lihat handleSelectGender.
+const GENDER_QUESTION_MESSAGE: ChatMessage = {
   id: 1,
   from: 'bot',
-  text: 'Hei! Sebelum kita mulai, ceritakan sedikit tentang dirimu — apa yang membuatmu tertarik jadi volunteer?',
+  text: 'Hai! Sebelum mulai kenalan lebih jauh, boleh tahu kamu perempuan atau laki-laki?',
+}
+
+const INTRO_BOT_MESSAGE: ChatMessage = {
+  id: 2,
+  from: 'bot',
+  text: 'Sip! Sekarang ceritakan sedikit tentang dirimu — apa yang membuatmu tertarik jadi volunteer?',
 }
 
 export default function OnboardingModal({ initialProfile, onComplete }: OnboardingModalProps) {
@@ -133,11 +149,17 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
   const draftKey = `onboarding:${user?.id ?? 'anon'}`
   const [draft] = useState(() => loadDraft<OnboardingDraft>(draftKey))
 
+  // Gender kadang sudah terisi dari AuthModal (dropdown wajib saat registrasi,
+  // dikirim ke server begitu OTP terverifikasi) — kalau sudah ada, lewati
+  // pertanyaan gender di chat ini sama sekali (jangan tanya dua kali).
+  const startingChatPhase: ChatPhase = initialProfile.gender ? 'bio' : 'gender'
+  const startingBotMessage: ChatMessage = initialProfile.gender ? INTRO_BOT_MESSAGE : GENDER_QUESTION_MESSAGE
+
   const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(() => draft?.step ?? 0)
   const [direction, setDirection] = useState<'forward' | 'back'>('forward')
 
   // Chat step state
-  const [chatPhase, setChatPhase] = useState<ChatPhase>(() => draft?.chatPhase ?? 'bio')
+  const [chatPhase, setChatPhase] = useState<ChatPhase>(() => draft?.chatPhase ?? startingChatPhase)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => draft?.chatMessages ?? [])
   const [isBotTyping, setIsBotTyping] = useState(false)
   const [textInput, setTextInput] = useState(() => draft?.textInput ?? '')
@@ -145,6 +167,9 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
     () => draft?.chatAnswers ?? { bio: '', education: '', hobby: '' },
   )
   const [selectedMotivation, setSelectedMotivation] = useState<Motivation | null>(() => draft?.selectedMotivation ?? null)
+  const [selectedGender, setSelectedGender] = useState<Gender | null>(
+    () => draft?.selectedGender ?? initialProfile.gender ?? null,
+  )
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Selection steps state
@@ -188,7 +213,7 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
     setIsBotTyping(true)
     const t = setTimeout(() => {
       setIsBotTyping(false)
-      setChatMessages([INTRO_BOT_MESSAGE])
+      setChatMessages([startingBotMessage])
     }, 1200)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,6 +230,7 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
       chatMessages,
       chatAnswers,
       selectedMotivation,
+      selectedGender,
       textInput,
       selectedInterestIds: Array.from(selectedInterestIds),
       customInterests,
@@ -220,6 +246,7 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
     chatMessages,
     chatAnswers,
     selectedMotivation,
+    selectedGender,
     textInput,
     selectedInterestIds,
     customInterests,
@@ -233,9 +260,10 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
     clearDraft(draftKey)
     setStep(0)
     setDirection('forward')
-    setChatPhase('bio')
+    setChatPhase(startingChatPhase)
     setChatAnswers({ bio: '', education: '', hobby: '' })
     setSelectedMotivation(null)
+    setSelectedGender(initialProfile.gender ?? null)
     setTextInput('')
     setSelectedInterestIds(new Set(initialProfile.interests.map((i) => i.id)))
     setSelectedSkillIds(new Set(initialProfile.skills.map((s) => s.id)))
@@ -248,7 +276,7 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
     setChatMessages([])
     setTimeout(() => {
       setIsBotTyping(false)
-      setChatMessages([INTRO_BOT_MESSAGE])
+      setChatMessages([startingBotMessage])
     }, 1200)
   }
 
@@ -297,6 +325,18 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
     }, 900)
   }
 
+  const handleSelectGender = (value: Gender) => {
+    const label = GENDER_OPTIONS.find((o) => o.value === value)!.label
+    setSelectedGender(value)
+    setChatMessages((prev) => [...prev, { id: Date.now(), from: 'user', text: label }])
+    setIsBotTyping(true)
+    setTimeout(() => {
+      setIsBotTyping(false)
+      setChatMessages((prev) => [...prev, { id: Date.now(), from: 'bot', text: INTRO_BOT_MESSAGE.text }])
+      setChatPhase('bio')
+    }, 900)
+  }
+
   const handleLocationConfirm = (stillHere: boolean) => {
     const label = stillHere ? 'Ya, masih di sini' : 'Tidak, sudah pindah'
     setChatMessages((prev) => [...prev, { id: Date.now(), from: 'user', text: label }])
@@ -324,6 +364,7 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
         bio,
         education: chatAnswers.education || undefined,
         motivation: selectedMotivation!,
+        gender: selectedGender!,
       })
       setDirection('forward')
       setStep(1)
@@ -568,6 +609,23 @@ export default function OnboardingModal({ initialProfile, onComplete }: Onboardi
                     >
                       Kirim
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {chatPhase === 'gender' && !isBotTyping && (
+                <div className="onboarding-chat__input-area">
+                  <div className="onboarding-chat__quick-replies">
+                    {GENDER_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className="onboarding-chat__quick-reply"
+                        onClick={() => handleSelectGender(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}

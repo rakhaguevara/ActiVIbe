@@ -117,6 +117,17 @@
   font-weight: 600;
 }
 
+.event-list-sidebar__women-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-secondary-dark);
+  background: var(--color-secondary-soft);
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .event-list-sidebar__actions {
   display: flex;
   align-items: center;

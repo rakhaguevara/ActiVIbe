@@ -71,6 +71,28 @@ export async function updateUserStatus(userId: string, status: AdminUser['status
   return data.user
 }
 
+export async function updateUserPassword(userId: string, password: string): Promise<AdminUser> {
+  const res = await apiFetch(`${API_URL}/admin/users/${userId}/password`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ password }),
+  })
+  const data = await parseResponse(res)
+  return data.user
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/admin/users/${userId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data?.error?.message ?? 'Terjadi kesalahan, coba lagi.')
+  }
+}
+
 export async function listEvents(status?: AdminEvent['status']): Promise<AdminEvent[]> {
   const query = status ? `?status=${status}` : ''
   const res = await apiFetch(`${API_URL}/admin/events${query}`, { credentials: 'include' })

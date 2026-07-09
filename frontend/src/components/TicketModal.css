@@ -1,0 +1,82 @@
+.ticket-modal {
+  position: relative;
+  max-width: 400px;
+}
+
+.ticket-modal__close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ticket-modal__qr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  /* QR wajib background putih solid (bukan token permukaan lain) supaya
+     kontras hitam-putihnya konsisten & tetap scannable — --color-bg-true
+     didefinisikan persis #FFFFFF di docs/design.md, bukan hex baru. */
+  background: var(--color-bg-true);
+  border: 1px solid var(--color-border-light);
+  border-radius: 14px;
+  margin-bottom: var(--space-md);
+}
+
+.ticket-modal__qr img {
+  width: 180px;
+  height: 180px;
+  display: block;
+}
+
+.ticket-modal__qr-placeholder {
+  width: 180px;
+  height: 180px;
+  border-radius: 8px;
+  background: var(--color-border-light);
+}
+
+.ticket-modal__qr-error {
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+  margin: 0;
+}
+
+.ticket-modal__code-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1.5px dashed var(--color-border-medium);
+  border-radius: 14px;
+  margin-bottom: var(--space-md);
+}
+
+.ticket-modal__code {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  letter-spacing: 0.04em;
+  color: var(--color-text-heading);
+  word-break: break-all;
+}
+
+.ticket-modal__status {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-lg);
+}
+
+.ticket-modal__status--done {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  color: var(--color-success);
+  font-weight: 600;
+}

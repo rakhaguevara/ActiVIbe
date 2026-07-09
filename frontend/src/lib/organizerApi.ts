@@ -3,6 +3,7 @@ import type {
   ApplicantStatus,
   AttendanceRecord,
   Certificate,
+  EventCloseReport,
   EventLegalDocument,
   EventMode,
   EventRequirement,
@@ -11,6 +12,7 @@ import type {
   FeedbackSummary,
   OrganizationEntityType,
   OrganizerEvent,
+  SubOrganizer,
   TrafficSummary,
   UploadedFile,
 } from '../types/organizer'
@@ -61,6 +63,11 @@ export interface CreateEventPayload {
   legalDocuments?: EventLegalDocument[]
   galleryImages?: UploadedFile[]
   declarationChecklist?: Record<DeclarationKey, boolean>
+  // Business rule 1: PIC/pengurus penanggung jawab lapangan per event.
+  picName?: string
+  picContact?: string
+  picEmail?: string
+  picSubOrganizerId?: string
 }
 
 // Jenis dokumen di endpoint upload orphan (path param docType, kebab-case) —
@@ -81,6 +88,7 @@ export type EventDocumentType =
 export interface CloseEventPayload {
   finalStatuses: Record<string, ApplicantStatus>
   impactValue: number
+  closeReport: EventCloseReport
 }
 
 async function parseResponse(res: Response) {
@@ -299,4 +307,57 @@ export async function restoreEventRequest(eventId: string): Promise<OrganizerEve
   const res = await apiFetch(`${API_URL}/events/${eventId}/restore`, { method: 'POST', credentials: 'include' })
   const data = await parseResponse(res)
   return data.event
+}
+
+// "Close Pendaftaran" — beda dari closeEventRequest (COMPLETED) penuh, cuma
+// menutup slot pendaftaran baru (lihat closeRegistration di event.service.js).
+export async function closeRegistrationRequest(eventId: string): Promise<OrganizerEvent> {
+  const res = await apiFetch(`${API_URL}/events/${eventId}/close-registration`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+  const data = await parseResponse(res)
+  return data.event
+}
+
+// Sub Organizer — kontak PIC reusable milik Organization organizer (lihat
+// halaman "Sub Organizer" di bagian Events dan section PIC di CreateEventPage).
+export interface SubOrganizerPayload {
+  name: string
+  email: string
+  whatsapp: string
+  title?: string
+}
+
+export async function listSubOrganizersRequest(): Promise<SubOrganizer[]> {
+  const res = await apiFetch(`${API_URL}/sub-organizers`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.subOrganizers
+}
+
+export async function createSubOrganizerRequest(payload: SubOrganizerPayload): Promise<SubOrganizer> {
+  const res = await apiFetch(`${API_URL}/sub-organizers`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  const data = await parseResponse(res)
+  return data.subOrganizer
+}
+
+export async function updateSubOrganizerRequest(id: string, payload: SubOrganizerPayload): Promise<SubOrganizer> {
+  const res = await apiFetch(`${API_URL}/sub-organizers/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  const data = await parseResponse(res)
+  return data.subOrganizer
+}
+
+export async function deleteSubOrganizerRequest(id: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/sub-organizers/${id}`, { method: 'DELETE', credentials: 'include' })
+  await parseResponse(res)
 }

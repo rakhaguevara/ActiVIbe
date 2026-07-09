@@ -3,6 +3,7 @@ import {
   overview,
   getUsers,
   patchUserStatus,
+  patchUserPassword,
   getEvents,
   approve,
   reject,
@@ -28,6 +29,7 @@ router.post('/ai/chat', postAiChat)
 
 router.get('/users', getUsers)
 router.patch('/users/:id/status', validateRequest(validateUserStatus), patchUserStatus)
+router.patch('/users/:id/password', patchUserPassword)
 
 router.get('/events', getEvents)
 router.patch('/events/:id/approve', approve)

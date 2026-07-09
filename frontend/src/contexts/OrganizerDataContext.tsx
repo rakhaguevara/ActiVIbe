@@ -8,6 +8,7 @@ import type {
   CommunicationLogEntry,
   EventRequirement,
   FeedbackSummary,
+  SubOrganizer,
   TrafficSummary,
 } from '../types/organizer'
 import { mockCommunicationLogs } from '../data/mockOrganizer'
@@ -32,8 +33,14 @@ import {
   getTrafficSummaryRequest,
   archiveEventRequest,
   restoreEventRequest,
+  closeRegistrationRequest,
+  listSubOrganizersRequest,
+  createSubOrganizerRequest,
+  updateSubOrganizerRequest,
+  deleteSubOrganizerRequest,
   type CreateEventPayload,
   type CreateEventRolePayload,
+  type SubOrganizerPayload,
 } from '../lib/organizerApi'
 
 interface OrganizerDataContextValue {
@@ -46,6 +53,7 @@ interface OrganizerDataContextValue {
   trafficSummary: TrafficSummary | null
   communicationLogs: CommunicationLogEntry[]
   requirements: EventRequirement[]
+  subOrganizers: SubOrganizer[]
   addEvent: (payload: CreateEventPayload) => Promise<void>
   addRole: (eventId: string, role: CreateEventRolePayload) => Promise<void>
   updateApplicantStatus: (applicantId: string, status: ApplicantStatus) => Promise<void>
@@ -60,6 +68,13 @@ interface OrganizerDataContextValue {
   generateCertificates: (eventId: string) => Promise<void>
   archiveEvent: (eventId: string) => Promise<void>
   restoreEvent: (eventId: string) => Promise<void>
+  closeRegistration: (eventId: string) => Promise<void>
+  // Return value (beda dari pola addEvent yang void) — dipakai CreateEventPage
+  // utk langsung dapat id-nya begitu Sub Organizer baru disimpan, sebelum
+  // dipakai sbg picSubOrganizerId di payload createEvent.
+  addSubOrganizer: (payload: SubOrganizerPayload) => Promise<SubOrganizer>
+  updateSubOrganizer: (id: string, payload: SubOrganizerPayload) => Promise<void>
+  removeSubOrganizer: (id: string) => Promise<void>
 }
 
 const OrganizerDataContext = createContext<OrganizerDataContextValue | null>(null)
@@ -78,6 +93,7 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
   const [feedbackSummaries, setFeedbackSummaries] = useState<Record<string, FeedbackSummary>>({})
   const [trafficSummary, setTrafficSummary] = useState<TrafficSummary | null>(null)
   const [communicationLogs, setCommunicationLogs] = useState<CommunicationLogEntry[]>(mockCommunicationLogs)
+  const [subOrganizers, setSubOrganizers] = useState<SubOrganizer[]>([])
 
   const requirements = events.flatMap((e) => e.requirements)
 
@@ -90,7 +106,7 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         setEvents(myEvents)
 
-        const [applicantLists, attendanceLists, certificateLists, feedbackList, traffic] = await Promise.all([
+        const [applicantLists, attendanceLists, certificateLists, feedbackList, traffic, subOrgs] = await Promise.all([
           Promise.all(myEvents.map((event) => listApplicantsRequest(event.id).catch(() => []))),
           Promise.all(myEvents.map((event) => getEventAttendanceRequest(event.id).catch(() => []))),
           Promise.all(myEvents.map((event) => listCertificatesRequest(event.id).catch(() => []))),
@@ -98,6 +114,7 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
             myEvents.map(async (event) => [event.id, await getFeedbackSummaryRequest(event.id).catch(() => null)] as const),
           ),
           getTrafficSummaryRequest().catch(() => null),
+          listSubOrganizersRequest().catch(() => []),
         ])
         if (cancelled) return
         setApplicants(applicantLists.flat())
@@ -107,6 +124,7 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
           Object.fromEntries(feedbackList.filter((entry): entry is [string, FeedbackSummary] => entry[1] !== null)),
         )
         setTrafficSummary(traffic)
+        setSubOrganizers(subOrgs)
       } catch (err) {
         if (!cancelled) reportError(err)
       } finally {
@@ -212,7 +230,11 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
 
   const closeEvent = async (eventId: string, result: CloseEventResult) => {
     try {
-      const updatedEvent = await closeEventRequest(eventId, { finalStatuses: result.finalStatuses, impactValue: result.impactValue })
+      const updatedEvent = await closeEventRequest(eventId, {
+        finalStatuses: result.finalStatuses,
+        impactValue: result.impactValue,
+        closeReport: result.closeReport,
+      })
       setEvents((prev) => prev.map((e) => (e.id === eventId ? updatedEvent : e)))
       setApplicants((prev) =>
         prev.map((a) => (result.finalStatuses[a.id] ? { ...a, status: result.finalStatuses[a.id] } : a)),
@@ -250,6 +272,43 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const closeRegistration = async (eventId: string) => {
+    try {
+      const updated = await closeRegistrationRequest(eventId)
+      setEvents((prev) => prev.map((e) => (e.id === eventId ? updated : e)))
+    } catch (err) {
+      reportError(err)
+    }
+  }
+
+  // Return value dipakai CreateEventPage utk langsung dapat id-nya sebelum
+  // dipakai sbg picSubOrganizerId — lempar error ke pemanggil (bukan
+  // reportError+swallow spt aksi lain) supaya alur submit event bisa berhenti
+  // dgn jelas kalau simpan Sub Organizer gagal.
+  const addSubOrganizer = async (payload: SubOrganizerPayload) => {
+    const subOrganizer = await createSubOrganizerRequest(payload)
+    setSubOrganizers((prev) => [...prev, subOrganizer].sort((a, b) => a.name.localeCompare(b.name)))
+    return subOrganizer
+  }
+
+  const updateSubOrganizer = async (id: string, payload: SubOrganizerPayload) => {
+    try {
+      const updated = await updateSubOrganizerRequest(id, payload)
+      setSubOrganizers((prev) => prev.map((s) => (s.id === id ? updated : s)).sort((a, b) => a.name.localeCompare(b.name)))
+    } catch (err) {
+      reportError(err)
+    }
+  }
+
+  const removeSubOrganizer = async (id: string) => {
+    try {
+      await deleteSubOrganizerRequest(id)
+      setSubOrganizers((prev) => prev.filter((s) => s.id !== id))
+    } catch (err) {
+      reportError(err)
+    }
+  }
+
   return (
     <OrganizerDataContext.Provider
       value={{
@@ -262,6 +321,7 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         trafficSummary,
         communicationLogs,
         requirements,
+        subOrganizers,
         addEvent,
         addRole,
         updateApplicantStatus,
@@ -276,6 +336,10 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         archiveEvent,
         restoreEvent,
         closeEvent,
+        closeRegistration,
+        addSubOrganizer,
+        updateSubOrganizer,
+        removeSubOrganizer,
       }}
     >
       {children}

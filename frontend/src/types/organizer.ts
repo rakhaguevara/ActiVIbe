@@ -49,6 +49,20 @@ export interface EventLegalDocument extends UploadedFile {
   docType: LegalDocType
 }
 
+// Business rule 1b: laporan penutupan kegiatan (arsip resmi ActiVibe +
+// sumber data yang diarsipkan ke Impact Passport tiap volunteer). Bentuk
+// categoryMetrics fleksibel per Event.category — lihat CATEGORY_OPTIONS di
+// CreateEventPage.tsx dan komentar EventCloseReport di schema.prisma.
+export interface EventCloseReport {
+  narrativeSummary: string
+  volunteersPresentCount: number
+  totalContributionHours: number
+  photoUrls: string[]
+  constraintsNotes?: string
+  impactSummary?: string
+  categoryMetrics?: Record<string, number>
+}
+
 export interface OrganizerEvent {
   id: string
   title: string
@@ -62,6 +76,8 @@ export interface OrganizerEvent {
   impactMetricUnit: string
   impactValue?: number
   category?: string
+  motivationTags?: ('CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH')[]
+  dayType?: 'WEEKDAY' | 'WEEKEND' | 'BOTH'
   archivedAt?: string
   updatedAt: string
   roles: EventRole[]
@@ -75,6 +91,34 @@ export interface OrganizerEvent {
   legalDocuments?: EventLegalDocument[]
   galleryImages?: string[]
   declarationAcceptedAt?: string
+  skills?: string[]
+  interests?: string[]
+  // Business rule 1: PIC/pengurus penanggung jawab lapangan per event.
+  picName?: string
+  picContact?: string
+  // Email PIC (wajib bareng picContact sejak fitur Sub Organizer) — dikirim
+  // ke volunteer di email tiket.
+  picEmail?: string
+  // Terisi kalau PIC dipilih/dibuat dari daftar Sub Organizer reusable (lihat
+  // SubOrganizer di bawah) — cuma bookkeeping, picName/picContact/picEmail
+  // di atas tetap sumber tampilan (snapshot).
+  picSubOrganizerId?: string
+  // "Close Pendaftaran" — beda dari status completed penuh, lihat
+  // eventLifecycle.ts.
+  registrationClosedAt?: string
+  closeReport?: EventCloseReport
+}
+
+// Kontak koordinator/PIC reusable milik satu Organization — orangnya tidak
+// harus punya akun ActiVibe, cuma record kontak supaya organizer tidak perlu
+// ketik ulang nama+email+WA PIC tiap bikin event baru (lihat halaman "Sub
+// Organizer" di bagian Events).
+export interface SubOrganizer {
+  id: string
+  name: string
+  email: string
+  whatsapp: string
+  title?: string
 }
 
 export interface Certificate {

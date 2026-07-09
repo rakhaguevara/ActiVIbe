@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { PORTAL_URLS } from '../../config/portalUrls'
 import type { AuthUser } from '../../lib/api'
 import logo from '../../assets/svg/logo.svg'
+import { motion } from 'framer-motion'
 import './AuthPage.css'
 
 interface LoginPageProps {
@@ -51,10 +52,12 @@ export default function LoginPage({ allowedRole, homeRoute, title, subtitle }: L
 
   return (
     <main className="auth-page">
-      <div className="auth-page__panel">
-        <Link to="/" className="auth-page__back">
-          <FiChevronLeft /> Kembali
-        </Link>
+      <motion.div 
+        className="auth-page__panel"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
 
         <img src={logo} alt="ActiVibe" className="auth-page__logo" />
 
@@ -78,7 +81,7 @@ export default function LoginPage({ allowedRole, homeRoute, title, subtitle }: L
             {status === 'submitting' ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
-      </div>
+      </motion.div>
     </main>
   )
 }

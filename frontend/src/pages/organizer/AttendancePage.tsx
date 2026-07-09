@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
-import { FiCheck, FiUserX } from 'react-icons/fi'
+import { FiCheck, FiUserX, FiCamera } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import Badge from '../../components/Badge'
+import QrCheckInScanner from '../../components/organizer/QrCheckInScanner'
 import './AttendancePage.css'
 
 export default function AttendancePage() {
@@ -12,6 +13,7 @@ export default function AttendancePage() {
   const [ticketCode, setTicketCode] = useState('')
   const [ticketStatus, setTicketStatus] = useState<'idle' | 'submitting'>('idle')
   const [ticketError, setTicketError] = useState('')
+  const [showQrScanner, setShowQrScanner] = useState(false)
 
   const handleTicketCheckIn = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -73,8 +75,15 @@ export default function AttendancePage() {
             {ticketStatus === 'submitting' ? 'Memproses...' : 'Cek-in via Tiket'}
           </button>
         </form>
+        <button type="button" className="btn btn--primary btn--sm" onClick={() => setShowQrScanner(true)}>
+          <FiCamera /> Scan QR
+        </button>
       </div>
       {ticketError && <p className="attendance-page__ticket-error">{ticketError}</p>}
+
+      {showQrScanner && (
+        <QrCheckInScanner onScan={checkInByTicket} onClose={() => setShowQrScanner(false)} />
+      )}
 
       <div className="attendance-page__summary">
         <div className="card attendance-page__summary-item"><strong>{expected.length}</strong><span>Belum Hadir</span></div>

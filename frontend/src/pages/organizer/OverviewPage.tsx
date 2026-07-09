@@ -1,45 +1,219 @@
-import React, { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { 
-  FiPlus, FiDownload, FiBell, FiCalendar, FiUsers, FiCheckSquare, 
-  FiMessageSquare, FiXCircle, FiTrendingUp, FiActivity, FiStar,
-  FiClock, FiWind, FiSun, FiSearch, FiShare, FiCpu, FiCheckCircle
+import {
+  FiPlus, FiDownload, FiCalendar, FiUsers, FiCheckSquare,
+  FiMessageSquare, FiXCircle, FiTrendingUp, FiStar,
+  FiSun, FiSearch, FiCpu, FiCheckCircle, FiSend, FiX, FiAlertCircle,
 } from 'react-icons/fi'
 import ReactECharts from 'echarts-for-react'
+import { useOrganizerData } from '../../contexts/OrganizerDataContext'
+import {
+  getOrganizerOverviewStats,
+  sendOrganizerAiChat,
+  type OrganizerOverviewStats,
+  type OrganizerAiChatMessage,
+} from '../../lib/organizerOverviewApi'
+import type { OrganizerEvent } from '../../types/organizer'
+import { formatDateShort } from '../../utils/formatDate'
 import './OverviewPage.css'
-import '../admin/OverviewPage.css' // Reuse the admin fixed header styles
+import '../admin/OverviewPage.css' // Reuse the admin fixed header + AI chat modal styles
+
+const EMPTY_STATS: OrganizerOverviewStats = {
+  activeEvents: 0,
+  pendingApplicants: 0,
+  acceptedVolunteers: 0,
+  eventsNeedClosing: 0,
+  todayAttendance: { expected: 0, checkedIn: 0, pct: 0 },
+  applicantsGrowth: { months: [], counts: [] },
+  recentActivity: [],
+  totals: { eventsCompleted: 0, volunteersReached: 0, contributionHours: 0, impact: { category: null, label: 'Jam Kontribusi', unit: 'Jam', value: 0 } },
+  thisMonth: { eventsCompleted: 0, volunteersReached: 0, contributionHours: 0, impact: { category: null, label: 'Jam Kontribusi', unit: 'Jam', value: 0 } },
+  aiInsights: [],
+}
+
+const ACCEPTED_STATUSES = ['accepted', 'checked_in', 'completed']
+
+const INSIGHT_TONE_STYLE = {
+  success: { icon: FiTrendingUp, className: 'success' },
+  warning: { icon: FiAlertCircle, className: 'warning' },
+  info: { icon: FiCheckCircle, className: 'primary' },
+} as const
+
+const STATUS_LABEL: Record<OrganizerEvent['status'], string> = {
+  draft: 'Draft',
+  pending_approval: 'Pending Approval',
+  published: 'Published',
+  ongoing: 'Ongoing',
+  completed: 'Completed',
+  rejected: 'Rejected',
+  archived: 'Archived',
+}
+
+const STATUS_BADGE_CLASS: Record<OrganizerEvent['status'], string> = {
+  draft: 'badge--info',
+  pending_approval: 'badge--info',
+  published: 'badge--success',
+  ongoing: 'badge--warning',
+  completed: 'badge--success',
+  rejected: 'badge--info',
+  archived: 'badge--info',
+}
+
+const STATUS_BANNER_STYLE: Record<OrganizerEvent['status'], React.CSSProperties | undefined> = {
+  draft: { background: 'linear-gradient(135deg, #e5e7eb, #9ca3af)' },
+  pending_approval: { background: 'linear-gradient(135deg, #e5e7eb, #9ca3af)' },
+  published: undefined,
+  ongoing: { background: 'linear-gradient(135deg, #fef3c7, #f59e0b)' },
+  completed: { background: 'linear-gradient(135deg, #d1fae5, #10b981)' },
+  rejected: { background: 'linear-gradient(135deg, #fee2e2, #ef4444)' },
+  archived: { background: 'linear-gradient(135deg, #e5e7eb, #9ca3af)' },
+}
+
+const STATUS_PROGRESS_COLOR: Record<OrganizerEvent['status'], string | undefined> = {
+  draft: undefined,
+  pending_approval: undefined,
+  published: undefined,
+  ongoing: '#f59e0b',
+  completed: '#10b981',
+  rejected: '#ef4444',
+  archived: undefined,
+}
+
+function actionLabelForStatus(status: OrganizerEvent['status']) {
+  if (status === 'draft' || status === 'pending_approval') return 'Continue Editing'
+  if (status === 'ongoing') return 'Check Attendance'
+  if (status === 'completed' || status === 'archived') return 'View Report'
+  return 'Manage Event'
+}
+
+const eventStatusRank: Record<OrganizerEvent['status'], number> = {
+  ongoing: 0,
+  published: 1,
+  pending_approval: 2,
+  draft: 3,
+  completed: 4,
+  archived: 5,
+  rejected: 6,
+}
 
 export default function OverviewPage() {
+  const { events, applicants } = useOrganizerData()
+  const [stats, setStats] = useState<OrganizerOverviewStats>(EMPTY_STATS)
+  const [isStatsLoaded, setIsStatsLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    getOrganizerOverviewStats()
+      .then((data) => {
+        if (cancelled) return
+        setStats(data)
+        setIsStatsLoaded(true)
+      })
+      .catch((err) => window.alert(err instanceof Error ? err.message : 'Gagal memuat ringkasan dashboard.'))
+    return () => { cancelled = true }
+  }, [])
+
+  const handleMockClick = (feature: string) => {
+    alert(`Fitur "${feature}" belum tersedia — belum ada fitur generate laporan di backend.`)
+  }
+
+  /* ── Ask AI chat modal — POST /organizer/overview/ai-chat, jawaban
+     digrounding ke data dashboard organizer ini (lihat organizerOverviewAi.service.js) ── */
+  const [isAiOpen, setIsAiOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState<OrganizerAiChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [isSendingChat, setIsSendingChat] = useState(false)
+
+  const handleSendChat = async () => {
+    const content = chatInput.trim()
+    if (!content || isSendingChat) return
+
+    const nextMessages: OrganizerAiChatMessage[] = [...chatMessages, { role: 'user', content }]
+    setChatMessages(nextMessages)
+    setChatInput('')
+    setIsSendingChat(true)
+    try {
+      const { reply } = await sendOrganizerAiChat(nextMessages)
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+    } catch (err) {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: err instanceof Error ? err.message : 'Maaf, terjadi kesalahan. Coba lagi.' },
+      ])
+    } finally {
+      setIsSendingChat(false)
+    }
+  }
+
+  /* ── Organization Performance charts: 2 slide nyata (bukan 3 dummy) ── */
   const [activeChart, setActiveChart] = useState(0)
 
-  // 1. Header Data
-  const orgName = "Green Earth Foundation"
-  const currentDate = "Tuesday, July 7, 2026"
-
-  // 11. Chart Configurations (ECharts)
-  const applicantsChartOption = {
+  const applicantsChartOption = useMemo(() => ({
     grid: { top: 10, right: 10, bottom: 20, left: 30 },
-    xAxis: { type: 'category', data: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], axisLine: { lineStyle: { color: '#ccc' } } },
+    xAxis: { type: 'category', data: stats.applicantsGrowth.months, axisLine: { lineStyle: { color: '#ccc' } } },
     yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
-    series: [{ data: [120, 200, 150, 80, 70, 420], type: 'line', smooth: true, lineStyle: { color: '#2B5A50', width: 3 }, itemStyle: { color: '#2B5A50' }, areaStyle: { color: 'rgba(43, 90, 80, 0.1)' } }],
-    tooltip: { trigger: 'axis' }
-  }
+    series: [{ data: stats.applicantsGrowth.counts, type: 'line', smooth: true, lineStyle: { color: '#2B5A50', width: 3 }, itemStyle: { color: '#2B5A50' }, areaStyle: { color: 'rgba(43, 90, 80, 0.1)' } }],
+    tooltip: { trigger: 'axis' },
+  }), [stats.applicantsGrowth])
 
-  const attendanceChartOption = {
-    grid: { top: 10, right: 10, bottom: 20, left: 30 },
-    xAxis: { type: 'category', data: ['W1', 'W2', 'W3', 'W4'] },
-    yAxis: { type: 'value', max: 100 },
-    series: [{ data: [80, 85, 92, 88], type: 'bar', itemStyle: { color: '#D4AF37', borderRadius: [4, 4, 0, 0] } }],
-    tooltip: { trigger: 'axis', valueFormatter: (val: number) => val + '%' }
-  }
+  const categoryBreakdown = useMemo(() => {
+    const counts = new Map<string, number>()
+    events.forEach((e) => {
+      const key = e.category ?? 'Umum'
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    })
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+  }, [events])
 
-  const impactChartOption = {
-    grid: { top: 10, right: 10, bottom: 20, left: 40 },
-    xAxis: { type: 'category', data: ['Feb', 'Mar', 'Apr', 'May', 'Jun'] },
+  const categoryChartOption = useMemo(() => ({
+    grid: { top: 10, right: 10, bottom: 40, left: 30 },
+    xAxis: { type: 'category', data: categoryBreakdown.map(([cat]) => cat), axisLabel: { rotate: 20 } },
     yAxis: { type: 'value' },
-    series: [{ data: [2000, 4500, 3200, 6000, 8540], type: 'line', smooth: true, lineStyle: { color: '#10b981', width: 3 }, itemStyle: { color: '#10b981' } }],
-    tooltip: { trigger: 'axis' }
-  }
+    series: [{ data: categoryBreakdown.map(([, count]) => count), type: 'bar', itemStyle: { color: '#2B5A50', borderRadius: [4, 4, 0, 0] } }],
+    tooltip: { trigger: 'axis' },
+  }), [categoryBreakdown])
+
+  /* ── Event Status Overview: event nyata, diprioritaskan yang sedang
+     berjalan/segera terbit dulu ── */
+  const priorityEvents = useMemo(
+    () => [...events].sort((a, b) => eventStatusRank[a.status] - eventStatusRank[b.status] || a.startDate.localeCompare(b.startDate)).slice(0, 4),
+    [events],
+  )
+
+  const filledForEvent = (eventId: string) =>
+    applicants.filter((a) => a.eventId === eventId && ACCEPTED_STATUSES.includes(a.status)).length
+
+  /* ── Upcoming events + mini calendar (bulan berjalan) ── */
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10)
+
+  const upcomingEvents = useMemo(
+    () => events.filter((e) => e.startDate >= todayStr).sort((a, b) => a.startDate.localeCompare(b.startDate)).slice(0, 4),
+    [events, todayStr],
+  )
+
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  const eventsByDay = useMemo(() => {
+    const map = new Map<number, OrganizerEvent>()
+    events.forEach((e) => {
+      const d = new Date(e.startDate)
+      if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth()) {
+        map.set(d.getDate(), e)
+      }
+    })
+    return map
+  }, [events, today])
+
+  /* ── Today's Tasks: 3 tugas nyata dari angka stats, bukan checklist palsu ── */
+  const tasks = useMemo(() => [
+    { label: `Review ${stats.pendingApplicants} pelamar`, done: stats.pendingApplicants === 0 },
+    { label: `Tutup ${stats.eventsNeedClosing} kegiatan`, done: stats.eventsNeedClosing === 0 },
+    {
+      label: `Cek kehadiran hari ini (${stats.todayAttendance.checkedIn}/${stats.todayAttendance.expected})`,
+      done: stats.todayAttendance.expected === 0 || stats.todayAttendance.checkedIn === stats.todayAttendance.expected,
+    },
+  ], [stats])
+  const completedTaskCount = tasks.filter((t) => t.done).length
 
   return (
     <div className="admin-overview">
@@ -52,22 +226,20 @@ export default function OverviewPage() {
               <FiSearch />
               <input type="text" placeholder="Search everything" />
             </div>
-            <button className="admin-dashboard-btn-icon"><FiBell /></button>
-            <button className="admin-dashboard-btn"><FiShare /> Share</button>
           </div>
         </div>
-        
+
         <div className="admin-dashboard-header__bottom">
           <div className="admin-dashboard-header__bottom-left">
-            <button className="admin-dashboard-btn admin-dashboard-btn--dark">
+            <button className="admin-dashboard-btn admin-dashboard-btn--dark" onClick={() => setIsAiOpen(true)}>
               <FiCpu /> Ask AI
             </button>
           </div>
           <div className="admin-dashboard-header__bottom-right">
             <span className="admin-dashboard-header__updated">
-              <FiCheckCircle className="icon-success" /> Last updated now
+              {isStatsLoaded ? <><FiCheckCircle className="icon-success" /> Last updated now</> : 'Memuat data...'}
             </span>
-            <button className="admin-dashboard-btn"><FiDownload /> Unduh Laporan</button>
+            <button className="admin-dashboard-btn" onClick={() => handleMockClick('Unduh Laporan')}><FiDownload /> Unduh Laporan</button>
             <Link to="/organizer/events/new" className="admin-dashboard-btn admin-dashboard-btn--dark" style={{ textDecoration: 'none' }}>
               <FiPlus /> Buat Event
             </Link>
@@ -78,447 +250,375 @@ export default function OverviewPage() {
       {/* ================= SCROLLABLE CONTENT ================= */}
       <div className="admin-overview__scroll-content">
         {/* 2. QUICK ACTIONS */}
-      <section className="quick-actions-grid">
-        <Link to="/organizer/events/new" className="quick-action-card">
-          <FiCalendar className="quick-action-card__icon" />
-          <div>
-            <h3>Create Event</h3>
-            <p>Draft a new volunteer activity</p>
-          </div>
-        </Link>
-        <Link to="/organizer/volunteers" className="quick-action-card">
-          <FiUsers className="quick-action-card__icon" style={{ color: '#D4AF37', backgroundColor: '#fcf6e3' }} />
-          <div>
-            <h3>Review Applicants</h3>
-            <p>14 volunteers pending review</p>
-          </div>
-        </Link>
-        <Link to="/organizer/events?status=ongoing" className="quick-action-card">
-          <FiCheckSquare className="quick-action-card__icon" style={{ color: '#10b981', backgroundColor: '#e6f8f0' }} />
-          <div>
-            <h3>Today's Attendance</h3>
-            <p>Scan QR codes for check-in</p>
-          </div>
-        </Link>
-        <Link to="/organizer/communication" className="quick-action-card">
-          <FiMessageSquare className="quick-action-card__icon" style={{ color: '#6366f1', backgroundColor: '#eff0fe' }} />
-          <div>
-            <h3>Broadcast Message</h3>
-            <p>Send updates to volunteers</p>
-          </div>
-        </Link>
-        <Link to="/organizer/events" className="quick-action-card">
-          <FiXCircle className="quick-action-card__icon" style={{ color: '#ef4444', backgroundColor: '#fee2e2' }} />
-          <div>
-            <h3>Close Event</h3>
-            <p>2 events require closing</p>
-          </div>
-        </Link>
-      </section>
-
-      {/* 3. KPI SECTION */}
-      <section className="kpi-grid">
-        <div className="kpi-card">
-          <div className="kpi-card__header"><FiCalendar /> Active Events</div>
-          <p className="kpi-card__value">4</p>
-          <span className="kpi-card__trend kpi-card__trend--up"><FiTrendingUp /> +2 this month</span>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__header"><FiUsers /> Pending Applicants</div>
-          <p className="kpi-card__value">86</p>
-          <span className="kpi-card__trend kpi-card__trend--up"><FiTrendingUp /> +18%</span>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__header"><FiStar /> Accepted Volunteers</div>
-          <p className="kpi-card__value">42</p>
-          <span className="kpi-card__trend kpi-card__trend--up"><FiTrendingUp /> +6%</span>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__header"><FiCheckSquare /> Today's Attendance</div>
-          <p className="kpi-card__value">31 / 38</p>
-          <span className="kpi-card__trend" style={{ color: '#6b7280' }}>81% Complete</span>
-        </div>
-        <div className="kpi-card" style={{ borderColor: '#fcd34d', backgroundColor: '#fffbeb' }}>
-          <div className="kpi-card__header" style={{ color: '#b45309' }}><FiXCircle /> Events Need Closing</div>
-          <p className="kpi-card__value" style={{ color: '#b45309' }}>2</p>
-          <span className="kpi-card__trend kpi-card__trend--warning">Requires attention</span>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-card__header"><FiSun /> Organization Impact</div>
-          <p className="kpi-card__value">18,420 <span style={{ fontSize: '1rem', color: '#6b7280' }}>Trees</span></p>
-          <span className="kpi-card__trend kpi-card__trend--up"><FiTrendingUp /> +420 this month</span>
-        </div>
-      </section>
-
-      <div className="dashboard-grid">
-        {/* LEFT COLUMN */}
-        <div className="dashboard-left-column" style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: 'var(--space-xl)',
-          position: 'sticky',
-          top: 0,
-          maxHeight: 'calc(100vh - 120px)', // adjust based on header height
-          overflowY: 'auto',
-          paddingRight: '12px'
-        }}>
-          
-          {/* 11. ORGANIZATION PERFORMANCE (Charts) */}
-          <section className="dashboard-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ margin: 0 }}>Organization Performance</h2>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button 
-                  type="button"
-                  className="btn btn--outline btn--sm" 
-                  onClick={() => setActiveChart(prev => (prev > 0 ? prev - 1 : 2))}
-                >
-                  Previous
-                </button>
-                <button 
-                  type="button"
-                  className="btn btn--outline btn--sm" 
-                  onClick={() => setActiveChart(prev => (prev < 2 ? prev + 1 : 0))}
-                >
-                  Next Chart
-                </button>
-              </div>
-            </div>
-            
-            <div className="admin-overview__card" style={{ zIndex: 10 }}>
-              {activeChart === 0 && (
-                <>
-                  <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Applicants Growth</h3>
-                  <ReactECharts option={applicantsChartOption} style={{ height: 280 }} />
-                </>
-              )}
-              {activeChart === 1 && (
-                <>
-                  <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Attendance Trend</h3>
-                  <ReactECharts option={attendanceChartOption} style={{ height: 280 }} />
-                </>
-              )}
-              {activeChart === 2 && (
-                <>
-                  <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Monthly Impact (Kg Trash)</h3>
-                  <ReactECharts option={impactChartOption} style={{ height: 280 }} />
-                </>
-              )}
-            </div>
-          </section>
-
-          {/* 4. EVENT STATUS OVERVIEW */}
-          <section className="dashboard-section">
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              <h2 style={{ margin: 0 }}>Event Status Overview</h2>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Maksimal 9 Event Prioritas</span>
-            </div>
-            <div className="event-status-grid">
-              <div className="event-status-card">
-                <div className="event-status-card__banner">
-                  <span className="badge badge--success event-status-card__badge">Published</span>
-                </div>
-                <div className="event-status-card__content">
-                  <span style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600 }}>LINGKUNGAN</span>
-                  <h3>Beach Cleanup</h3>
-                  <div className="event-status-card__meta">
-                    <FiCalendar /> Tomorrow &middot; <FiUsers /> 125 Volunteers
-                  </div>
-                  <div className="event-status-card__progress-bg">
-                    <div className="event-status-card__progress-fill" style={{ width: '80%' }} />
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>80% Full</span>
-                  <button type="button" className="btn btn--outline btn--sm" style={{ marginTop: '8px' }}>Manage Event</button>
-                </div>
-              </div>
-              
-              <div className="event-status-card">
-                <div className="event-status-card__banner" style={{ background: 'linear-gradient(135deg, #e5e7eb, #9ca3af)' }}>
-                  <span className="badge badge--info event-status-card__badge">Draft</span>
-                </div>
-                <div className="event-status-card__content">
-                  <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>PENDIDIKAN</span>
-                  <h3>Education Camp</h3>
-                  <div className="event-status-card__meta">
-                    <FiCalendar /> TBD &middot; <FiUsers /> 50 Volunteers
-                  </div>
-                  <div className="event-status-card__progress-bg">
-                    <div className="event-status-card__progress-fill" style={{ width: '0%' }} />
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>0% Full</span>
-                  <button type="button" className="btn btn--primary btn--sm" style={{ marginTop: '8px' }}>Continue Editing</button>
-                </div>
-              </div>
-              
-              <div className="event-status-card">
-                <div className="event-status-card__banner" style={{ background: 'linear-gradient(135deg, #fef3c7, #f59e0b)' }}>
-                  <span className="badge badge--warning event-status-card__badge">Ongoing</span>
-                </div>
-                <div className="event-status-card__content">
-                  <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>KESEHATAN</span>
-                  <h3>Blood Donation</h3>
-                  <div className="event-status-card__meta">
-                    <FiCalendar /> Today &middot; <FiUsers /> 220 Volunteers
-                  </div>
-                  <div className="event-status-card__progress-bg">
-                    <div className="event-status-card__progress-fill" style={{ width: '100%', background: '#f59e0b' }} />
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>100% Full</span>
-                  <button type="button" className="btn btn--outline btn--sm" style={{ marginTop: '8px' }}>Check Attendance</button>
-                </div>
-              </div>
-              
-              <div className="event-status-card">
-                <div className="event-status-card__banner" style={{ background: 'linear-gradient(135deg, #d1fae5, #10b981)' }}>
-                  <span className="badge badge--success event-status-card__badge" style={{ background: '#064e3b', color: '#fff' }}>Completed</span>
-                </div>
-                <div className="event-status-card__content">
-                  <span style={{ fontSize: '12px', color: '#064e3b', fontWeight: 600 }}>LINGKUNGAN</span>
-                  <h3>Mangrove Planting</h3>
-                  <div className="event-status-card__meta">
-                    <FiCalendar /> Last Week &middot; <FiUsers /> 80 Volunteers
-                  </div>
-                  <div className="event-status-card__progress-bg">
-                    <div className="event-status-card__progress-fill" style={{ width: '100%', background: '#10b981' }} />
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Completed</span>
-                  <button type="button" className="btn btn--outline btn--sm" style={{ marginTop: '8px' }}>View Report</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* 12. FOOTER SUMMARY */}
-          <footer className="overview-footer-banner" style={{ marginTop: '0' }}>
+        <section className="quick-actions-grid">
+          <Link to="/organizer/events/new" className="quick-action-card">
+            <FiCalendar className="quick-action-card__icon" />
             <div>
-              <h2>This Month's Impact</h2>
-              <p>Thank you for making a difference.</p>
+              <h3>Create Event</h3>
+              <p>Draft a new volunteer activity</p>
             </div>
-            <div className="footer-stats">
-              <div className="footer-stat-item">
-                <span className="footer-stat-value">4</span>
-                <span className="footer-stat-label">Events</span>
-              </div>
-              <div className="footer-stat-item">
-                <span className="footer-stat-value">420</span>
-                <span className="footer-stat-label">New Volunteers</span>
-              </div>
-              <div className="footer-stat-item">
-                <span className="footer-stat-value">8,540</span>
-                <span className="footer-stat-label">Kg Trash</span>
-              </div>
-              <div className="footer-stat-item">
-                <span className="footer-stat-value">18,420</span>
-                <span className="footer-stat-label">Trees</span>
-              </div>
-              <div className="footer-stat-item">
-                <span className="footer-stat-value">12,900</span>
-                <span className="footer-stat-label">Volunteer Hours</span>
-              </div>
+          </Link>
+          <Link to="/organizer/volunteers" className="quick-action-card">
+            <FiUsers className="quick-action-card__icon" style={{ color: '#D4AF37', backgroundColor: '#fcf6e3' }} />
+            <div>
+              <h3>Review Applicants</h3>
+              <p>{stats.pendingApplicants} volunteers pending review</p>
             </div>
-          </footer>
+          </Link>
+          <Link to="/organizer/events?status=ongoing" className="quick-action-card">
+            <FiCheckSquare className="quick-action-card__icon" style={{ color: '#10b981', backgroundColor: '#e6f8f0' }} />
+            <div>
+              <h3>Today's Attendance</h3>
+              <p>Scan QR codes for check-in</p>
+            </div>
+          </Link>
+          <Link to="/organizer/communication" className="quick-action-card">
+            <FiMessageSquare className="quick-action-card__icon" style={{ color: '#6366f1', backgroundColor: '#eff0fe' }} />
+            <div>
+              <h3>Broadcast Message</h3>
+              <p>Send updates to volunteers</p>
+            </div>
+          </Link>
+          <Link to="/organizer/events" className="quick-action-card">
+            <FiXCircle className="quick-action-card__icon" style={{ color: '#ef4444', backgroundColor: '#fee2e2' }} />
+            <div>
+              <h3>Close Event</h3>
+              <p>{stats.eventsNeedClosing} events require closing</p>
+            </div>
+          </Link>
+        </section>
 
-        </div>
+        {/* 3. KPI SECTION */}
+        <section className="kpi-grid">
+          <div className="kpi-card">
+            <div className="kpi-card__header"><FiCalendar /> Active Events</div>
+            <p className="kpi-card__value">{stats.activeEvents}</p>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-card__header"><FiUsers /> Pending Applicants</div>
+            <p className="kpi-card__value">{stats.pendingApplicants}</p>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-card__header"><FiStar /> Accepted Volunteers</div>
+            <p className="kpi-card__value">{stats.acceptedVolunteers}</p>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-card__header"><FiCheckSquare /> Today's Attendance</div>
+            <p className="kpi-card__value">{stats.todayAttendance.checkedIn} / {stats.todayAttendance.expected}</p>
+            <span className="kpi-card__trend" style={{ color: '#6b7280' }}>{stats.todayAttendance.pct}% Complete</span>
+          </div>
+          <div className="kpi-card" style={stats.eventsNeedClosing > 0 ? { borderColor: '#fcd34d', backgroundColor: '#fffbeb' } : undefined}>
+            <div className="kpi-card__header" style={stats.eventsNeedClosing > 0 ? { color: '#b45309' } : undefined}><FiXCircle /> Events Need Closing</div>
+            <p className="kpi-card__value" style={stats.eventsNeedClosing > 0 ? { color: '#b45309' } : undefined}>{stats.eventsNeedClosing}</p>
+            {stats.eventsNeedClosing > 0 && <span className="kpi-card__trend kpi-card__trend--warning">Requires attention</span>}
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-card__header"><FiSun /> Organization Impact</div>
+            <p className="kpi-card__value">{stats.totals.impact.value.toLocaleString('id-ID')} <span style={{ fontSize: '1rem', color: '#6b7280' }}>{stats.totals.impact.unit}</span></p>
+            <span className="kpi-card__trend" style={{ color: '#6b7280' }}>{stats.totals.impact.label}</span>
+          </div>
+        </section>
 
-        {/* RIGHT COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
-          
-          {/* 10. AI INSIGHTS */}
-          <section className="dashboard-section">
-            <h2>AI Insights</h2>
-            <div className="insights-grid">
-              <div className="insight-card">
-                <FiActivity className="insight-icon" />
-                <p className="insight-text"><strong>14 applicants</strong> have over 90% match score for Beach Cleanup.</p>
-              </div>
-              <div className="insight-card">
-                <FiActivity className="insight-icon" />
-                <p className="insight-text"><strong>Beach Cleanup</strong> may require 12 more volunteers based on historical drop-out rates.</p>
-              </div>
-              <div className="insight-card">
-                <FiActivity className="insight-icon" />
-                <p className="insight-text"><strong>Attendance</strong> is predicted to reach 94% today.</p>
-              </div>
-              <div className="insight-card">
-                <FiActivity className="insight-icon" />
-                <p className="insight-text"><strong>Education Camp</strong> should open registration this week to meet quotas.</p>
-              </div>
-            </div>
-          </section>
+        <div className="dashboard-grid">
+          {/* LEFT COLUMN */}
+          <div className="dashboard-left-column" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-xl)',
+            position: 'sticky',
+            top: 0,
+            maxHeight: 'calc(100vh - 120px)',
+            overflowY: 'auto',
+            paddingRight: '12px',
+          }}>
 
-          {/* 5. TODAY'S TASKS */}
-          <section className="dashboard-section card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2>Today's Tasks</h2>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)' }}>3 / 5 Completed</span>
-            </div>
-            <div className="task-list">
-              <label className="task-item completed">
-                <input type="checkbox" checked readOnly />
-                Review 14 Applicants
-              </label>
-              <label className="task-item completed">
-                <input type="checkbox" checked readOnly />
-                Approve Beach Cleanup
-              </label>
-              <label className="task-item completed">
-                <input type="checkbox" checked readOnly />
-                Generate 38 Certificates
-              </label>
-              <label className="task-item">
-                <input type="checkbox" readOnly />
-                Broadcast Schedule Reminder
-              </label>
-              <label className="task-item">
-                <input type="checkbox" readOnly />
-                Upload Event Report
-              </label>
-            </div>
-          </section>
-
-          {/* 6. RECENT ACTIVITY */}
-          <section className="dashboard-section card">
-            <h2>Recent Activity</h2>
-            <div className="timeline">
-              <div className="timeline-item">
-                <div className="timeline-dot" />
-                <div className="timeline-content">
-                  <span className="timeline-time">11:43</span>
-                  <span className="timeline-text">Beach Cleanup published</span>
+            {/* ORGANIZATION PERFORMANCE (Charts) */}
+            <section className="dashboard-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ margin: 0 }}>Organization Performance</h2>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    onClick={() => setActiveChart((prev) => (prev > 0 ? prev - 1 : 1))}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    onClick={() => setActiveChart((prev) => (prev < 1 ? prev + 1 : 0))}
+                  >
+                    Next Chart
+                  </button>
                 </div>
               </div>
-              <div className="timeline-item">
-                <div className="timeline-dot" />
-                <div className="timeline-content">
-                  <span className="timeline-time">11:05</span>
-                  <span className="timeline-text">Certificates generated</span>
-                </div>
-              </div>
-              <div className="timeline-item">
-                <div className="timeline-dot" />
-                <div className="timeline-content">
-                  <span className="timeline-time">10:20</span>
-                  <span className="timeline-text">Broadcast sent</span>
-                </div>
-              </div>
-              <div className="timeline-item">
-                <div className="timeline-dot" style={{ background: '#d1d5db', borderColor: '#fff' }} />
-                <div className="timeline-content">
-                  <span className="timeline-time">10:02</span>
-                  <span className="timeline-text">Attendance opened</span>
-                </div>
-              </div>
-              <div className="timeline-item">
-                <div className="timeline-dot" style={{ background: '#d1d5db', borderColor: '#fff' }} />
-                <div className="timeline-content">
-                  <span className="timeline-time">09:28</span>
-                  <span className="timeline-text">Volunteer Sarah accepted</span>
-                </div>
-              </div>
-              <div className="timeline-item">
-                <div className="timeline-dot" style={{ background: '#d1d5db', borderColor: '#fff' }} />
-                <div className="timeline-content">
-                  <span className="timeline-time">09:14</span>
-                  <span className="timeline-text">Volunteer Ahmad applied</span>
-                </div>
-              </div>
-            </div>
-          </section>
 
-          {/* 8. UPCOMING EVENTS & 9. CALENDAR combined logically */}
-          <section className="dashboard-section card">
-            <h2>Upcoming Events</h2>
-            
-            {/* Custom Mini Calendar */}
-            <div className="mini-calendar" style={{ marginBottom: '16px' }}>
-              <div className="mini-calendar__header">
-                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+              <div className="admin-overview__card" style={{ zIndex: 10 }}>
+                {activeChart === 0 && (
+                  <>
+                    <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Applicants Growth</h3>
+                    <ReactECharts option={applicantsChartOption} style={{ height: 280 }} />
+                  </>
+                )}
+                {activeChart === 1 && (
+                  <>
+                    <h3 style={{ fontSize: '14px', marginBottom: '16px' }}>Sebaran Kategori Event</h3>
+                    <ReactECharts option={categoryChartOption} style={{ height: 280 }} />
+                  </>
+                )}
               </div>
-              <div className="mini-calendar__grid">
-                {[...Array(30)].map((_, i) => {
-                  const day = i + 1;
-                  const isToday = day === 7;
-                  const isEvent1 = day === 8; // Tomorrow
-                  const isEvent2 = day === 11; // Saturday
-                  const isEvent3 = day === 20; // July 20
-                  
-                  let className = 'mini-calendar__day';
-                  if (isToday) className += ' mini-calendar__day--today';
-                  if (isEvent1 || isEvent2 || isEvent3) className += ' mini-calendar__day--event';
+            </section>
 
-                  let tooltip = '';
-                  if (isEvent1) tooltip = 'Beach Cleanup (125 Vol)';
-                  if (isEvent2) tooltip = 'Education Camp (50 Vol)';
-                  if (isEvent3) tooltip = 'Mangrove Planting (80 Vol)';
+            {/* EVENT STATUS OVERVIEW */}
+            <section className="dashboard-section">
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                <h2 style={{ margin: 0 }}>Event Status Overview</h2>
+                <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Maksimal 4 Event Prioritas</span>
+              </div>
+              {priorityEvents.length === 0 ? (
+                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Belum ada kegiatan.</p>
+              ) : (
+                <div className="event-status-grid">
+                  {priorityEvents.map((event) => {
+                    const filled = filledForEvent(event.id)
+                    const pct = event.quota > 0 ? Math.round((filled / event.quota) * 100) : 0
+                    return (
+                      <div className="event-status-card" key={event.id}>
+                        <div className="event-status-card__banner" style={STATUS_BANNER_STYLE[event.status]}>
+                          <span className={`badge ${STATUS_BADGE_CLASS[event.status]} event-status-card__badge`}>{STATUS_LABEL[event.status]}</span>
+                        </div>
+                        <div className="event-status-card__content">
+                          <span style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600 }}>{(event.category ?? 'UMUM').toUpperCase()}</span>
+                          <h3>{event.title}</h3>
+                          <div className="event-status-card__meta">
+                            <FiCalendar /> {formatDateShort(event.startDate)} &middot; <FiUsers /> {event.quota} Volunteers
+                          </div>
+                          <div className="event-status-card__progress-bg">
+                            <div className="event-status-card__progress-fill" style={{ width: `${pct}%`, background: STATUS_PROGRESS_COLOR[event.status] }} />
+                          </div>
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>{pct}% Full</span>
+                          <Link to={`/organizer/events/${event.id}`} className={`btn btn--sm ${event.status === 'draft' || event.status === 'pending_approval' ? 'btn--primary' : 'btn--outline'}`} style={{ marginTop: '8px', textDecoration: 'none', textAlign: 'center' }}>
+                            {actionLabelForStatus(event.status)}
+                          </Link>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
 
+            {/* FOOTER SUMMARY — this month */}
+            <footer className="overview-footer-banner" style={{ marginTop: '0' }}>
+              <div>
+                <h2>This Month's Impact</h2>
+                <p>Thank you for making a difference.</p>
+              </div>
+              <div className="footer-stats">
+                <div className="footer-stat-item">
+                  <span className="footer-stat-value">{stats.thisMonth.eventsCompleted}</span>
+                  <span className="footer-stat-label">Events Completed</span>
+                </div>
+                <div className="footer-stat-item">
+                  <span className="footer-stat-value">{stats.thisMonth.volunteersReached}</span>
+                  <span className="footer-stat-label">Volunteers Reached</span>
+                </div>
+                <div className="footer-stat-item">
+                  <span className="footer-stat-value">{stats.thisMonth.contributionHours.toLocaleString('id-ID')}</span>
+                  <span className="footer-stat-label">Contribution Hours</span>
+                </div>
+                <div className="footer-stat-item">
+                  <span className="footer-stat-value">{stats.thisMonth.impact.value.toLocaleString('id-ID')}</span>
+                  <span className="footer-stat-label">{stats.thisMonth.impact.label}</span>
+                </div>
+              </div>
+            </footer>
+
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+
+            {/* AI INSIGHTS */}
+            <section className="dashboard-section">
+              <h2>AI Insights</h2>
+              <div className="insights-grid">
+                {stats.aiInsights.length === 0 && (
+                  <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Memuat insight...</p>
+                )}
+                {stats.aiInsights.map((insight, i) => {
+                  const { icon: Icon } = INSIGHT_TONE_STYLE[insight.tone]
                   return (
-                    <div key={day} className={className}>
-                      {day}
-                      {tooltip && <div className="mini-calendar__tooltip">{tooltip}</div>}
+                    <div className="insight-card" key={i}>
+                      <Icon className="insight-icon" />
+                      <p className="insight-text"><strong>{insight.title}</strong> — {insight.description}</p>
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </section>
 
-            <div className="timeline">
-              <div className="timeline-item">
-                <div className="timeline-dot" style={{ background: 'var(--color-primary)' }} />
-                <div className="timeline-content">
-                  <span className="timeline-text">Beach Cleanup</span>
-                  <span className="timeline-time">Tomorrow</span>
-                </div>
+            {/* TODAY'S TASKS */}
+            <section className="dashboard-section card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2>Today's Tasks</h2>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)' }}>{completedTaskCount} / {tasks.length} Completed</span>
               </div>
-              <div className="timeline-item">
-                <div className="timeline-dot" style={{ background: '#f59e0b' }} />
-                <div className="timeline-content">
-                  <span className="timeline-text">Education Camp</span>
-                  <span className="timeline-time">Saturday</span>
-                </div>
+              <div className="task-list">
+                {tasks.map((task) => (
+                  <label className={`task-item ${task.done ? 'completed' : ''}`} key={task.label}>
+                    <input type="checkbox" checked={task.done} readOnly />
+                    {task.label}
+                  </label>
+                ))}
               </div>
-              <div className="timeline-item">
-                <div className="timeline-dot" style={{ background: '#3b82f6' }} />
-                <div className="timeline-content">
-                  <span className="timeline-text">Blood Donation</span>
-                  <span className="timeline-time">Next Week</span>
-                </div>
-              </div>
-              <div className="timeline-item">
-                <div className="timeline-dot" style={{ background: '#10b981' }} />
-                <div className="timeline-content">
-                  <span className="timeline-text">Mangrove Planting</span>
-                  <span className="timeline-time">July 20</span>
-                </div>
-              </div>
-            </div>
-          </section>
+            </section>
 
-          {/* 7. ORGANIZATION IMPACT */}
-          <section className="dashboard-section card">
-            <h2>Overall Impact</h2>
-            <div className="impact-grid">
-              <div className="impact-card">
-                <span className="impact-card__value">18,420</span>
-                <span className="impact-card__label">Trees Planted</span>
-              </div>
-              <div className="impact-card">
-                <span className="impact-card__value">8,540</span>
-                <span className="impact-card__label">Kg Trash Collected</span>
-              </div>
-              <div className="impact-card">
-                <span className="impact-card__value">12,900</span>
-                <span className="impact-card__label">Volunteer Hours</span>
-              </div>
-              <div className="impact-card">
-                <span className="impact-card__value">1,820</span>
-                <span className="impact-card__label">Teaching Hours</span>
-              </div>
-            </div>
-          </section>
+            {/* RECENT ACTIVITY */}
+            <section className="dashboard-section card">
+              <h2>Recent Activity</h2>
+              {stats.recentActivity.length === 0 ? (
+                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Belum ada aktivitas.</p>
+              ) : (
+                <div className="timeline">
+                  {stats.recentActivity.map((activity) => (
+                    <div className="timeline-item" key={activity.id}>
+                      <div className="timeline-dot" />
+                      <div className="timeline-content">
+                        <span className="timeline-time">{new Date(activity.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="timeline-text">{activity.action}{activity.targetLabel ? ` — ${activity.targetLabel}` : ''}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
 
+            {/* UPCOMING EVENTS & CALENDAR */}
+            <section className="dashboard-section card">
+              <h2>Upcoming Events</h2>
+
+              <div className="mini-calendar" style={{ marginBottom: '16px' }}>
+                <div className="mini-calendar__header">
+                  <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                </div>
+                <div className="mini-calendar__grid">
+                  {[...Array(daysInMonth)].map((_, i) => {
+                    const day = i + 1
+                    const isToday = day === today.getDate()
+                    const dayEvent = eventsByDay.get(day)
+
+                    let className = 'mini-calendar__day'
+                    if (isToday) className += ' mini-calendar__day--today'
+                    if (dayEvent) className += ' mini-calendar__day--event'
+
+                    return (
+                      <div key={day} className={className}>
+                        {day}
+                        {dayEvent && <div className="mini-calendar__tooltip">{dayEvent.title}</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {upcomingEvents.length === 0 ? (
+                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Tidak ada kegiatan mendatang.</p>
+              ) : (
+                <div className="timeline">
+                  {upcomingEvents.map((event) => (
+                    <div className="timeline-item" key={event.id}>
+                      <div className="timeline-dot" style={{ background: 'var(--color-primary)' }} />
+                      <div className="timeline-content">
+                        <span className="timeline-text">{event.title}</span>
+                        <span className="timeline-time">{formatDateShort(event.startDate)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* OVERALL IMPACT — all-time */}
+            <section className="dashboard-section card">
+              <h2>Overall Impact</h2>
+              <div className="impact-grid">
+                <div className="impact-card">
+                  <span className="impact-card__value">{stats.totals.eventsCompleted}</span>
+                  <span className="impact-card__label">Events Completed</span>
+                </div>
+                <div className="impact-card">
+                  <span className="impact-card__value">{stats.totals.volunteersReached}</span>
+                  <span className="impact-card__label">Volunteers Reached</span>
+                </div>
+                <div className="impact-card">
+                  <span className="impact-card__value">{stats.totals.contributionHours.toLocaleString('id-ID')}</span>
+                  <span className="impact-card__label">Contribution Hours</span>
+                </div>
+                <div className="impact-card">
+                  <span className="impact-card__value">{stats.totals.impact.value.toLocaleString('id-ID')}</span>
+                  <span className="impact-card__label">{stats.totals.impact.label}</span>
+                </div>
+              </div>
+            </section>
+
+          </div>
         </div>
       </div>
-      </div> {/* end .admin-overview__scroll-content */}
+
+      {/* ================= AI CHAT MODAL ================= */}
+      {isAiOpen && (
+        <div className="admin-ai-modal__overlay" onClick={() => setIsAiOpen(false)}>
+          <div className="admin-ai-modal__content" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-ai-modal__header">
+              <div className="admin-ai-modal__header-left">
+                <FiCpu className="ai-icon" />
+                <h2>ActiVibe AI Assistant</h2>
+              </div>
+              <button className="admin-ai-modal__close" onClick={() => setIsAiOpen(false)}>
+                <FiX />
+              </button>
+            </div>
+            <div className="admin-ai-modal__body">
+
+              <div className="ai-chat-bubble ai">
+                <strong>✨ AI Assistant</strong>
+                <p>Halo! Tanyakan apa saja soal data kegiatanmu hari ini — saya akan menjawab berdasarkan angka nyata di database.</p>
+              </div>
+
+              {chatMessages.map((m, i) => (
+                <div className={`ai-chat-bubble ${m.role === 'user' ? 'user' : 'ai'}`} key={i}>
+                  <strong>{m.role === 'user' ? 'Kamu' : '✨ AI Assistant'}</strong>
+                  <p>{m.content}</p>
+                </div>
+              ))}
+
+              {isSendingChat && (
+                <div className="ai-chat-bubble ai">
+                  <strong>✨ AI Assistant</strong>
+                  <p>Mengetik...</p>
+                </div>
+              )}
+
+            </div>
+            <div className="admin-ai-modal__footer">
+              <input
+                type="text"
+                placeholder="Tanyakan saran lain tentang data..."
+                className="admin-ai-modal__input"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSendChat() }}
+                disabled={isSendingChat}
+              />
+              <button className="admin-ai-modal__send" onClick={handleSendChat} disabled={isSendingChat}>
+                <FiSend />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

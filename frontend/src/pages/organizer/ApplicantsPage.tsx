@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { FiSearch } from 'react-icons/fi'
+import { FiSearch, FiCheck, FiUserX } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import Badge from '../../components/Badge'
 import ScrollPane from '../../components/ScrollPane'
@@ -132,9 +132,31 @@ export default function ApplicantsPage() {
                   <Badge variant={STATUS_VARIANT[a.status]}>{STATUS_LABEL[a.status]}</Badge>
                 </td>
                 <td>
-                  <button type="button" className="btn btn--outline btn--sm" onClick={() => setOpenApplicantId(a.id)}>
-                    Detail
-                  </button>
+                  <div className="applicants-page__actions">
+                    {(a.status === 'applied' || a.status === 'under_review') && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn--primary btn--sm"
+                          title="Terima volunteer"
+                          onClick={() => updateApplicantStatus(a.id, 'accepted')}
+                        >
+                          <FiCheck /> Accept
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--danger btn--sm"
+                          title="Tolak volunteer"
+                          onClick={() => updateApplicantStatus(a.id, 'rejected')}
+                        >
+                          <FiUserX /> Reject
+                        </button>
+                      </>
+                    )}
+                    <button type="button" className="btn btn--outline btn--sm" onClick={() => setOpenApplicantId(a.id)}>
+                      Detail
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -16,6 +16,7 @@ export interface PassportImpactStat {
 export interface PassportBeneficiaryQuote {
   quote: string
   author: string
+  photoUrl?: string
 }
 
 export interface PassportFeedback {
@@ -41,8 +42,10 @@ export interface PassportBookChapter {
   // 1(rangkuman kegiatan) — dari deskripsi event / narasi AI ImpactLog.aiHeadline
   summary: string
 
-  // 2. Chart dampak — dari ImpactLog.value/unit/metricLabel
-  impact: PassportImpactStat
+  // 2. Chart dampak — dari ImpactLog.value/unit/metricLabel. Opsional: kalau
+  // organizer belum close event dgn ImpactLog (edge case), backend tidak
+  // mengarang angka — halaman ini di-skip di buildPages (PassportBook.tsx).
+  impact?: PassportImpactStat
 
   // 3. Dampak lingkungan tambahan — HANYA event category 'Lingkungan'.
   // Belum ada field backend terpisah untuk ini; sementara pakai catatan

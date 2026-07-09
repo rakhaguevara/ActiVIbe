@@ -14,6 +14,7 @@ import {
   getTrafficSummary,
   archive,
   restore,
+  closeEventRegistration,
   listPublic,
   getPublic,
   trackView,
@@ -69,5 +70,6 @@ router.get('/:id/certificates', getCertificates)
 router.get('/:id/feedback-summary', getFeedbackSummary)
 router.post('/:id/archive', archive)
 router.post('/:id/restore', restore)
+router.post('/:id/close-registration', closeEventRegistration)
 
 export default router

@@ -11,6 +11,7 @@ import EventDetailPanel from '../../components/EventDetailPanel'
 import DocumentUploadField from '../../components/organizer/DocumentUploadField'
 import LegalOrgDocumentsSection from '../../components/organizer/LegalOrgDocumentsSection'
 import EventGalleryUploader from '../../components/organizer/EventGalleryUploader'
+import MultiSelectDropdown, { type MultiSelectOption, type MultiSelectGroup } from '../../components/ui/MultiSelectDropdown'
 import OrganizerDeclarationChecklist from '../../components/organizer/OrganizerDeclarationChecklist'
 import { emptyDeclarationChecklist, type DeclarationKey } from '../../lib/organizerDeclarationItems'
 import { validatePendingApproval } from '../../lib/createEventValidation'
@@ -117,6 +118,9 @@ interface CreateEventDraft {
   // tidak menganggurkan file yang sudah sukses diupload.
   eventMode: EventMode
   mapLink: string
+  picName: string
+  picContact: string
+  picEmail: string
   onBehalfOfInstitution: boolean
   organizationEntityType: OrganizationEntityType
   documents: EventSupportingDocuments
@@ -126,7 +130,7 @@ interface CreateEventDraft {
 }
 
 export default function CreateEventPage() {
-  const { addEvent } = useOrganizerData()
+  const { addEvent, subOrganizers, addSubOrganizer } = useOrganizerData()
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -134,6 +138,8 @@ export default function CreateEventPage() {
   const [draft] = useState(() => loadDraft<CreateEventDraft>(draftKey))
 
   const eventId = useState(() => nextId('evt-org'))[0]
+  // Business rule 2: organizer cuma bisa membuat event dari hari ini ke depan.
+  const todayISO = new Date().toISOString().slice(0, 10)
 
   const [title, setTitle] = useState(() => draft?.title ?? '')
   const [description, setDescription] = useState(() => draft?.description ?? '')
@@ -168,6 +174,36 @@ export default function CreateEventPage() {
   // (additive — lihat CLAUDE.md, tidak mengubah field/section yang sudah ada).
   const [eventMode, setEventMode] = useState<EventMode>(() => draft?.eventMode ?? 'OFFLINE')
   const [mapLink, setMapLink] = useState(() => draft?.mapLink ?? '')
+  // Business rule 1: PIC/pengurus penanggung jawab lapangan — dipakai backend
+  // utk cek konflik kalau organizer punya event lain di tanggal yang sama
+  // (lihat assertNoPicConflict di event.service.js). Dokumen pendukungnya
+  // reuse Surat Pernyataan Penanggung Jawab di section Dokumen Pendukung.
+  const [picName, setPicName] = useState(() => draft?.picName ?? '')
+  const [picContact, setPicContact] = useState(() => draft?.picContact ?? '')
+  // Sub Organizer (kontak PIC reusable, lihat halaman "Sub Organizer" di
+  // bagian Events): picEmail wajib bareng picContact begitu status
+  // pending_approval. picSubOrganizerId null = mode isi manual (checkbox
+  // saveAsSubOrganizer nentuin apa disimpan ke daftar reusable saat submit);
+  // terisi = PIC diambil dari daftar existing (field jadi read-only).
+  const [picEmail, setPicEmail] = useState(() => draft?.picEmail ?? '')
+  const [picSubOrganizerId, setPicSubOrganizerId] = useState<string | null>(null)
+  const [saveAsSubOrganizer, setSaveAsSubOrganizer] = useState(true)
+
+  const handleSelectSubOrganizer = (id: string) => {
+    if (!id) {
+      setPicSubOrganizerId(null)
+      setPicName('')
+      setPicContact('')
+      setPicEmail('')
+      return
+    }
+    const picked = subOrganizers.find((s) => s.id === id)
+    if (!picked) return
+    setPicSubOrganizerId(id)
+    setPicName(picked.name)
+    setPicContact(picked.whatsapp)
+    setPicEmail(picked.email)
+  }
   const [onBehalfOfInstitution, setOnBehalfOfInstitution] = useState(() => draft?.onBehalfOfInstitution ?? false)
   const [organizationEntityType, setOrganizationEntityType] = useState<OrganizationEntityType>(
     () => draft?.organizationEntityType ?? 'INDIVIDU',
@@ -218,6 +254,9 @@ export default function CreateEventPage() {
       selectedSkillIds: Array.from(selectedSkillIds),
       eventMode,
       mapLink,
+      picName,
+      picContact,
+      picEmail,
       onBehalfOfInstitution,
       organizationEntityType,
       documents,
@@ -243,6 +282,9 @@ export default function CreateEventPage() {
     selectedSkillIds,
     eventMode,
     mapLink,
+    picName,
+    picContact,
+    picEmail,
     onBehalfOfInstitution,
     organizationEntityType,
     documents,
@@ -269,6 +311,11 @@ export default function CreateEventPage() {
     setSelectedSkillIds(new Set())
     setEventMode('OFFLINE')
     setMapLink('')
+    setPicName('')
+    setPicContact('')
+    setPicEmail('')
+    setPicSubOrganizerId(null)
+    setSaveAsSubOrganizer(true)
     setOnBehalfOfInstitution(false)
     setOrganizationEntityType('INDIVIDU')
     setDocuments(emptySupportingDocuments())
@@ -350,6 +397,9 @@ export default function CreateEventPage() {
         legalDocs,
         galleryImages,
         declarationChecklist,
+        picName,
+        picContact,
+        picEmail,
       })
       if (errors.length > 0) {
         setValidationErrors(errors)
@@ -357,6 +407,21 @@ export default function CreateEventPage() {
       }
     }
     setValidationErrors([])
+
+    // PIC diisi manual (bukan dipilih dari daftar existing) + user centang
+    // "simpan utk dipakai lagi" -> simpan dulu sbg Sub Organizer baru sebelum
+    // event dibuat, supaya event ini langsung ke-link (picSubOrganizerId) dan
+    // baris itu tersedia dipilih lagi di event berikutnya.
+    let resolvedSubOrganizerId = picSubOrganizerId
+    if (!resolvedSubOrganizerId && saveAsSubOrganizer && picName.trim() && picContact.trim() && picEmail.trim()) {
+      try {
+        const saved = await addSubOrganizer({ name: picName, email: picEmail, whatsapp: picContact })
+        resolvedSubOrganizerId = saved.id
+      } catch {
+        // Gagal simpan ke daftar reusable tidak boleh blokir submit event —
+        // picName/picContact/picEmail tetap ikut tersimpan sbg snapshot biasa.
+      }
+    }
 
     await addEvent({
       title,
@@ -375,6 +440,10 @@ export default function CreateEventPage() {
       dayType: dayType || undefined,
       eventMode,
       mapLink: mapLink || undefined,
+      picName: picName || undefined,
+      picContact: picContact || undefined,
+      picEmail: picEmail || undefined,
+      picSubOrganizerId: resolvedSubOrganizerId || undefined,
       organizationEntityType,
       onBehalfOfInstitution,
       documents,
@@ -439,6 +508,21 @@ export default function CreateEventPage() {
     eventMode,
   }
 
+  const motivationOptions: MultiSelectOption[] = MOTIVATION_OPTIONS.map((opt) => ({
+    value: opt.value,
+    label: opt.label,
+  }))
+
+  const skillOptions: MultiSelectGroup[] = groupByCategory(skillsAll).map(([groupName, items]) => ({
+    groupName,
+    items: items.map((item) => ({ value: item.id, label: item.name })),
+  }))
+
+  const interestOptions: MultiSelectGroup[] = groupByCategory(interestsAll).map(([groupName, items]) => ({
+    groupName,
+    items: items.map((item) => ({ value: item.id, label: item.name })),
+  }))
+
   return (
     <div className="create-event-wrapper">
       <div className="create-event">
@@ -476,11 +560,23 @@ export default function CreateEventPage() {
         <div className="create-event__row">
           <div className="create-event__field">
             <label htmlFor="startDate">Tanggal Mulai</label>
-            <input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <input
+              id="startDate"
+              type="date"
+              min={todayISO}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
           </div>
           <div className="create-event__field">
             <label htmlFor="endDate">Tanggal Selesai</label>
-            <input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <input
+              id="endDate"
+              type="date"
+              min={startDate || todayISO}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
           </div>
         </div>
         <div className="create-event__row">
@@ -522,6 +618,71 @@ export default function CreateEventPage() {
           </div>
         </div>
         <MapsLinkField value={mapLink} onChange={setMapLink} />
+
+        <div className="create-event__field">
+          <label htmlFor="picSubOrganizer">Pilih Sub Organizer</label>
+          <select
+            id="picSubOrganizer"
+            value={picSubOrganizerId ?? ''}
+            onChange={(e) => handleSelectSubOrganizer(e.target.value)}
+          >
+            <option value="">+ Isi manual / Tambah Sub Organizer baru</option>
+            {subOrganizers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}{s.title ? ` — ${s.title}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="create-event__row">
+          <div className="create-event__field">
+            <label htmlFor="picName">Nama PIC / Pengurus Penanggung Jawab</label>
+            <input
+              id="picName"
+              placeholder="mis. Budi Santoso"
+              value={picName}
+              onChange={(e) => setPicName(e.target.value)}
+              readOnly={!!picSubOrganizerId}
+            />
+          </div>
+          <div className="create-event__field">
+            <label htmlFor="picContact">Kontak WA PIC</label>
+            <input
+              id="picContact"
+              placeholder="mis. 08xxxxxxxxxx"
+              value={picContact}
+              onChange={(e) => setPicContact(e.target.value)}
+              readOnly={!!picSubOrganizerId}
+            />
+          </div>
+          <div className="create-event__field">
+            <label htmlFor="picEmail">Email PIC</label>
+            <input
+              id="picEmail"
+              type="email"
+              placeholder="mis. budi@example.com"
+              value={picEmail}
+              onChange={(e) => setPicEmail(e.target.value)}
+              readOnly={!!picSubOrganizerId}
+            />
+          </div>
+        </div>
+        {!picSubOrganizerId && (
+          <label className="create-event__tag-option">
+            <input
+              type="checkbox"
+              checked={saveAsSubOrganizer}
+              onChange={(e) => setSaveAsSubOrganizer(e.target.checked)}
+            />
+            Simpan sebagai Sub Organizer untuk dipakai lagi di event berikutnya
+          </label>
+        )}
+        <p className="create-event__tag-hint">
+          Kontak PIC (WA & email) dicantumkan di email tiket yang diterima volunteer, supaya ada yang bisa dihubungi
+          di lokasi. Kalau kamu punya event lain di tanggal yang sama, PIC-nya wajib berbeda dan dokumen kedua event
+          harus lengkap — dokumen pendukung PIC memakai Surat Pernyataan Penanggung Jawab di bawah, tidak perlu
+          upload terpisah.
+        </p>
       </section>
 
       <section className="card create-event__section">
@@ -668,60 +829,32 @@ export default function CreateEventPage() {
 
         <div className="create-event__field">
           <label>Motivasi yang Cocok</label>
-          <div className="create-event__tag-options">
-            {MOTIVATION_OPTIONS.map((opt) => (
-              <label key={opt.value} className="create-event__tag-option">
-                <input
-                  type="checkbox"
-                  checked={motivationTags.has(opt.value)}
-                  onChange={() => toggleMotivationTag(opt.value)}
-                />
-                {opt.label}
-              </label>
-            ))}
-          </div>
+          <MultiSelectDropdown
+            options={motivationOptions}
+            selectedValues={motivationTags}
+            onChange={toggleMotivationTag}
+            placeholder="Pilih motivasi yang sesuai..."
+          />
         </div>
 
         <div className="create-event__row">
           <div className="create-event__field">
             <label>Skill yang Dibutuhkan</label>
-            <div className="create-event__tag-options">
-              {groupByCategory(skillsAll).map(([groupName, items]) => (
-                <div key={groupName} className="create-event__tag-group">
-                  <span className="create-event__tag-group-label">{groupName}</span>
-                  {items.map((item) => (
-                    <label key={item.id} className="create-event__tag-option">
-                      <input
-                        type="checkbox"
-                        checked={selectedSkillIds.has(item.id)}
-                        onChange={() => toggleSkill(item.id)}
-                      />
-                      {item.name}
-                    </label>
-                  ))}
-                </div>
-              ))}
-            </div>
+            <MultiSelectDropdown
+              options={skillOptions}
+              selectedValues={selectedSkillIds}
+              onChange={toggleSkill}
+              placeholder="Pilih skill yang dibutuhkan..."
+            />
           </div>
           <div className="create-event__field">
             <label>Minat yang Cocok</label>
-            <div className="create-event__tag-options">
-              {groupByCategory(interestsAll).map(([groupName, items]) => (
-                <div key={groupName} className="create-event__tag-group">
-                  <span className="create-event__tag-group-label">{groupName}</span>
-                  {items.map((item) => (
-                    <label key={item.id} className="create-event__tag-option">
-                      <input
-                        type="checkbox"
-                        checked={selectedInterestIds.has(item.id)}
-                        onChange={() => toggleInterest(item.id)}
-                      />
-                      {item.name}
-                    </label>
-                  ))}
-                </div>
-              ))}
-            </div>
+            <MultiSelectDropdown
+              options={interestOptions}
+              selectedValues={selectedInterestIds}
+              onChange={toggleInterest}
+              placeholder="Pilih minat yang cocok..."
+            />
           </div>
         </div>
       </section>

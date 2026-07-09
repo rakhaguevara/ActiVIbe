@@ -11,6 +11,7 @@ import {
   API_URL,
   MAX_CV_SIZE_BYTES,
   type Availability,
+  type Gender,
   type Motivation,
   type TaxonomyItem,
 } from '../../lib/profileApi'
@@ -31,6 +32,7 @@ interface SettingsDraft {
   selectedInterestIds: string[]
   selectedSkillIds: string[]
   availability: Availability | null
+  gender: Gender | null
   education: string
   passportPublic: boolean
 }
@@ -52,6 +54,11 @@ const AVAILABILITY_OPTIONS: { value: Availability; label: string }[] = [
   { value: 'WEEKDAY', label: 'Hari kerja (Senin–Jumat)' },
   { value: 'WEEKEND', label: 'Akhir pekan (Sabtu–Minggu)' },
   { value: 'BOTH', label: 'Keduanya, aku fleksibel' },
+]
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'FEMALE', label: 'Perempuan' },
+  { value: 'MALE', label: 'Laki-laki' },
 ]
 
 function groupByCategory(items: TaxonomyItem[]): [string, TaxonomyItem[]][] {
@@ -96,6 +103,13 @@ export default function SettingsPage() {
   const [isSavingAvailability, setIsSavingAvailability] = useState(false)
   const [availabilitySaved, setAvailabilitySaved] = useState(false)
 
+  // Jenis kelamin (real — profileApi). Ditanyakan wajib di OnboardingModal,
+  // tapi section ini tetap ada supaya user yang sudah onboarding SEBELUM
+  // fitur "women respect" ada bisa isi/ubah belakangan tanpa perlu re-onboarding.
+  const [gender, setGender] = useState<Gender | null>(() => draft?.gender ?? null)
+  const [isSavingGender, setIsSavingGender] = useState(false)
+  const [genderSaved, setGenderSaved] = useState(false)
+
   // Pendidikan & CV (real — profileApi)
   const [education, setEducation] = useState('')
   const [isSavingEducation, setIsSavingEducation] = useState(false)
@@ -126,6 +140,7 @@ export default function SettingsPage() {
         setBio(draft?.bio ?? profile.bio ?? '')
         setMotivation(draft?.motivation ?? profile.motivation)
         setAvailability(draft?.availability ?? profile.availability)
+        setGender(draft?.gender ?? profile.gender)
         setEducation(draft?.education ?? profile.education ?? '')
         setCvFileName(profile.cvFileName)
         setCvUrl(profile.cvUrl)
@@ -150,10 +165,24 @@ export default function SettingsPage() {
       selectedInterestIds: Array.from(selectedInterestIds),
       selectedSkillIds: Array.from(selectedSkillIds),
       availability,
+      gender,
       education,
       passportPublic,
     })
-  }, [draftKey, name, email, phone, bio, motivation, selectedInterestIds, selectedSkillIds, availability, education, passportPublic])
+  }, [
+    draftKey,
+    name,
+    email,
+    phone,
+    bio,
+    motivation,
+    selectedInterestIds,
+    selectedSkillIds,
+    availability,
+    gender,
+    education,
+    passportPublic,
+  ])
 
   const handleDiscardDraft = () => {
     clearDraft(draftKey)
@@ -166,6 +195,7 @@ export default function SettingsPage() {
         setBio(profile.bio ?? '')
         setMotivation(profile.motivation)
         setAvailability(profile.availability)
+        setGender(profile.gender)
         setEducation(profile.education ?? '')
         setSelectedInterestIds(new Set(profile.interests.map((i) => i.id)))
         setSelectedSkillIds(new Set(profile.skills.map((s) => s.id)))
@@ -230,6 +260,18 @@ export default function SettingsPage() {
       setTimeout(() => setAvailabilitySaved(false), 2000)
     } finally {
       setIsSavingAvailability(false)
+    }
+  }
+
+  const handleSaveGender = async () => {
+    if (!gender) return
+    setIsSavingGender(true)
+    try {
+      await updateMyProfile({ gender })
+      setGenderSaved(true)
+      setTimeout(() => setGenderSaved(false), 2000)
+    } finally {
+      setIsSavingGender(false)
     }
   }
 
@@ -480,6 +522,41 @@ export default function SettingsPage() {
               {isSavingAvailability ? 'Menyimpan...' : 'Simpan Perubahan'}
             </button>
             {availabilitySaved && <span className="settings-page__saved">Tersimpan!</span>}
+          </div>
+        </section>
+
+        <section className="card settings-page__section">
+          <h2>Jenis Kelamin</h2>
+          <p className="settings-page__section-desc">
+            Dipakai fitur informasi keamanan & kenyamanan (jumlah peserta perempuan dan gender penyelenggara) di
+            halaman pendaftaran kegiatan — hanya tampil untuk kamu, tidak ditampilkan ke user lain.
+          </p>
+          <div className="settings-page__chip-group">
+            {GENDER_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className={'settings-page__option' + (gender === option.value ? ' settings-page__option--selected' : '')}
+              >
+                <input
+                  type="radio"
+                  name="gender"
+                  checked={gender === option.value}
+                  onChange={() => setGender(option.value)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="settings-page__section-footer">
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              disabled={isSavingGender || !gender}
+              onClick={handleSaveGender}
+            >
+              {isSavingGender ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+            {genderSaved && <span className="settings-page__saved">Tersimpan!</span>}
           </div>
         </section>
 

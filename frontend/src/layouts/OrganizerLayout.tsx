@@ -41,6 +41,8 @@ const NAV_SECTIONS = [
           { to: '/organizer/events?status=ongoing', label: 'Ongoing' },
           { to: '/organizer/events?status=completed', label: 'Completed' },
           { to: '/organizer/events?status=archived', label: 'Archived' },
+          { to: '/organizer/events?status=overview', label: 'Events Overview' },
+          { to: '/organizer/events?status=sub-organizer', label: 'Sub Organizer' },
         ]
       },
       { 

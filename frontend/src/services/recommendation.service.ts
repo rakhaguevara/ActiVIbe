@@ -51,6 +51,10 @@ export interface RecommendedEvent {
   category: string
   location: string
   organizerName: string
+  /** Fitur "women respect" (KAI-style) — gender organizer/pembina & jumlah peserta
+   * perempuan yang sudah diterima (ACCEPTED+). Cuma dirender kalau viewer FEMALE. */
+  organizerGender: 'MALE' | 'FEMALE' | null
+  femaleAcceptedCount: number
   quota: number
   filledSlots: number
   startDate: string

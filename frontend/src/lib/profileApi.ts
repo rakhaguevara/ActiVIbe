@@ -10,6 +10,7 @@ export interface TaxonomyItem {
 
 export type Availability = 'WEEKDAY' | 'WEEKEND' | 'BOTH'
 export type Motivation = 'CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH'
+export type Gender = 'MALE' | 'FEMALE'
 
 export interface ProfileData {
   userId: string
@@ -18,6 +19,7 @@ export interface ProfileData {
   avatarUrl: string | null
   availability: Availability | null
   motivation: Motivation | null
+  gender: Gender | null
   education: string | null
   cvUrl: string | null
   cvFileName: string | null
@@ -31,6 +33,7 @@ export interface ProfileUpdatePayload {
   availability?: Availability
   bio?: string
   motivation?: Motivation
+  gender?: Gender
   customInterests?: string[]
   education?: string
   location?: string

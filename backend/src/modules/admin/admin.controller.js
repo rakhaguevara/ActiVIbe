@@ -1,6 +1,7 @@
 import {
   listUsers,
   updateUserStatus,
+  updateUserPassword,
   listEvents,
   approveEvent,
   rejectEvent,
@@ -53,6 +54,15 @@ export async function getUsers(req, res, next) {
 export async function patchUserStatus(req, res, next) {
   try {
     const user = await updateUserStatus(req.user.id, req.params.id, req.body.status)
+    return res.json({ user })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function patchUserPassword(req, res, next) {
+  try {
+    const user = await updateUserPassword(req.user.id, req.params.id, req.body.password)
     return res.json({ user })
   } catch (err) {
     next(err)

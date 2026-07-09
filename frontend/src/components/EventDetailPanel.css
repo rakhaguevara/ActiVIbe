@@ -87,6 +87,15 @@
   color: #8A6D00;
 }
 
+.event-detail-panel__women-badge {
+  font-size: var(--text-body-xs);
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
 .event-detail-panel__match-reasoning {
   font-size: var(--text-body-sm);
   color: var(--color-text-body);

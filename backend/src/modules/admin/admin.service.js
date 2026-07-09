@@ -2,6 +2,7 @@ import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
 import { matchProvince } from '../../utils/provinces.js'
 import { generateInsights } from './adminAi.service.js'
+import bcrypt from 'bcryptjs'
 
 const ACCEPTED_APPLICATION_STATUSES = ['ACCEPTED', 'CHECKED_IN', 'COMPLETED']
 
@@ -73,6 +74,34 @@ export async function updateUserStatus(adminId, userId, status) {
     data: {
       actorId: adminId,
       action: STATUS_ACTION_LABEL[upperStatus] ?? 'Mengubah status pengguna',
+      targetType: 'User',
+      targetId: userId,
+      targetLabel: user.name,
+    },
+  })
+
+  return serializeUser(updated, await countEventsJoined(updated))
+}
+
+export async function updateUserPassword(adminId, userId, newPassword) {
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) throw new AppError(404, 'Pengguna tidak ditemukan')
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  })
+
+  await prisma.refreshToken.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  })
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: adminId,
+      action: 'Mengubah password pengguna',
       targetType: 'User',
       targetId: userId,
       targetLabel: user.name,

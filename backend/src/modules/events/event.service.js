@@ -2,6 +2,8 @@ import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
 import { CATEGORY_SYMBOLS } from '../recommendations/recommendation.data.js'
 import { ensureOrganizationForOwner } from '../organizations/organization.service.js'
+import { findOwnedSubOrganizer } from '../subOrganizers/subOrganizer.service.js'
+import { isEventDocumentSetComplete } from './event.validation.js'
 
 // Status "pendaftaran terisi" — sama dengan definisi filledSlots di seluruh
 // app: semua status Application KECUALI yang berarti batal/ditolak.
@@ -12,7 +14,7 @@ const FILLED_SLOT_STATUSES = ['APPLIED', 'UNDER_REVIEW', 'ACCEPTED', 'WAITLISTED
 const VOLUNTEER_VISIBLE_STATUSES = ['PUBLISHED', 'ONGOING']
 
 const PUBLIC_EVENT_INCLUDE = {
-  organizer: true,
+  organizer: { include: { profile: true } },
   organization: true,
   eventSkills: { include: { skill: true } },
   eventInterests: { include: { interest: true } },
@@ -20,6 +22,12 @@ const PUBLIC_EVENT_INCLUDE = {
   // legal, dst.) sengaja TIDAK ikut include ini (lihat EVENT_INCLUDE, privasi).
   galleryImages: { orderBy: { sortOrder: 'asc' } },
 }
+
+// "Women respect" (KAI-style): status Application yang dihitung sbg "peserta
+// perempuan yang benar-benar akan hadir" — cuma yang sudah ACCEPTED+ (bukan
+// semua yang APPLIED), keputusan produk supaya angkanya akurat, bukan sekadar
+// jumlah pendaftar. Lihat serializePublicEvent (femaleAcceptedCount).
+const FEMALE_APPLICANT_STATUSES = ['ACCEPTED', 'CHECKED_IN', 'COMPLETED']
 
 async function filledSlotsByEventId(eventIds) {
   if (eventIds.length === 0) return new Map()
@@ -31,9 +39,23 @@ async function filledSlotsByEventId(eventIds) {
   return new Map(counts.map((c) => [c.eventId, c._count._all]))
 }
 
+async function femaleAcceptedCountByEventId(eventIds) {
+  if (eventIds.length === 0) return new Map()
+  const counts = await prisma.application.groupBy({
+    by: ['eventId'],
+    where: {
+      eventId: { in: eventIds },
+      status: { in: FEMALE_APPLICANT_STATUSES },
+      user: { profile: { gender: 'FEMALE' } },
+    },
+    _count: { _all: true },
+  })
+  return new Map(counts.map((c) => [c.eventId, c._count._all]))
+}
+
 // Bentuk publik (volunteer-facing) — SENGAJA terpisah dari serializeEvent()
 // yang berbentuk organizer (roles/requirements, bukan skills/interests/organizerName).
-function serializePublicEvent(event, filledSlots) {
+function serializePublicEvent(event, filledSlots, femaleAcceptedCount) {
   return {
     id: event.id,
     title: event.title,
@@ -41,9 +63,15 @@ function serializePublicEvent(event, filledSlots) {
     category: event.category ?? 'Umum',
     location: event.location,
     organizerName: event.organizer.name,
+    // "Pembina" (fitur women respect) = organizer/pembuat event — tidak ada
+    // konsep PIC lapangan terpisah di data model saat ini.
+    organizerGender: event.organizer.profile?.gender ?? null,
     organizationId: event.organizationId,
     quota: event.quota,
     filledSlots,
+    // Jumlah peserta perempuan yang sudah diterima (ACCEPTED+) — hanya
+    // relevan/ditampilkan frontend kalau volunteer yg login FEMALE.
+    femaleAcceptedCount,
     startDate: toDateOnly(event.startDate),
     endDate: toDateOnly(event.endDate),
     skills: event.eventSkills.map((es) => es.skill.name),
@@ -55,6 +83,7 @@ function serializePublicEvent(event, filledSlots) {
     eventMode: event.eventMode,
     mapLink: event.mapLink ?? undefined,
     photos: (event.galleryImages ?? []).map((g) => g.imageUrl),
+    registrationClosedAt: event.registrationClosedAt ? event.registrationClosedAt.toISOString() : undefined,
   }
 }
 
@@ -66,6 +95,12 @@ const EVENT_INCLUDE = {
   requirements: true,
   galleryImages: { orderBy: { sortOrder: 'asc' } },
   legalDocuments: true,
+  closeReport: true,
+  // Ditambahkan supaya serializeEvent() (organizer-facing) bisa mengekspos
+  // skills/interests di Overview tab — sebelumnya cuma PUBLIC_EVENT_INCLUDE
+  // yang fetch relasi ini.
+  eventSkills: { include: { skill: true } },
+  eventInterests: { include: { interest: true } },
 }
 
 // Satu slot dokumen pendukung (Section "Dokumen Pendukung") -> {url,fileName}
@@ -140,6 +175,8 @@ function serializeEvent(event) {
     impactMetricLabel: event.impactMetricLabel,
     impactMetricUnit: event.impactMetricUnit ?? '',
     category: event.category ?? undefined,
+    motivationTags: event.motivationTags ?? [],
+    dayType: event.dayType ?? undefined,
     archivedAt: event.archivedAt ? event.archivedAt.toISOString() : undefined,
     updatedAt: event.updatedAt.toISOString(),
     roles: (event.eventRoles ?? []).map(serializeRole),
@@ -164,6 +201,24 @@ function serializeEvent(event) {
     })),
     galleryImages: (event.galleryImages ?? []).map((g) => g.imageUrl),
     declarationAcceptedAt: event.declarationAcceptedAt ? event.declarationAcceptedAt.toISOString() : undefined,
+    skills: (event.eventSkills ?? []).map((es) => es.skill.name),
+    interests: (event.eventInterests ?? []).map((ei) => ei.interest.name),
+    picName: event.picName ?? undefined,
+    picContact: event.picContact ?? undefined,
+    picEmail: event.picEmail ?? undefined,
+    picSubOrganizerId: event.picSubOrganizerId ?? undefined,
+    registrationClosedAt: event.registrationClosedAt ? event.registrationClosedAt.toISOString() : undefined,
+    closeReport: event.closeReport
+      ? {
+          narrativeSummary: event.closeReport.narrativeSummary,
+          volunteersPresentCount: event.closeReport.volunteersPresentCount,
+          totalContributionHours: event.closeReport.totalContributionHours,
+          photoUrls: event.closeReport.photoUrls,
+          constraintsNotes: event.closeReport.constraintsNotes ?? undefined,
+          impactSummary: event.closeReport.impactSummary ?? undefined,
+          categoryMetrics: event.closeReport.categoryMetrics ?? undefined,
+        }
+      : undefined,
   }
 }
 
@@ -177,6 +232,70 @@ function shiftsCreateData(shifts) {
   }))
 }
 
+// Business rule 1: satu organizer boleh punya banyak event di tanggal yang
+// sama, TAPI harus beda PIC/pengurus penanggung jawab & dokumen (surat)
+// kedua event lengkap — kalau tidak, tidak bisa didaftarkan/diajukan.
+// Cuma dicek saat submit ke pending_approval (bukan draft — draft masih WIP
+// bebas, sama seperti aturan kelengkapan dokumen lain di validateCreateEvent).
+const ACTIVE_CONFLICT_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'ONGOING']
+
+function documentSlotOrNull(url) {
+  return url ? { url } : null
+}
+
+async function assertNoPicConflict(organizerId, data) {
+  const overlapping = await prisma.event.findMany({
+    where: {
+      organizerId,
+      status: { in: ACTIVE_CONFLICT_STATUSES },
+      startDate: { lte: new Date(data.endDate) },
+      endDate: { gte: new Date(data.startDate) },
+    },
+    include: { legalDocuments: true },
+  })
+  if (overlapping.length === 0) return
+
+  const newDocsComplete = isEventDocumentSetComplete({
+    eventMode: data.eventMode,
+    onBehalfOfInstitution: data.onBehalfOfInstitution,
+    organizationEntityType: data.organizationEntityType,
+    documents: data.documents,
+    legalDocumentsCount: data.legalDocuments?.length ?? 0,
+  })
+
+  for (const existing of overlapping) {
+    const samePic = (existing.picName ?? '').trim().toLowerCase() === (data.picName ?? '').trim().toLowerCase()
+    if (samePic) {
+      throw new AppError(
+        409,
+        `PIC/pengurus "${data.picName}" sudah ditugaskan ke event lain ("${existing.title}") pada tanggal yang sama. Gunakan PIC yang berbeda.`,
+      )
+    }
+
+    const existingDocsComplete = isEventDocumentSetComplete({
+      eventMode: existing.eventMode,
+      onBehalfOfInstitution: existing.onBehalfOfInstitution,
+      organizationEntityType: existing.organizationEntityType,
+      documents: {
+        proposal: documentSlotOrNull(existing.proposalDocUrl),
+        rundown: documentSlotOrNull(existing.rundownDocUrl),
+        poster: documentSlotOrNull(existing.posterImageUrl),
+        responsibilityLetter: documentSlotOrNull(existing.responsibilityLetterUrl),
+        locationPermit: documentSlotOrNull(existing.locationPermitUrl),
+        assignmentLetter: documentSlotOrNull(existing.assignmentLetterUrl),
+      },
+      legalDocumentsCount: existing.legalDocuments.length,
+    })
+
+    if (!newDocsComplete || !existingDocsComplete) {
+      throw new AppError(
+        409,
+        `Dokumen pendukung event ini dan/atau event "${existing.title}" pada tanggal yang sama belum lengkap. Lengkapi dokumen kedua event sebelum bisa didaftarkan bersamaan.`,
+      )
+    }
+  }
+}
+
 export async function createEvent(organizerId, data) {
   // Setiap organizer yang membuat event pertama kalinya otomatis dapat
   // Organization asli di baliknya (FindOrganizationPage butuh entitas nyata,
@@ -187,6 +306,18 @@ export async function createEvent(organizerId, data) {
     email: organizer.email ?? '',
     phone: organizer.phone ?? '',
   })
+
+  if (data.status === 'pending_approval') {
+    await assertNoPicConflict(organizerId, data)
+  }
+
+  // picName/picContact/picEmail tetap snapshot teks yang dikirim frontend
+  // (dipilih dari Sub Organizer ATAU diketik manual) — picSubOrganizerId cuma
+  // dicatat kalau memang merujuk Sub Organizer milik organisasi organizer ini
+  // (cegah reference lintas organisasi lain).
+  if (data.picSubOrganizerId) {
+    await findOwnedSubOrganizer(organizerId, data.picSubOrganizerId)
+  }
 
   const created = await prisma.event.create({
     data: {
@@ -206,6 +337,10 @@ export async function createEvent(organizerId, data) {
       dayType: data.dayType ?? null,
       eventMode: data.eventMode ?? 'OFFLINE',
       mapLink: data.mapLink?.trim() || null,
+      picName: data.picName?.trim() || null,
+      picContact: data.picContact?.trim() || null,
+      picEmail: data.picEmail?.trim() || null,
+      picSubOrganizerId: data.picSubOrganizerId || null,
       organizationEntityType: data.organizationEntityType ?? 'INDIVIDU',
       onBehalfOfInstitution: data.onBehalfOfInstitution ?? false,
       proposalDocUrl: data.documents?.proposal?.url ?? null,
@@ -362,8 +497,23 @@ export async function addRequirement(organizerId, eventId, data) {
   return serializeRequirement(requirement)
 }
 
-export async function closeEvent(organizerId, eventId, { finalStatuses, impactValue }) {
+// Business rule 1b: kategori tertentu punya field impact tambahan yang wajib
+// diisi (lihat komentar categoryMetrics di schema.prisma) — validasi ringan
+// di sini krn butuh event.category yang cuma tersedia di service layer
+// (bukan di validateCloseEvent yang cuma lihat request body).
+function assertCategoryMetricsValid(category, categoryMetrics) {
+  if (category === 'Seni & Budaya') {
+    const rate = categoryMetrics?.successRatePercent
+    if (typeof rate !== 'number' || rate < 0 || rate > 100) {
+      throw new AppError(400, 'Dampak keberhasilan acara (persen) wajib diisi 0-100 untuk kategori Seni & Budaya')
+    }
+  }
+}
+
+export async function closeEvent(organizerId, eventId, { finalStatuses, impactValue, closeReport }) {
   const event = await findOwnedEventOrThrow(organizerId, eventId)
+
+  assertCategoryMetricsValid(event.category, closeReport.categoryMetrics)
 
   await prisma.$transaction(async (tx) => {
     for (const [applicationId, status] of Object.entries(finalStatuses)) {
@@ -394,7 +544,34 @@ export async function closeEvent(organizerId, eventId, { finalStatuses, impactVa
       }
     }
 
+    await tx.eventCloseReport.upsert({
+      where: { eventId },
+      update: {
+        narrativeSummary: closeReport.narrativeSummary.trim(),
+        volunteersPresentCount: closeReport.volunteersPresentCount,
+        totalContributionHours: closeReport.totalContributionHours,
+        photoUrls: closeReport.photoUrls ?? [],
+        constraintsNotes: closeReport.constraintsNotes?.trim() || null,
+        impactSummary: closeReport.impactSummary?.trim() || null,
+        categoryMetrics: closeReport.categoryMetrics ?? undefined,
+      },
+      create: {
+        eventId,
+        narrativeSummary: closeReport.narrativeSummary.trim(),
+        volunteersPresentCount: closeReport.volunteersPresentCount,
+        totalContributionHours: closeReport.totalContributionHours,
+        photoUrls: closeReport.photoUrls ?? [],
+        constraintsNotes: closeReport.constraintsNotes?.trim() || null,
+        impactSummary: closeReport.impactSummary?.trim() || null,
+        categoryMetrics: closeReport.categoryMetrics ?? undefined,
+      },
+    })
+
     await tx.event.update({ where: { id: eventId }, data: { status: 'COMPLETED' } })
+  })
+
+  await prisma.auditLog.create({
+    data: { actorId: organizerId, action: 'Menutup kegiatan', targetType: 'Event', targetId: eventId, targetLabel: event.title },
   })
 
   return getEventForOrganizer(organizerId, eventId)
@@ -452,8 +629,14 @@ export async function listPublishedEventsForVolunteer({ keyword, category, locat
     ...(skill ? { eventSkills: { some: { skill: { name: { equals: skill, mode: 'insensitive' } } } } } : {}),
   }
   const events = await prisma.event.findMany({ where, include: PUBLIC_EVENT_INCLUDE, orderBy: { startDate: 'asc' } })
-  const filledSlots = await filledSlotsByEventId(events.map((e) => e.id))
-  return events.map((event) => serializePublicEvent(event, filledSlots.get(event.id) ?? 0))
+  const eventIds = events.map((e) => e.id)
+  const [filledSlots, femaleAcceptedCounts] = await Promise.all([
+    filledSlotsByEventId(eventIds),
+    femaleAcceptedCountByEventId(eventIds),
+  ])
+  return events.map((event) =>
+    serializePublicEvent(event, filledSlots.get(event.id) ?? 0, femaleAcceptedCounts.get(event.id) ?? 0),
+  )
 }
 
 export async function getPublishedEventById(eventId) {
@@ -461,8 +644,11 @@ export async function getPublishedEventById(eventId) {
   if (!event || !VOLUNTEER_VISIBLE_STATUSES.includes(event.status)) {
     throw new AppError(404, 'Kegiatan tidak ditemukan')
   }
-  const filledSlots = await filledSlotsByEventId([eventId])
-  return serializePublicEvent(event, filledSlots.get(eventId) ?? 0)
+  const [filledSlots, femaleAcceptedCounts] = await Promise.all([
+    filledSlotsByEventId([eventId]),
+    femaleAcceptedCountByEventId([eventId]),
+  ])
+  return serializePublicEvent(event, filledSlots.get(eventId) ?? 0, femaleAcceptedCounts.get(eventId) ?? 0)
 }
 
 // Katalog event yang dipakai algoritma matching (matchScore.js) — bentuknya
@@ -629,5 +815,31 @@ export async function restoreEvent(organizerId, eventId) {
     throw new AppError(400, 'Cuma event yang diarsipkan yang bisa dipulihkan')
   }
   await prisma.event.update({ where: { id: eventId }, data: { status: 'COMPLETED', archivedAt: null } })
+  return getEventForOrganizer(organizerId, eventId)
+}
+
+// "Close Pendaftaran" — beda dari closeEvent (COMPLETED) penuh: cuma menutup
+// slot pendaftaran baru (dicek applyToEvent di application.service.js),
+// event tetap published/ongoing dan bisa dilanjutkan ke closeEvent nanti.
+export async function closeRegistration(organizerId, eventId) {
+  const event = await findOwnedEventOrThrow(organizerId, eventId)
+  if (!['PUBLISHED', 'ONGOING'].includes(event.status)) {
+    throw new AppError(400, 'Pendaftaran hanya bisa ditutup untuk event yang sudah published/ongoing')
+  }
+  if (event.registrationClosedAt) {
+    throw new AppError(400, 'Pendaftaran event ini sudah ditutup sebelumnya')
+  }
+  await prisma.event.update({ where: { id: eventId }, data: { registrationClosedAt: new Date() } })
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: organizerId,
+      action: 'Menutup pendaftaran kegiatan',
+      targetType: 'Event',
+      targetId: eventId,
+      targetLabel: event.title,
+    },
+  })
+
   return getEventForOrganizer(organizerId, eventId)
 }

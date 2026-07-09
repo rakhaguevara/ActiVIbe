@@ -90,6 +90,12 @@
   color: var(--color-text-muted);
 }
 
+.close-wizard__attendance-hint {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+}
+
 .close-wizard__impact-form p {
   margin: 0 0 var(--space-md);
   color: var(--color-text-body);
@@ -115,6 +121,42 @@
   border: 1.5px solid var(--color-border-light);
   border-radius: 12px;
   font-family: var(--font-body);
+}
+
+.close-wizard__report-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.close-wizard__report-row {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.close-wizard__report-row .close-wizard__report-field {
+  flex: 1;
+  min-width: 140px;
+}
+
+.close-wizard__report-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  font-size: var(--text-body-sm);
+}
+
+.close-wizard__report-field textarea,
+.close-wizard__report-field input {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--color-text-body);
+  padding: var(--space-sm);
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 12px;
 }
 
 .close-wizard__summary ul {

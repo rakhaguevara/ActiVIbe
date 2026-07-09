@@ -36,6 +36,10 @@ export interface ApplicationRecord {
   status: ApplicationStatus
   appliedAt: string
   hasFeedback: boolean
+  // Terisi begitu status ACCEPTED (lihat updateApplicationStatus di
+  // application.service.js) — null sebelum itu. Dipakai kartu presensi di
+  // ApplicationHistoryPage supaya volunteer tidak cuma bergantung pada email.
+  ticketCode: string | null
   event: ApplicationEventSummary
 }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Lenis from 'lenis'
+import { motion } from 'framer-motion'
 import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
 import bg from '../assets/svg/background-1.svg'
 import wave from '../assets/svg/wave.svg'
@@ -424,13 +425,20 @@ export default function HomePage() {
 
         <div className="features__grid">
           {FEATURES.map(({ icon, title, desc }, i) => (
-            <article key={i} className="feature-card" style={{ transitionDelay: `${i * 120}ms` }}>
+            <motion.article 
+              key={i} 
+              className="feature-card"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
+            >
               <div className="feature-card__icon-wrap">
                 <img src={icon} alt={title} className="feature-card__icon" />
               </div>
               <h3 className="feature-card__title">{title}</h3>
               <p  className="feature-card__desc">{desc}</p>
-            </article>
+            </motion.article>
           ))}
         </div>
 
@@ -681,7 +689,14 @@ export default function HomePage() {
 
             <div className="activities__grid" ref={activitiesTrackRef}>
               {filteredActivities.map(({ title, icon, participants, dateRange, quota, desc }, i) => (
-                <article key={title} className="activity-card">
+                <motion.article 
+                  key={title} 
+                  className="activity-card"
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, margin: "-20px" }}
+                  transition={{ duration: 0.4, delay: i * 0.1, ease: 'easeOut' }}
+                >
                   <div className={`activity-card__banner activity-card__banner--${i % 4}`}>
                     <img src={icon} alt="" className="activity-card__icon" />
                   </div>
@@ -700,7 +715,7 @@ export default function HomePage() {
                       <Link to="/dashboard" className="activity-card__cta">Daftar Sekarang</Link>
                     </div>
                   </div>
-                </article>
+                </motion.article>
               ))}
             </div>
 
@@ -723,8 +738,15 @@ export default function HomePage() {
       {/* ═══ Trust Badges ═══ */}
       <section className="trust">
         <div className="trust__card">
-          {TRUST_BADGES.map(({ icon, title, desc }) => (
-            <div key={title} className="trust__item">
+          {TRUST_BADGES.map(({ icon, title, desc }, i) => (
+            <motion.div 
+              key={title} 
+              className="trust__item"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.15, ease: 'easeOut' }}
+            >
               <div className="trust__badge">
                 <img src={icon} alt="" className="trust__badge-icon" />
               </div>
@@ -732,7 +754,7 @@ export default function HomePage() {
                 <h3 className="trust__title">{title}</h3>
                 <p className="trust__desc">{desc}</p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>

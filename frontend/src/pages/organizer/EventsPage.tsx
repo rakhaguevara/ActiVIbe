@@ -8,6 +8,8 @@ import PublishedEventsView from './events-views/PublishedEventsView'
 import OngoingEventsView from './events-views/OngoingEventsView'
 import CompletedEventsView from './events-views/CompletedEventsView'
 import ArchivedEventsView from './events-views/ArchivedEventsView'
+import EventsOverviewView from './events-views/EventsOverviewView'
+import SubOrganizerView from './events-views/SubOrganizerView'
 
 import './EventsPage.css'
 import '../admin/OverviewPage.css' // Import admin dashboard header styles
@@ -29,6 +31,10 @@ export default function EventsPage() {
         return <CompletedEventsView />
       case 'archived':
         return <ArchivedEventsView />
+      case 'overview':
+        return <EventsOverviewView />
+      case 'sub-organizer':
+        return <SubOrganizerView />
       default:
         return <AllEventsView />
     }
@@ -41,6 +47,8 @@ export default function EventsPage() {
       case 'ongoing': return 'Ongoing Events'
       case 'completed': return 'Completed Events'
       case 'archived': return 'Archived Events'
+      case 'overview': return 'Events Overview'
+      case 'sub-organizer': return 'Sub Organizer'
       default: return 'All Events'
     }
   }
@@ -52,6 +60,8 @@ export default function EventsPage() {
       case 'ongoing': return 'Support live event operations and track real-time attendance.'
       case 'completed': return 'Review finished events, feedback, and generate reports.'
       case 'archived': return 'Access read-only historical events and their impact data.'
+      case 'overview': return 'Aggregate performance and impact across every event you organize.'
+      case 'sub-organizer': return 'Kelola kontak koordinator/PIC yang bisa dipakai ulang di event mana pun.'
       default: return 'Provide a complete overview of every event in your organization.'
     }
   }
@@ -75,9 +85,13 @@ export default function EventsPage() {
             {/* Empty space to push actions to the right */}
           </div>
           <div className="admin-dashboard-header__bottom-right">
-            <button type="button" className="admin-dashboard-btn"><FiUpload /> Import Event</button>
-            <button type="button" className="admin-dashboard-btn"><FiDownload /> Export</button>
-            <Link to="/organizer/events/new" className="admin-dashboard-btn admin-dashboard-btn--dark" style={{ textDecoration: 'none' }}><FiPlus /> Create Event</Link>
+            {statusParam !== 'sub-organizer' && (
+              <>
+                <button type="button" className="admin-dashboard-btn"><FiUpload /> Import Event</button>
+                <button type="button" className="admin-dashboard-btn"><FiDownload /> Export</button>
+                <Link to="/organizer/events/new" className="admin-dashboard-btn admin-dashboard-btn--dark" style={{ textDecoration: 'none' }}><FiPlus /> Create Event</Link>
+              </>
+            )}
           </div>
         </div>
       </div>

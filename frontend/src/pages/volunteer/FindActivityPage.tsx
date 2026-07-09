@@ -13,6 +13,7 @@ import MobileSearchModal from '../../components/MobileSearchModal'
 import SwipeDeck from '../../components/SwipeDeck'
 import SwipeResultModal from '../../components/SwipeResultModal'
 import { useRecommendations } from '../../hooks/useRecommendations'
+import { getMyProfile, type Gender } from '../../lib/profileApi'
 import type { Event } from '../../types/event'
 import './FindActivityPage.css'
 
@@ -36,6 +37,16 @@ export default function FindActivityPage() {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
   const [isSwipeMode, setIsSwipeMode] = useState(false)
   const [swipeResult, setSwipeResult] = useState<Event[] | null>(null)
+  // Fitur "women respect" (KAI-style) — cuma dipakai utk gating tampilan info
+  // jumlah peserta perempuan & gender organizer di card/form pendaftaran,
+  // lihat EventListSidebar & EventApplyForm.
+  const [currentUserGender, setCurrentUserGender] = useState<Gender | null>(null)
+
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => setCurrentUserGender(profile.gender))
+      .catch(() => {})
+  }, [])
 
   // Hasil personalisasi FR-005 dari backend (algoritma rule-based + AI).
   const { events, isLoading: isLoadingEvents, error: recommendationsError, aiEnabled, aiProvider, profileComplete } =
@@ -230,13 +241,14 @@ export default function FindActivityPage() {
         ) : sortedEvents.length === 0 ? (
           <SectionState variant="empty" title="Tidak ada kegiatan yang cocok dengan filter ini." />
         ) : isSwipeMode ? (
-          <SwipeDeck events={sortedEvents} onComplete={setSwipeResult} />
+          <SwipeDeck events={sortedEvents} onComplete={setSwipeResult} currentUserGender={currentUserGender} />
         ) : (
           <ScrollPane>
             <EventListSidebar
               events={sortedEvents}
               selectedEventId={selectedEventId}
               onSelect={handleSelectEvent}
+              currentUserGender={currentUserGender}
             />
           </ScrollPane>
         )}
@@ -245,12 +257,12 @@ export default function FindActivityPage() {
           <>
             <ScrollPane>
               <SectionErrorBoundary>
-                <EventDetailPanel event={selectedEvent} />
+                <EventDetailPanel event={selectedEvent} currentUserGender={currentUserGender} />
               </SectionErrorBoundary>
             </ScrollPane>
             <ScrollPane>
               <SectionErrorBoundary>
-                <EventApplyForm event={selectedEvent} />
+                <EventApplyForm event={selectedEvent} currentUserGender={currentUserGender} />
               </SectionErrorBoundary>
             </ScrollPane>
           </>

@@ -4,7 +4,11 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-xl) var(--space-md);
-  background: var(--color-primary-soft);
+  background-color: var(--color-primary-soft);
+  background-image: url('../../assets/svg/background-1.svg');
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
 }
 
 .auth-page__panel {
@@ -131,7 +135,7 @@
 
 .auth-page__submit {
   width: 100%;
-  margin-top: var(--space-2xs);
+  margin-top: 16px;
   padding: 14px var(--space-lg);
   font-family: var(--font-body);
   font-size: var(--text-body-md);

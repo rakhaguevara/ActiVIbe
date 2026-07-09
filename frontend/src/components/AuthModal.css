@@ -251,7 +251,8 @@
   color: var(--color-text-heading);
 }
 
-.auth-modal__field input {
+.auth-modal__field input,
+.auth-modal__field select {
   width: 100%;
   padding: 12px 14px;
   font-family: var(--font-body);
@@ -267,10 +268,15 @@
   color: var(--color-text-muted);
 }
 
-.auth-modal__field input:focus {
+.auth-modal__field input:focus,
+.auth-modal__field select:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.auth-modal__field select:invalid {
+  color: var(--color-text-muted);
 }
 
 .auth-modal__forgot {

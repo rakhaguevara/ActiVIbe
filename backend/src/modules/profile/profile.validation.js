@@ -1,5 +1,6 @@
 const AVAILABILITY_VALUES = ['WEEKDAY', 'WEEKEND', 'BOTH']
 const MOTIVATION_VALUES = ['CAREER', 'SOCIAL', 'VALUES', 'SKILL_GROWTH']
+const GENDER_VALUES = ['MALE', 'FEMALE']
 const MAX_BIO_LENGTH = 500
 const MAX_EDUCATION_LENGTH = 200
 export const MAX_CUSTOM_INTERESTS = 10
@@ -22,7 +23,7 @@ function isCustomInterestArray(value) {
 }
 
 export function validateProfileUpdateInput(body) {
-  const { bio, location, avatarUrl, availability, education, motivation, interestIds, skillIds, customInterests } = body
+  const { bio, location, avatarUrl, availability, education, motivation, gender, interestIds, skillIds, customInterests } = body
 
   const hasAnyField =
     bio !== undefined ||
@@ -31,6 +32,7 @@ export function validateProfileUpdateInput(body) {
     availability !== undefined ||
     education !== undefined ||
     motivation !== undefined ||
+    gender !== undefined ||
     interestIds !== undefined ||
     skillIds !== undefined ||
     customInterests !== undefined
@@ -61,6 +63,10 @@ export function validateProfileUpdateInput(body) {
 
   if (motivation !== undefined && !MOTIVATION_VALUES.includes(motivation)) {
     return { valid: false, message: 'Motivasi harus salah satu dari CAREER, SOCIAL, VALUES, SKILL_GROWTH' }
+  }
+
+  if (gender !== undefined && !GENDER_VALUES.includes(gender)) {
+    return { valid: false, message: 'Jenis kelamin harus salah satu dari MALE, FEMALE' }
   }
 
   if (interestIds !== undefined && !isStringIdArray(interestIds)) {

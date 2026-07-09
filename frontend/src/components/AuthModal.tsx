@@ -6,7 +6,7 @@ import { FaFacebookF, FaApple } from 'react-icons/fa'
 import logo from '../assets/svg/logo.svg'
 import { useAuth } from '../contexts/AuthContext'
 import { PORTAL_URLS } from '../config/portalUrls'
-import { updateMyProfile } from '../lib/profileApi'
+import { updateMyProfile, type Gender } from '../lib/profileApi'
 import LocationSelector, { EMPTY_LOCATION, type LocationValue } from './location/LocationSelector'
 import OtpVerifyForm from './OtpVerifyForm'
 import './AuthModal.css'
@@ -27,6 +27,10 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
   const [status, setStatus] = useState<'idle' | 'submitting' | 'otp-pending' | 'success'>('idle')
   const [pendingEmail, setPendingEmail] = useState('')
   const [location, setLocation] = useState<LocationValue>(EMPTY_LOCATION)
+  // Fitur "women respect" — dikumpulkan di sini (pola sama location: belum
+  // ada sesi saat register(), jadi ditahan di state lokal lalu dikirim via
+  // updateMyProfile() begitu OTP terverifikasi, lihat handleOtpVerified).
+  const [gender, setGender] = useState<Gender | ''>('')
   const navigate = useNavigate()
   const { login, register, logout } = useAuth()
 
@@ -71,6 +75,7 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
     setStatus('idle')
     setPendingEmail('')
     setLocation(EMPTY_LOCATION)
+    setGender('')
   }, [mode])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -122,14 +127,20 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
   // baru terbit di titik ini, jadi update lokasi profil baru boleh dikirim
   // sekarang (bukan langsung setelah register(), krn belum ada sesi otentikasi).
   const handleOtpVerified = () => {
-    if (location.regencyId) {
-      const locationString = location.provinceName
+    const locationString = location.regencyId
+      ? location.provinceName
         ? `${location.regencyName}, ${location.provinceName}`
         : location.regencyName
+      : location.provinceId
+        ? location.provinceName
+        : undefined
+
+    if (locationString || gender) {
       // fire-and-forget — kegagalan tidak memblokir navigasi
-      updateMyProfile({ location: locationString }).catch(() => {})
-    } else if (location.provinceId) {
-      updateMyProfile({ location: location.provinceName }).catch(() => {})
+      updateMyProfile({
+        ...(locationString ? { location: locationString } : {}),
+        ...(gender ? { gender } : {}),
+      }).catch(() => {})
     }
 
     setStatus('success')
@@ -235,6 +246,23 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
                     label="Lokasi"
                     placeholder="Pilih kota / kabupaten..."
                   />
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="auth-modal__field">
+                  <label htmlFor="gender">Jenis Kelamin</label>
+                  <select
+                    id="gender"
+                    name="gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as Gender)}
+                    required
+                  >
+                    <option value="" disabled>Pilih jenis kelamin...</option>
+                    <option value="FEMALE">Perempuan</option>
+                    <option value="MALE">Laki-laki</option>
+                  </select>
                 </div>
               )}
 

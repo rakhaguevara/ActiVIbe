@@ -13,6 +13,7 @@ function toProfileResponse(userId, profile, userInterests, userSkills) {
     availability: profile?.availability ?? null,
     education: profile?.education ?? null,
     motivation: profile?.motivation ?? null,
+    gender: profile?.gender ?? null,
     cvUrl: profile?.cvUrl ?? null,
     cvFileName: profile?.cvFileName ?? null,
     interests: userInterests.map((ui) => ui.interest),
@@ -35,7 +36,7 @@ export async function getProfile(userId) {
 // jawaban satu per satu (minat, lalu skill, lalu ketersediaan) tanpa
 // menunggu semua pertanyaan terjawab — lihat PRD workflow 5.1.
 export async function updateProfile(userId, data) {
-  const { bio, location, avatarUrl, availability, education, motivation, interestIds, skillIds, customInterests } = data
+  const { bio, location, avatarUrl, availability, education, motivation, gender, interestIds, skillIds, customInterests } = data
 
   // Minat "Lainnya" yang diketik bebas (bukan dipilih dari taksonomi) —
   // di-upsert by name jadi Interest kategori "Lainnya" supaya user lain yang
@@ -76,6 +77,7 @@ export async function updateProfile(userId, data) {
   if (availability !== undefined) profileFields.availability = availability
   if (education !== undefined) profileFields.education = education
   if (motivation !== undefined) profileFields.motivation = motivation
+  if (gender !== undefined) profileFields.gender = gender
 
   await prisma.$transaction(async (tx) => {
     if (Object.keys(profileFields).length > 0) {

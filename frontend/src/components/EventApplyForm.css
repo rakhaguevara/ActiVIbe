@@ -21,6 +21,22 @@
   margin: 0 0 8px;
 }
 
+.event-apply-form__women-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-secondary-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.event-apply-form__women-info p {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  line-height: 1.5;
+}
+
 .event-apply-form__field {
   display: flex;
   flex-direction: column;

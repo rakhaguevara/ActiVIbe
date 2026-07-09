@@ -2,6 +2,7 @@ import {
   listOrganizations,
   getOrganizationById,
   registerOrganization,
+  getOrganizationActivationInfo,
   requestOrganizationActivationOtp,
   verifyOrganizationActivationOtp,
 } from './organization.service.js'
@@ -47,6 +48,25 @@ export async function register(req, res, next) {
       contactName,
     })
     return res.status(201).json({ organizationId: organization.id })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// Dipanggil SetOrganizationPasswordPage saat halaman dibuka — read-only,
+// dipakai utk menampilkan warning "email ini sudah terhubung ke akun yang
+// aktif" SEBELUM user submit password (lihat organization.service.js
+// getOrganizationActivationInfo). Sengaja TANPA requireAuth, sama seperti
+// endpoint set-password lain — token sendiri jadi bukti kepemilikan.
+export async function getSetPasswordInfo(req, res, next) {
+  try {
+    const { token } = req.query
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: { message: 'Token tidak valid' } })
+    }
+
+    const result = await getOrganizationActivationInfo(token)
+    return res.status(200).json(result)
   } catch (err) {
     next(err)
   }

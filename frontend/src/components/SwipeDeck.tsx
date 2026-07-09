@@ -6,6 +6,7 @@ import { formatDateShort } from '../utils/formatDate'
 import { useBookmarkedEvents } from '../hooks/useBookmarkedEvents'
 import { bookmarkEventRequest } from '../lib/eventApi'
 import { invalidateRecommendations } from '../services/recommendation.service'
+import type { Gender } from '../lib/profileApi'
 import type { Event } from '../types/event'
 import './SwipeDeck.css'
 
@@ -16,11 +17,13 @@ const SWIPE_THRESHOLD = 100
 interface SwipeDeckProps {
   events: Event[]
   onComplete: (savedEvents: Event[]) => void
+  /** Fitur "women respect" — badge jumlah peserta perempuan cuma tampil kalau FEMALE */
+  currentUserGender?: Gender | null
 }
 
 type Direction = 'left' | 'right'
 
-export default function SwipeDeck({ events, onComplete }: SwipeDeckProps) {
+export default function SwipeDeck({ events, onComplete, currentUserGender }: SwipeDeckProps) {
   // Dibekukan sekali saat mount — kalau dibaca ulang dari prop `events` tiap
   // render, refetch rekomendasi yang dipicu invalidateRecommendations() (mis.
   // setelah swipe-kanan mengubah behavioral boost) bisa mengubah matchScore/
@@ -80,6 +83,7 @@ export default function SwipeDeck({ events, onComplete }: SwipeDeckProps) {
               isTop={stackPos === 0}
               exitDirection={stackPos === 0 ? exitDirection : null}
               onSwipe={handleSwipe}
+              currentUserGender={currentUserGender}
             />
           ))}
         </AnimatePresence>
@@ -117,9 +121,10 @@ interface SwipeCardProps {
   isTop: boolean
   exitDirection: Direction | null
   onSwipe: (direction: Direction) => void
+  currentUserGender?: Gender | null
 }
 
-function SwipeCard({ event, stackPos, isTop, exitDirection, onSwipe }: SwipeCardProps) {
+function SwipeCard({ event, stackPos, isTop, exitDirection, onSwipe, currentUserGender }: SwipeCardProps) {
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-200, 200], [-15, 15])
   const saveOpacity = useTransform(x, [0, SWIPE_THRESHOLD], [0, 1])
@@ -184,6 +189,11 @@ function SwipeCard({ event, stackPos, isTop, exitDirection, onSwipe }: SwipeCard
             {formatDateShort(event.startDate)} – {formatDateShort(event.endDate)}
           </span>
         </div>
+        {currentUserGender === 'FEMALE' && event.femaleAcceptedCount !== undefined && (
+          <span className="swipe-deck__women-badge">
+            👩 {event.femaleAcceptedCount} perempuan terdaftar
+          </span>
+        )}
       </div>
     </motion.div>
   )

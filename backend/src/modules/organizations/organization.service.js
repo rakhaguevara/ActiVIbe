@@ -158,14 +158,37 @@ export async function registerOrganization(payload) {
     },
   })
 
+  // owner.isVerified = email ini sudah akun ActiVibe aktif (bukan sekadar
+  // placeholder yang baru dibuat resolveOwner) — email set-password perlu
+  // bilang eksplisit bahwa lanjut = mengganti password akun itu, bukan cuma
+  // "aktivasi organisasi baru" (lihat sendOrganizationSetPasswordEmail).
   const setPasswordUrl = `${env.VOLUNTEER_PORTAL_URL}/set-password-organisasi?token=${token}`
   await sendOrganizationSetPasswordEmail(organization.email, {
     organizationName: organization.name,
     contactName: payload.contactName.trim(),
     setPasswordUrl,
+    existingAccount: owner.isVerified,
   })
 
   return organization
+}
+
+// Dipanggil SetOrganizationPasswordPage saat halaman dibuka (sebelum user
+// submit apa-apa) — read-only, TIDAK generate/kirim OTP (beda dari
+// requestOrganizationActivationOtp di bawah). Dipakai utk menampilkan warning
+// "email ini sudah terhubung ke akun ActiVibe yang aktif" SEBELUM user
+// melanjutkan, supaya konfirmasi terjadi lebih awal daripada baru sadar
+// setelah password akun lain keburu diganti.
+export async function getOrganizationActivationInfo(token) {
+  const organization = await findPendingOrganizationByToken(token)
+  assertActivationTokenValid(organization)
+
+  const owner = await prisma.user.findUnique({ where: { id: organization.ownerId } })
+  if (!owner) {
+    throw new AppError(400, 'Link tidak valid')
+  }
+
+  return { organizationName: organization.name, existingAccount: owner.isVerified }
 }
 
 function findPendingOrganizationByToken(token) {

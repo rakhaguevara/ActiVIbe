@@ -7,6 +7,10 @@
   justify-content: center;
   min-height: calc(100vh - 88px);
   padding: 32px 48px 64px;
+  background-image: url('../../assets/png/Onboarding.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
 @media (max-width: 600px) {

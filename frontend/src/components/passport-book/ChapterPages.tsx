@@ -42,33 +42,35 @@ export const PhotoSharePage = forwardRef<HTMLDivElement, { chapter: PassportBook
 
   return (
     <div ref={ref} className="passport-book__page">
-      <div className="passport-book__photo-slot">
-        {chapter.heroPhotoUrl ? (
-          <img src={chapter.heroPhotoUrl} alt={chapter.eventTitle} />
-        ) : (
-          <span className="passport-book__photo-placeholder">Slot: Foto kegiatan</span>
-        )}
-      </div>
-      <div className="passport-book__page-meta">
-        <span>
-          <FiMapPin /> {chapter.location}
-        </span>
-        <span>
-          <FiCalendar /> {formatDate(chapter.date)}
-        </span>
-      </div>
-      <h3 className="passport-book__page-label">{chapter.eventTitle}</h3>
-      <p className="passport-book__page-org">{chapter.organizerName}</p>
-      <div className="passport-book__share-row">
-        <button type="button" className="passport-book__share-btn" onClick={handleShareLinkedin} aria-label="Bagikan ke LinkedIn">
-          <FaLinkedin />
-        </button>
-        <button type="button" className="passport-book__share-btn" onClick={handleShareInstagram} aria-label="Salin link untuk Instagram">
-          {copied ? <FiCheck /> : <FaInstagram />}
-        </button>
-        <button type="button" className="passport-book__share-btn" onClick={handleShareFacebook} aria-label="Bagikan ke Facebook">
-          <FaFacebook />
-        </button>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        <div className="passport-book__photo-slot">
+          {chapter.heroPhotoUrl ? (
+            <img src={chapter.heroPhotoUrl} alt={chapter.eventTitle} />
+          ) : (
+            <span className="passport-book__photo-placeholder">Slot: Foto kegiatan</span>
+          )}
+        </div>
+        <div className="passport-book__page-meta">
+          <span>
+            <FiMapPin /> {chapter.location}
+          </span>
+          <span>
+            <FiCalendar /> {formatDate(chapter.date)}
+          </span>
+        </div>
+        <h3 className="passport-book__page-label">{chapter.eventTitle}</h3>
+        <p className="passport-book__page-org">{chapter.organizerName}</p>
+        <div className="passport-book__share-row">
+          <button type="button" className="passport-book__share-btn" onClick={handleShareLinkedin} aria-label="Bagikan ke LinkedIn">
+            <FaLinkedin />
+          </button>
+          <button type="button" className="passport-book__share-btn" onClick={handleShareInstagram} aria-label="Salin link untuk Instagram">
+            {copied ? <FiCheck /> : <FaInstagram />}
+          </button>
+          <button type="button" className="passport-book__share-btn" onClick={handleShareFacebook} aria-label="Bagikan ke Facebook">
+            <FaFacebook />
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -79,12 +81,18 @@ export const SummaryImpactPage = forwardRef<HTMLDivElement, { chapter: PassportB
   function SummaryImpactPage({ chapter }, ref) {
     return (
       <div ref={ref} className="passport-book__page">
-        <h3 className="passport-book__page-label">Ringkasan Kegiatan</h3>
-        <p className="passport-book__summary-text">{chapter.summary}</p>
-        <div className="passport-book__stat-tile">
-          <span className="passport-book__stat-value">{chapter.impact.value.toLocaleString('id-ID')}</span>
-          <span className="passport-book__stat-unit">{chapter.impact.unit}</span>
-          <span className="passport-book__stat-label">{chapter.impact.metricLabel}</span>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          <h3 className="passport-book__page-label">Ringkasan Kegiatan</h3>
+          <p className="passport-book__summary-text">{chapter.summary}</p>
+          {/* buildPages (PassportBook.tsx) cuma memanggil halaman ini kalau
+              chapter.impact ada — guard di sini murni defensif utk type safety. */}
+          {chapter.impact && (
+            <div className="passport-book__stat-tile">
+              <span className="passport-book__stat-value">{chapter.impact.value.toLocaleString('id-ID')}</span>
+              <span className="passport-book__stat-unit">{chapter.impact.unit}</span>
+              <span className="passport-book__stat-label">{chapter.impact.metricLabel}</span>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -99,9 +107,11 @@ export const CategoryHighlightPage = forwardRef<HTMLDivElement, { chapter: Passp
     if (chapter.category === 'Lingkungan' && chapter.environmentalNote) {
       return (
         <div ref={ref} className="passport-book__page passport-book__page--highlight">
-          <FaLeaf className="passport-book__highlight-icon" />
-          <h3 className="passport-book__page-label">Dampak Lingkungan</h3>
-          <p className="passport-book__highlight-text">{chapter.environmentalNote}</p>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <FaLeaf className="passport-book__highlight-icon" />
+            <h3 className="passport-book__page-label">Dampak Lingkungan</h3>
+            <p className="passport-book__highlight-text">{chapter.environmentalNote}</p>
+          </div>
         </div>
       )
     }
@@ -109,11 +119,22 @@ export const CategoryHighlightPage = forwardRef<HTMLDivElement, { chapter: Passp
     if (chapter.category === 'Kemanusiaan' && chapter.beneficiaryQuote) {
       return (
         <div ref={ref} className="passport-book__page passport-book__page--highlight">
-          <FaQuoteLeft className="passport-book__highlight-icon" />
-          <p className="passport-book__highlight-text passport-book__highlight-text--quote">
-            &ldquo;{chapter.beneficiaryQuote.quote}&rdquo;
-          </p>
-          <span className="passport-book__highlight-author">— {chapter.beneficiaryQuote.author}</span>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-md)' }}>
+            <FaQuoteLeft className="passport-book__highlight-icon" />
+            <div className="passport-book__highlight-photo">
+              {chapter.beneficiaryQuote.photoUrl ? (
+                <img src={chapter.beneficiaryQuote.photoUrl} alt="Penerima Manfaat" />
+              ) : (
+                <span className="passport-book__photo-placeholder" style={{ textAlign: 'center' }}>
+                  Slot Foto<br />Pendukung
+                </span>
+              )}
+            </div>
+            <p className="passport-book__highlight-text passport-book__highlight-text--quote">
+              &ldquo;{chapter.beneficiaryQuote.quote}&rdquo;
+            </p>
+            <span className="passport-book__highlight-author">— {chapter.beneficiaryQuote.author}</span>
+          </div>
         </div>
       )
     }
@@ -140,43 +161,54 @@ export const GalleryPage = forwardRef<HTMLDivElement, GalleryPageProps>(function
 
   return (
     <div ref={ref} className="passport-book__page">
-      <h3 className="passport-book__page-label">Galeri Fotoku</h3>
-      <div className="passport-book__gallery-grid">
-        {photos.map((src, index) => (
-          <div key={src} className="passport-book__gallery-item">
-            <img src={src} alt={`Foto ${index + 1}`} />
-            <button
-              type="button"
-              className="passport-book__gallery-remove"
-              onClick={() => onRemovePhoto(index)}
-              aria-label="Hapus foto"
-            >
-              <FiX />
-            </button>
-          </div>
-        ))}
-        {photos.length < MAX_GALLERY_PHOTOS && (
-          <button type="button" className="passport-book__gallery-add" onClick={() => inputRef.current?.click()}>
-            <FiPlus />
-            <span>Tambah foto</span>
-          </button>
-        )}
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        <h3 className="passport-book__page-label">Galeri Fotoku</h3>
+        <div className="passport-book__gallery-grid">
+          {Array.from({ length: MAX_GALLERY_PHOTOS }).map((_, index) => {
+            if (index < photos.length) {
+              return (
+                <div key={photos[index]} className="passport-book__gallery-item">
+                  <img src={photos[index]} alt={`Foto ${index + 1}`} />
+                  <button
+                    type="button"
+                    className="passport-book__gallery-remove"
+                    onClick={() => onRemovePhoto(index)}
+                    aria-label="Hapus foto"
+                  >
+                    <FiX />
+                  </button>
+                </div>
+              )
+            }
+            return (
+              <button
+                key={`empty-${index}`}
+                type="button"
+                className="passport-book__gallery-add"
+                onClick={() => inputRef.current?.click()}
+              >
+                <FiPlus />
+                {index === photos.length && <span style={{ fontSize: '10px' }}>Tambah foto</span>}
+              </button>
+            )
+          })}
+        </div>
+        <span className="passport-book__gallery-hint">
+          {photos.length}/{MAX_GALLERY_PHOTOS} foto — format PNG/JPG
+        </span>
+        {error && <span className="passport-book__gallery-error">{error}</span>}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg"
+          multiple
+          hidden
+          onChange={(event) => {
+            if (event.target.files) onAddPhotos(event.target.files)
+            event.target.value = ''
+          }}
+        />
       </div>
-      <span className="passport-book__gallery-hint">
-        {photos.length}/{MAX_GALLERY_PHOTOS} foto — format PNG/JPG
-      </span>
-      {error && <span className="passport-book__gallery-error">{error}</span>}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg"
-        multiple
-        hidden
-        onChange={(event) => {
-          if (event.target.files) onAddPhotos(event.target.files)
-          event.target.value = ''
-        }}
-      />
     </div>
   )
 })
@@ -189,22 +221,24 @@ export const FeedbackPage = forwardRef<HTMLDivElement, { chapter: PassportBookCh
 ) {
   return (
     <div ref={ref} className="passport-book__page">
-      <h3 className="passport-book__page-label">Kesan & Pesan</h3>
-      {chapter.feedback ? (
-        <>
-          <div className="passport-book__rating-row">
-            {Array.from({ length: 5 }, (_, index) =>
-              index < chapter.feedback!.rating ? <FaStar key={index} /> : <FaRegStar key={index} />,
-            )}
-          </div>
-          <p className="passport-book__summary-text">{chapter.feedback.comment}</p>
-        </>
-      ) : (
-        <p className="passport-book__page-slot">Belum ada kesan & pesan untuk kegiatan ini.</p>
-      )}
-      <span className="passport-book__feedback-hint">
-        Kesan & pesan ini juga jadi bagian dari rating organisasi penyelenggara.
-      </span>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        <h3 className="passport-book__page-label">Kesan & Pesan</h3>
+        {chapter.feedback ? (
+          <>
+            <div className="passport-book__rating-row">
+              {Array.from({ length: 5 }, (_, index) =>
+                index < chapter.feedback!.rating ? <FaStar key={index} /> : <FaRegStar key={index} />,
+              )}
+            </div>
+            <p className="passport-book__summary-text">{chapter.feedback.comment}</p>
+          </>
+        ) : (
+          <p className="passport-book__page-slot">Belum ada kesan & pesan untuk kegiatan ini.</p>
+        )}
+        <span className="passport-book__feedback-hint">
+          Kesan & pesan ini juga jadi bagian dari rating organisasi penyelenggara.
+        </span>
+      </div>
     </div>
   )
 })
@@ -214,11 +248,27 @@ export const CtaFillerPage = forwardRef<HTMLDivElement>(function CtaFillerPage(_
   const navigate = useNavigate()
   return (
     <div ref={ref} className="passport-book__page passport-book__page--cta">
-      <FiSearch className="passport-book__cta-icon" />
-      <p className="passport-book__cta-text">Halaman ini masih kosong — yuk isi dengan kegiatan berikutnya.</p>
-      <button type="button" className="btn btn--primary btn--sm" onClick={() => navigate('/dashboard')}>
-        Cari Event Lagi
-      </button>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-md)' }}>
+        <FiSearch className="passport-book__cta-icon" />
+        <p className="passport-book__cta-text">Halaman ini masih kosong — yuk isi dengan kegiatan berikutnya.</p>
+        <button type="button" className="btn btn--primary btn--sm" onClick={() => navigate('/dashboard')}>
+          Cari Event Lagi
+        </button>
+      </div>
+    </div>
+  )
+})
+
+// 8. Halaman quotes terakhir
+export const FinalQuotePage = forwardRef<HTMLDivElement>(function FinalQuotePage(_props, ref) {
+  return (
+    <div ref={ref} className="passport-book__page passport-book__page--final-quote">
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-md)' }}>
+        <p className="passport-book__final-quote-text">
+          &ldquo;If you can't be smart, be kind.&rdquo;
+        </p>
+        <span className="passport-book__highlight-author">— Activibe</span>
+      </div>
     </div>
   )
 })

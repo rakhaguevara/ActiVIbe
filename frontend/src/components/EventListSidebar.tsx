@@ -4,6 +4,7 @@ import { getCategoryStyle } from '../utils/categoryStyle'
 import { formatDateShort } from '../utils/formatDate'
 import { useBookmarkedEvents } from '../hooks/useBookmarkedEvents'
 import { trackEventView } from '../lib/eventApi'
+import type { Gender } from '../lib/profileApi'
 import type { Event } from '../types/event'
 import './EventListSidebar.css'
 
@@ -11,9 +12,11 @@ interface EventListSidebarProps {
   events: Event[]
   selectedEventId: string | null
   onSelect: (id: string) => void
+  /** Fitur "women respect" — badge jumlah peserta perempuan cuma tampil kalau FEMALE */
+  currentUserGender?: Gender | null
 }
 
-export default function EventListSidebar({ events, selectedEventId, onSelect }: EventListSidebarProps) {
+export default function EventListSidebar({ events, selectedEventId, onSelect, currentUserGender }: EventListSidebarProps) {
   const { isBookmarked, toggle } = useBookmarkedEvents()
   const [copiedEventId, setCopiedEventId] = useState<string | null>(null)
 
@@ -81,6 +84,12 @@ export default function EventListSidebar({ events, selectedEventId, onSelect }: 
                   {formatDateShort(event.startDate)} – {formatDateShort(event.endDate)}
                 </span>
               </div>
+
+              {currentUserGender === 'FEMALE' && event.femaleAcceptedCount !== undefined && (
+                <span className="event-list-sidebar__women-badge">
+                  👩 {event.femaleAcceptedCount} perempuan terdaftar
+                </span>
+              )}
 
               <div className="event-list-sidebar__actions">
                 <button

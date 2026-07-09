@@ -3,10 +3,11 @@ import type { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import HTMLFlipBook from 'react-pageflip'
 import type { FlipBookHandle, PageFlipEvent } from 'react-pageflip'
-import { PhotoSharePage, SummaryImpactPage, CategoryHighlightPage, GalleryPage, FeedbackPage, CtaFillerPage } from './ChapterPages'
+import { PhotoSharePage, SummaryImpactPage, CategoryHighlightPage, GalleryPage, FeedbackPage, CtaFillerPage, FinalQuotePage } from './ChapterPages'
 import { SummaryStatsPage, SkillsPage, SharePage } from './SummaryPages'
 import { MAX_GALLERY_PHOTOS, ALLOWED_GALLERY_MIME_TYPES } from './passportBook.types'
 import type { PassportBookChapter, PassportSkill, PassportStats } from './passportBook.types'
+import { FiDownload, FiX } from 'react-icons/fi'
 import './PassportBook.css'
 
 interface PassportBookProps {
@@ -27,7 +28,7 @@ interface PassportBookProps {
 }
 
 type RenderPage =
-  | { id: string; kind: 'summary' | 'skills' | 'share' | 'cta' }
+  | { id: string; kind: 'summary' | 'skills' | 'share' | 'cta' | 'final-quote' }
   | { id: string; kind: 'chapter'; chapter: PassportBookChapter; pageType: 'photo-share' | 'summary-impact' | 'highlight' | 'gallery' | 'feedback' }
 
 function chapterHasHighlight(chapter: PassportBookChapter) {
@@ -52,7 +53,12 @@ function buildPages(chapters: PassportBookChapter[], fillerPages: number): Rende
 
   chapters.forEach((chapter) => {
     pages.push({ id: `${chapter.id}-photo`, kind: 'chapter', chapter, pageType: 'photo-share' })
-    pages.push({ id: `${chapter.id}-summary`, kind: 'chapter', chapter, pageType: 'summary-impact' })
+    // Cuma ada kalau ImpactLog beneran ada (organizer sudah close event) —
+    // backend tidak pernah mengarang angka dampak, jadi halaman ini di-skip
+    // utk chapter yang belum punya ImpactLog, bukan tampil dgn angka kosong.
+    if (chapter.impact) {
+      pages.push({ id: `${chapter.id}-summary`, kind: 'chapter', chapter, pageType: 'summary-impact' })
+    }
     if (chapterHasHighlight(chapter)) {
       pages.push({ id: `${chapter.id}-highlight`, kind: 'chapter', chapter, pageType: 'highlight' })
     }
@@ -63,6 +69,8 @@ function buildPages(chapters: PassportBookChapter[], fillerPages: number): Rende
   for (let i = 0; i < fillerPages; i += 1) {
     pages.push({ id: `cta-${i}`, kind: 'cta' })
   }
+
+  pages.push({ id: 'final-quote', kind: 'final-quote' })
 
   return pages
 }
@@ -89,6 +97,20 @@ export default function PassportBook({
   const shareText = `Aku baru saja menyelesaikan ${stats.eventsCompleted} kegiatan volunteer dan berkontribusi ${stats.totalHours} jam bersama ${stats.ngoCount} organisasi lewat ActiVibe!`
 
   const [isExpanded, setIsExpanded] = useState(false)
+  // Begitu animasi zoom (framer-motion) ke ukuran penuh selesai, cover masih
+  // ditampilkan dulu (bukan langsung memasang flipbook) supaya user sempat
+  // lihat cover-nya + klik lagi buat membuka halaman — dua tahap sengaja
+  // dipisah dari isBookMounted supaya ada jeda "klik untuk membuka" yang
+  // terlihat, bukan cuma sekilas sebelum langsung ganti ke reader.
+  const [hasZoomedIn, setHasZoomedIn] = useState(false)
+  // Klik di cover men-trigger pelebaran surface dari lebar "cover" (portrait,
+  // selebar buku tertutup) ke lebar "reader" (spread, melebar di breakpoint
+  // desktop) LEBIH DULU lewat state ini — HTMLFlipBook (size="stretch") baru
+  // dipasang setelah animasi lebar itu selesai (lihat handleLayoutAnimationComplete).
+  // Kalau dipasang bersamaan dengan resize container, react-pageflip sempat
+  // mengukur lebar container di tengah transisi lalu salah ukur, halamannya
+  // kelihatan seret/gepeng sesaat pas baru dibuka.
+  const [isReaderSized, setIsReaderSized] = useState(false)
   const [isBookMounted, setIsBookMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
   const [pageCount, setPageCount] = useState(0)
@@ -136,6 +158,7 @@ export default function PassportBook({
   const pages = buildPages(chapters, fillerPages)
 
   const handleOpen = () => setIsExpanded(true)
+  const handleOpenReader = () => setIsReaderSized(true)
 
   const handleFlipInit = (event: PageFlipEvent) => {
     setCurrentPage(event.object.getCurrentPageIndex())
@@ -165,10 +188,23 @@ export default function PassportBook({
     // framer-motion yang sedang mengecilkan container.
     setIsBookMounted(false)
     setIsExpanded(false)
+    setHasZoomedIn(false)
+    setIsReaderSized(false)
   }
 
+  // motion.div surface punya 2 macam animasi layout yang lewat callback yang
+  // sama, dibedakan dari state saat ini:
+  // 1. closed -> cover (zoom awal selesai): tandai hasZoomedIn supaya cover
+  //    full-size berhenti dulu + hint "klik untuk membuka" muncul.
+  // 2. cover -> reader (pelebaran ke lebar spread selesai): BARU DI SINI
+  //    flipbook dipasang (isBookMounted), supaya react-pageflip mengukur
+  //    container yang sudah di ukuran final, bukan di tengah transisi.
   const handleLayoutAnimationComplete = () => {
-    if (isExpanded) setIsBookMounted(true)
+    if (isReaderSized) {
+      setIsBookMounted(true)
+      return
+    }
+    if (isExpanded) setHasZoomedIn(true)
   }
 
   const renderPage = (page: RenderPage): ReactNode => {
@@ -181,6 +217,8 @@ export default function PassportBook({
         return <SharePage key={page.id} publicUrl={publicUrl} shareText={shareText} />
       case 'cta':
         return <CtaFillerPage key={page.id} />
+      case 'final-quote':
+        return <FinalQuotePage key={page.id} />
       case 'chapter':
         switch (page.pageType) {
           case 'photo-share':
@@ -229,30 +267,57 @@ export default function PassportBook({
           onLayoutAnimationComplete={handleLayoutAnimationComplete}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className={`passport-book__surface ${
-            isExpanded ? 'passport-book__surface--open' : 'passport-book__surface--closed'
-          }`}
-          onClick={isExpanded ? undefined : handleOpen}
+            !isExpanded
+              ? 'passport-book__surface--closed'
+              : isReaderSized
+                ? 'passport-book__surface--reader'
+                : 'passport-book__surface--cover'
+          } ${hasZoomedIn && !isReaderSized ? 'passport-book__surface--cover-ready' : ''}`}
+          onClick={
+            !isExpanded ? handleOpen : hasZoomedIn && !isReaderSized ? handleOpenReader : undefined
+          }
         >
           {!isBookMounted ? (
             <div
-              className="passport-book__cover-face"
-              style={coverUrl ? { backgroundImage: `url(${coverUrl})`, border: 'none' } : undefined}
+              // Selagi surface masih animasi membesar dari thumbnail kecil ke
+              // ukuran cover penuh (isExpanded tapi belum hasZoomedIn),
+              // gambar cover-nya SENGAJA tidak dipasang jadi background —
+              // background-size:cover ikut "menggelembung" tidak enak dilihat
+              // kalau dibiarkan scale bareng animasi resize. Tampilkan abu-abu
+              // polos dulu, baru pasang gambar aslinya begitu ukuran final
+              // tercapai (hasZoomedIn true).
+              className={`passport-book__cover-face ${
+                isExpanded && !hasZoomedIn ? 'passport-book__cover-face--loading' : ''
+              }`}
+              style={
+                coverUrl && (!isExpanded || hasZoomedIn)
+                  ? { backgroundImage: `url(${coverUrl})`, border: 'none' }
+                  : undefined
+              }
             >
               {!coverUrl && (
                 <>
                   <span className="passport-book__cover-placeholder-tag">Placeholder cover</span>
                   <span className="passport-book__cover-title">{title}</span>
-                  <span className="passport-book__cover-hint">
-                    {isExpanded ? 'Membuka…' : 'Klik untuk membuka'}
-                  </span>
+                  {!isExpanded && <span className="passport-book__cover-hint">Klik untuk membuka</span>}
                 </>
+              )}
+              {hasZoomedIn && !isReaderSized && (
+                <span className="passport-book__cover-hint passport-book__cover-hint--prompt">
+                  Klik untuk membuka
+                </span>
               )}
             </div>
           ) : (
             <div className="passport-book__reader">
-              <button type="button" className="passport-book__close-btn" onClick={handleClose} aria-label="Tutup">
-                ×
-              </button>
+              <div className="passport-book__reader-actions">
+                <button type="button" className="passport-book__action-btn" title="Download PDF" onClick={() => alert('Fitur Download PDF belum tersedia')}>
+                  <FiDownload />
+                </button>
+                <button type="button" className="passport-book__action-btn" onClick={handleClose} aria-label="Tutup" title="Tutup">
+                  <FiX />
+                </button>
+              </div>
               <HTMLFlipBook
                 ref={flipBookRef}
                 width={420}
@@ -279,7 +344,11 @@ export default function PassportBook({
         </motion.div>
 
         {isExpanded && (
-          <div className="passport-book__nav-row">
+          <div
+            className={`passport-book__nav-row ${
+              isBookMounted ? 'passport-book__nav-row--reader' : ''
+            }`}
+          >
             <button
               type="button"
               className="passport-book__nav passport-book__nav--prev"

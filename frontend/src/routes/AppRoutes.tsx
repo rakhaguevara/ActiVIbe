@@ -116,9 +116,10 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
         <Route path="/tentang-kami" element={<AboutPage onSignupClick={onSignupClick} />} />
         <Route path="/cara-kerja" element={<CaraKerjaPage onSignupClick={onSignupClick} />} />
         <Route path="/donasi" element={<DonatePage />} />
-        <Route path="/set-password-organisasi" element={<SetOrganizationPasswordPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
+
+      <Route path="/set-password-organisasi" element={<SetOrganizationPasswordPage />} />
 
       <Route element={<DashboardLayout />}>
         <Route path="/dashboard" element={<FindActivityPage />} />

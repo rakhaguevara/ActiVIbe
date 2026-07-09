@@ -31,6 +31,7 @@
   justify-content: center;
   gap: var(--space-md);
   z-index: 999;
+  pointer-events: none;
 }
 
 .passport-book__surface {
@@ -39,6 +40,7 @@
   overflow: hidden;
   cursor: pointer;
   z-index: 999;
+  pointer-events: auto;
   box-shadow:
     0 1px 0 1px var(--color-border-medium),
     0 2px 0 2px var(--color-bg-surface),
@@ -51,24 +53,37 @@
   height: 314px;
 }
 
-.passport-book__surface--open {
+/* Cover full-size (belum diklik utk dibuka) SENGAJA tetap selebar buku
+   tertutup (single-page portrait), BUKAN lebar spread reader — supaya
+   kelihatan seperti "buku diangkat & dizoom", bukan langsung melebar ke
+   layout terbuka. Reader (flipbook terpasang) baru dapat lebar spread di
+   breakpoint desktop lewat media query di bawah. */
+.passport-book__surface--cover,
+.passport-book__surface--reader {
   width: min(92vw, 420px);
   height: min(78vh, 600px);
   cursor: default;
 }
 
+/* Cover full-size sudah diam, menunggu klik user buat memasang flipbook. */
+.passport-book__surface--cover-ready {
+  cursor: pointer;
+}
+
 /* Di layar laptop/PC ada ruang cukup buat 2 halaman berdampingan (spread) —
    react-pageflip (usePortrait) yang memutuskan single vs spread berdasarkan
    lebar kontainer ini, bukan media query terpisah; di sini kita cuma kasih
-   dia ruang yang cukup lebar untuk itu. */
+   dia ruang yang cukup lebar untuk itu. Cuma diterapkan ke --reader supaya
+   tahap cover (sebelum diklik) tidak ikut melebar duluan. */
 @media (min-width: 1024px) {
-  .passport-book__surface--open {
+  .passport-book__surface--reader {
     width: min(88vw, 900px);
     height: min(78vh, 620px);
   }
 }
 
 .passport-book__cover-face {
+  position: relative;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
@@ -83,6 +98,29 @@
   border: 2px dashed var(--color-border-medium);
   background-size: cover;
   background-position: center;
+}
+
+/* Selama animasi zoom-in (thumbnail -> cover full-size) berlangsung: abu-abu
+   polos dgn shimmer halus, gambar cover asli sengaja belum dipasang (lihat
+   komentar di PassportBook.tsx). */
+.passport-book__cover-face--loading {
+  background: linear-gradient(
+    100deg,
+    var(--color-border-light) 40%,
+    var(--color-border-medium) 50%,
+    var(--color-border-light) 60%
+  );
+  background-size: 250% 100%;
+  animation: passport-book-cover-loading-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes passport-book-cover-loading-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .passport-book__cover-placeholder-tag {
@@ -105,6 +143,33 @@
   color: var(--color-primary);
 }
 
+/* Badge ajakan klik di atas cover full-size (dipakai juga saat coverUrl
+   asli terpasang sbg background-image, jadi harus overlay, bukan ikut alur
+   flex cover-face yang isinya kosong kalau coverUrl ada). */
+.passport-book__cover-hint--prompt {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-xl);
+  transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-text-on-dark);
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(26, 26, 46, 0.3);
+  animation: passport-book-cover-hint-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes passport-book-cover-hint-pulse {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.06);
+  }
+}
+
 .passport-book__reader {
   width: 100%;
   height: 100%;
@@ -115,21 +180,35 @@
   background: var(--color-bg-page-alt);
 }
 
-.passport-book__close-btn {
+.passport-book__reader-actions {
   position: absolute;
   top: var(--space-sm);
   right: var(--space-sm);
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+
+.passport-book__action-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   border: none;
   background: var(--color-bg-surface);
   color: var(--color-text-heading);
-  font-size: 1.25rem;
-  line-height: 1;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  z-index: 5;
   box-shadow: 0 2px 6px rgba(26, 26, 46, 0.15);
+  transition: all 0.15s ease;
+}
+
+.passport-book__action-btn:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  transform: translateY(-2px);
 }
 
 .passport-book__flipbook {
@@ -144,7 +223,7 @@
 }
 
 @media (min-width: 1024px) {
-  .passport-book__nav-row {
+  .passport-book__nav-row--reader {
     width: min(88vw, 900px);
   }
 }
@@ -178,10 +257,10 @@
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: var(--space-md);
+  padding: 32px 28px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-light);
 }
@@ -331,6 +410,25 @@
   color: var(--color-secondary-dark);
 }
 
+.passport-book__highlight-photo {
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 auto;
+  background: var(--color-bg-page-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--color-border-medium);
+}
+
+.passport-book__highlight-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .passport-book__highlight-text {
   font-family: var(--font-body);
   font-size: var(--text-body-md);
@@ -352,7 +450,7 @@
 
 .passport-book__gallery-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-sm);
 }
 
@@ -448,6 +546,22 @@
   font-family: var(--font-body);
   font-size: var(--text-body-sm);
   color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* --- Final Quote Page --- */
+
+.passport-book__page--final-quote {
+  background: var(--color-primary);
+  text-align: center;
+}
+
+.passport-book__final-quote-text {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  color: var(--color-text-on-dark);
+  font-style: italic;
+  line-height: var(--leading-normal);
   margin: 0;
 }
 

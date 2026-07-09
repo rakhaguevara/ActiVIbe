@@ -148,7 +148,6 @@ export default function OverviewPage() {
   return (
     <div className="admin-overview">
 
-      {/* ================= FIXED HEADER ================= */}
       <div className="admin-dashboard-header">
         <div className="admin-dashboard-header__top">
           <h1 className="admin-dashboard-header__title">Dashboard</h1>
@@ -157,8 +156,6 @@ export default function OverviewPage() {
               <FiSearch />
               <input type="text" placeholder="Search everything" />
             </div>
-            <button className="admin-dashboard-btn-icon" onClick={() => handleMockClick('Notifikasi')}><FiBell /></button>
-            <button className="admin-dashboard-btn" onClick={() => handleMockClick('Bagikan')}><FiShare /> Share</button>
           </div>
         </div>
         
@@ -173,7 +170,6 @@ export default function OverviewPage() {
               <FiCheckCircle className="icon-success" /> Last updated now
             </span>
             <button className="admin-dashboard-btn" onClick={() => handleMockClick('Unduh Laporan')}><FiDownloadCloud /> Unduh Laporan</button>
-            <button className="admin-dashboard-btn admin-dashboard-btn--dark" onClick={() => handleMockClick('Buat Event')}><FiPlus /> Buat Event</button>
           </div>
         </div>
       </div>

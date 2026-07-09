@@ -13,7 +13,16 @@ async function fetchApplicationEmailContext(userId, eventId) {
     prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } }),
     prisma.event.findUnique({
       where: { id: eventId },
-      select: { title: true, location: true, startDate: true, endDate: true, organizer: { select: { name: true } } },
+      select: {
+        title: true,
+        location: true,
+        startDate: true,
+        endDate: true,
+        organizer: { select: { name: true } },
+        picName: true,
+        picContact: true,
+        picEmail: true,
+      },
     }),
   ])
   if (!user?.email || !event) return null
@@ -49,6 +58,9 @@ async function sendApplicationTicketEmail(userId, application, qrBuffer) {
     organizerName: ctx.event.organizer.name,
     ticketCode: application.ticketCode,
     qrBuffer,
+    coordinatorName: ctx.event.picName,
+    coordinatorPhone: ctx.event.picContact,
+    coordinatorEmail: ctx.event.picEmail,
   })
 }
 
@@ -57,6 +69,13 @@ async function sendApplicationTicketEmail(userId, application, qrBuffer) {
 // (kode + QR yg bisa discan panitia utk check-in, FR-044) baru diterbitkan
 // saat organizer menerima aplikasi ini (lihat updateApplicationStatus).
 export async function applyToEvent({ userId, eventId, whatsapp, motivation, availability }) {
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { registrationClosedAt: true } })
+  if (event?.registrationClosedAt) {
+    const closedErr = new Error('Pendaftaran untuk kegiatan ini sudah ditutup oleh penyelenggara.')
+    closedErr.statusCode = 409
+    throw closedErr
+  }
+
   let application
   try {
     application = await prisma.application.create({
@@ -103,6 +122,11 @@ export async function getMyApplications(userId) {
       eventId: true,
       status: true,
       appliedAt: true,
+      // Ticket code diekspos ke volunteer sendiri di sini (beda dari email
+      // yang cuma dikirim sekali saat ACCEPTED) — supaya presensi kehadiran
+      // tidak bergantung pada volunteer masih punya akses ke email tsb /
+      // menunggu resend. null selama belum ACCEPTED (lihat updateApplicationStatus).
+      ticketCode: true,
       feedback: { select: { id: true } },
       event: {
         select: {
@@ -123,6 +147,7 @@ export async function getMyApplications(userId) {
     status: app.status,
     appliedAt: app.appliedAt,
     hasFeedback: app.feedback !== null,
+    ticketCode: app.ticketCode,
     event: {
       id: app.event.id,
       title: app.event.title,
@@ -258,7 +283,25 @@ export async function updateApplicationStatus(organizerId, applicationId, status
       .catch((err) => console.error('[updateApplicationStatus] gagal mengirim email tiket:', err))
   }
 
-  return getApplicantDetail(applicationId)
+  const detail = await getApplicantDetail(applicationId)
+
+  // Dicatat utk "Recent Activity" dashboard organizer (FR-052) — hanya
+  // transisi accept/reject yg dianggap "aktivitas penting" (bukan tiap
+  // perubahan status kecil spt UNDER_REVIEW), sama spt admin cuma mencatat
+  // approve/reject event, bukan tiap perubahan.
+  if (normalizedStatus === 'ACCEPTED' || normalizedStatus === 'REJECTED') {
+    await prisma.auditLog.create({
+      data: {
+        actorId: organizerId,
+        action: normalizedStatus === 'ACCEPTED' ? 'Menerima pendaftar' : 'Menolak pendaftar',
+        targetType: 'Application',
+        targetId: applicationId,
+        targetLabel: detail.volunteerName,
+      },
+    })
+  }
+
+  return detail
 }
 
 export async function addOrganizerNote(organizerId, applicationId, note) {

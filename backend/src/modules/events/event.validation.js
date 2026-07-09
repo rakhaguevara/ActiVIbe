@@ -26,6 +26,25 @@ function isUploadedFile(value) {
   return value && typeof value === 'object' && typeof value.url === 'string' && value.url.trim()
 }
 
+// Business rule 1 ("surat lengkap"): reuse persis aturan dokumen wajib yang
+// sudah ada di blok pending_approval di bawah, tapi sbg fungsi murni yang
+// bisa dipakai baik utk request body baru (createEvent) MAUPUN event lama yg
+// sudah tersimpan di DB (bentuk berbeda — lihat pemanggilnya di
+// event.service.js assertNoPicConflict, yang membungkus kolom Event jadi
+// shape { url } yang sama). Dipisah dari validateCreateEvent supaya tidak
+// duplikasi aturan "dokumen apa aja yang wajib".
+export function isEventDocumentSetComplete({ eventMode, onBehalfOfInstitution, organizationEntityType, documents, legalDocumentsCount }) {
+  const docs = documents ?? {}
+  if (!isUploadedFile(docs.proposal)) return false
+  if (!isUploadedFile(docs.rundown)) return false
+  if (!isUploadedFile(docs.poster)) return false
+  if (!isUploadedFile(docs.responsibilityLetter)) return false
+  if ((eventMode ?? 'OFFLINE') === 'OFFLINE' && !isUploadedFile(docs.locationPermit)) return false
+  if (onBehalfOfInstitution === true && !isUploadedFile(docs.assignmentLetter)) return false
+  if ((organizationEntityType ?? 'INDIVIDU') !== 'INDIVIDU' && (legalDocumentsCount ?? 0) < 1) return false
+  return true
+}
+
 function isStringIdArray(value) {
   return Array.isArray(value) && value.every((v) => typeof v === 'string' && v.trim())
 }
@@ -78,6 +97,9 @@ export function validateCreateEvent(body) {
     legalDocuments,
     galleryImages,
     declarationChecklist,
+    picName,
+    picContact,
+    picEmail,
   } = body
 
   if (!title || typeof title !== 'string' || !title.trim()) {
@@ -94,6 +116,17 @@ export function validateCreateEvent(body) {
   }
   if (!startDate || !endDate) {
     return { valid: false, message: 'Tanggal mulai & selesai wajib diisi' }
+  }
+  // Business rule 2: organizer cuma bisa membuat event dari hari ini ke depan
+  // — startDate/endDate arrive sbg 'YYYY-MM-DD' (format <input type="date">),
+  // jadi perbandingan string leksikografis aman dipakai di sini (sama pola
+  // dgn TODAY di ImpactTab.tsx frontend).
+  const todayStr = new Date().toISOString().slice(0, 10)
+  if (startDate < todayStr) {
+    return { valid: false, message: 'Tanggal mulai tidak boleh sebelum hari ini' }
+  }
+  if (endDate < startDate) {
+    return { valid: false, message: 'Tanggal selesai tidak boleh sebelum tanggal mulai' }
   }
   if (!EVENT_STATUSES.includes(status)) {
     return { valid: false, message: 'Status tidak valid' }
@@ -175,6 +208,18 @@ export function validateCreateEvent(body) {
     if (!isUploadedFile(docs.responsibilityLetter)) {
       return { valid: false, message: 'Surat Pernyataan Penanggung Jawab wajib diunggah sebelum dipublikasikan' }
     }
+    if (!picName || typeof picName !== 'string' || !picName.trim()) {
+      return { valid: false, message: 'Nama PIC/pengurus wajib diisi sebelum dipublikasikan' }
+    }
+    // Sub Organizer (kontak PIC reusable): WA & email wajib supaya bisa
+    // dicantumkan di email tiket volunteer yang diterima (lihat mailer.js
+    // sendEventTicketEmail) — sebelumnya picContact opsional & tidak ada picEmail.
+    if (!picContact || typeof picContact !== 'string' || !picContact.trim()) {
+      return { valid: false, message: 'Kontak WA PIC wajib diisi sebelum dipublikasikan' }
+    }
+    if (!picEmail || typeof picEmail !== 'string' || !/^\S+@\S+\.\S+$/.test(picEmail.trim())) {
+      return { valid: false, message: 'Email PIC wajib diisi (format tidak valid) sebelum dipublikasikan' }
+    }
     if ((eventMode ?? 'OFFLINE') === 'OFFLINE' && !isUploadedFile(docs.locationPermit)) {
       return { valid: false, message: 'Surat Izin Penggunaan Lokasi wajib diunggah untuk event offline' }
     }
@@ -217,12 +262,32 @@ export function validateAddRequirement(body) {
 }
 
 export function validateCloseEvent(body) {
-  const { finalStatuses, impactValue } = body
+  const { finalStatuses, impactValue, closeReport } = body
   if (!finalStatuses || typeof finalStatuses !== 'object' || Array.isArray(finalStatuses)) {
     return { valid: false, message: 'finalStatuses wajib berupa object { applicationId: status }' }
   }
   if (typeof impactValue !== 'number' || impactValue < 0) {
     return { valid: false, message: 'Nilai impact wajib berupa angka >= 0' }
+  }
+  // Business rule 1b: laporan penutupan kegiatan wajib diisi saat closeEvent —
+  // jadi arsip resmi ActiVibe + sumber data yg diarsipkan ke Impact Passport
+  // (lihat EventCloseReport di schema.prisma). Validasi field kategori-
+  // spesifik (categoryMetrics) sengaja tidak di sini krn butuh event.category
+  // yang cuma tersedia di service layer (lihat closeEvent di event.service.js).
+  if (!closeReport || typeof closeReport !== 'object') {
+    return { valid: false, message: 'Laporan penutupan kegiatan wajib diisi' }
+  }
+  if (!closeReport.narrativeSummary || typeof closeReport.narrativeSummary !== 'string' || !closeReport.narrativeSummary.trim()) {
+    return { valid: false, message: 'Ringkasan naratif hasil kegiatan wajib diisi' }
+  }
+  if (typeof closeReport.volunteersPresentCount !== 'number' || closeReport.volunteersPresentCount < 0) {
+    return { valid: false, message: 'Jumlah relawan hadir wajib berupa angka >= 0' }
+  }
+  if (typeof closeReport.totalContributionHours !== 'number' || closeReport.totalContributionHours < 0) {
+    return { valid: false, message: 'Jam kerja wajib berupa angka >= 0' }
+  }
+  if (closeReport.photoUrls !== undefined && !Array.isArray(closeReport.photoUrls)) {
+    return { valid: false, message: 'Format foto dokumentasi tidak valid' }
   }
   return { valid: true }
 }

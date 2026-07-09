@@ -8,9 +8,12 @@ import profileRoutes from './modules/profile/profile.routes.js'
 import applicationRoutes from './modules/applications/application.routes.js'
 import eventRoutes from './modules/events/event.routes.js'
 import organizationRoutes from './modules/organizations/organization.routes.js'
+import subOrganizerRoutes from './modules/subOrganizers/subOrganizer.routes.js'
 import recommendationRoutes from './modules/recommendations/recommendation.routes.js'
 import adminRoutes from './modules/admin/admin.routes.js'
 import locationRoutes from './modules/location/location.routes.js'
+import passportRoutes from './modules/passport/passport.routes.js'
+import organizerOverviewRoutes from './modules/organizerOverview/organizerOverview.routes.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { sessionSlot } from './middlewares/sessionSlot.js'
 
@@ -48,8 +51,11 @@ app.use('/profile', profileRoutes)
 app.use('/applications', applicationRoutes)
 app.use('/events', eventRoutes)
 app.use('/organizations', organizationRoutes)
+app.use('/sub-organizers', subOrganizerRoutes)
 app.use('/recommendations', recommendationRoutes)
 app.use('/admin', adminRoutes)
 app.use('/locations', locationRoutes)
+app.use('/passport', passportRoutes)
+app.use('/organizer', organizerOverviewRoutes)
 
 app.use(errorHandler)

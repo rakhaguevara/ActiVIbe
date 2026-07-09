@@ -5,6 +5,7 @@ import Badge from '../../components/Badge'
 import InlineLoading from '../../components/InlineLoading'
 import SectionState from '../../components/SectionState'
 import RatingModal from '../../components/RatingModal'
+import TicketModal from '../../components/TicketModal'
 import MobileSearchHeader from '../../components/MobileSearchHeader'
 import { getMyApplications, type ApplicationRecord, type ApplicationStatus } from '../../lib/applicationApi'
 import { submitEventFeedbackRequest } from '../../lib/eventApi'
@@ -44,6 +45,7 @@ export default function ApplicationHistoryPage() {
   const [applications, setApplications] = useState<ApplicationRecord[]>([])
   const [error, setError] = useState<string | null>(null)
   const [ratingTarget, setRatingTarget] = useState<ApplicationRecord | null>(null)
+  const [ticketTarget, setTicketTarget] = useState<ApplicationRecord | null>(null)
 
   // Event sekarang di-embed langsung oleh GET /applications/me (lihat
   // application.service.js getMyApplications) — tidak ada lagi join ke
@@ -127,9 +129,19 @@ export default function ApplicationHistoryPage() {
                         Beri Rating
                       </button>
                     )}
-                    <Link to={`/dashboard?event=${event.id}`} className="btn btn--outline btn--sm">
-                      Lihat Detail
-                    </Link>
+                    {application.ticketCode ? (
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--sm"
+                        onClick={() => setTicketTarget(application)}
+                      >
+                        Lihat Detail
+                      </button>
+                    ) : (
+                      <Link to={`/dashboard?event=${event.id}`} className="btn btn--outline btn--sm">
+                        Lihat Detail
+                      </Link>
+                    )}
                   </div>
                 </div>
               )
@@ -147,6 +159,18 @@ export default function ApplicationHistoryPage() {
                 prev.map((a) => (a.eventId === ratingTarget.eventId ? { ...a, hasFeedback: true } : a)),
               )
             }}
+          />
+        )}
+
+        {ticketTarget && ticketTarget.ticketCode && (
+          <TicketModal
+            eventTitle={ticketTarget.event.title}
+            eventLocation={ticketTarget.event.location}
+            eventStartDate={ticketTarget.event.startDate}
+            eventEndDate={ticketTarget.event.endDate}
+            ticketCode={ticketTarget.ticketCode}
+            status={ticketTarget.status}
+            onClose={() => setTicketTarget(null)}
           />
         )}
       </div>

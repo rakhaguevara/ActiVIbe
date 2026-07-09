@@ -9,6 +9,9 @@ export interface PendingApprovalCheckInput {
   legalDocs: Partial<Record<LegalDocType, UploadedFile>>
   galleryImages: UploadedFile[]
   declarationChecklist: Record<DeclarationKey, boolean>
+  picName: string
+  picContact: string
+  picEmail: string
 }
 
 // Mirror persis validasi backend (pending_approval-only) di
@@ -24,6 +27,15 @@ export function validatePendingApproval(input: PendingApprovalCheckInput): strin
   if (!documents.poster?.url) errors.push('Poster Event wajib diunggah sebelum dipublikasikan')
   if (!documents.responsibilityLetter?.url) {
     errors.push('Surat Pernyataan Penanggung Jawab wajib diunggah sebelum dipublikasikan')
+  }
+  if (!input.picName.trim()) {
+    errors.push('Nama PIC/pengurus wajib diisi sebelum dipublikasikan')
+  }
+  if (!input.picContact.trim()) {
+    errors.push('Kontak WA PIC wajib diisi sebelum dipublikasikan')
+  }
+  if (!input.picEmail.trim() || !/^\S+@\S+\.\S+$/.test(input.picEmail.trim())) {
+    errors.push('Email PIC wajib diisi (format tidak valid) sebelum dipublikasikan')
   }
   if (input.eventMode === 'OFFLINE' && !documents.locationPermit?.url) {
     errors.push('Surat Izin Penggunaan Lokasi wajib diunggah untuk event offline')

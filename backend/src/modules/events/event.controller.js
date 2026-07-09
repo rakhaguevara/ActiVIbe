@@ -13,6 +13,7 @@ import {
   getOrganizerTrafficSummary,
   archiveEvent,
   restoreEvent,
+  closeRegistration,
   listPublishedEventsForVolunteer,
   getPublishedEventById,
   logEventView,
@@ -141,6 +142,15 @@ export async function archive(req, res, next) {
 export async function restore(req, res, next) {
   try {
     const event = await restoreEvent(req.user.id, req.params.id)
+    return res.json({ event })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function closeEventRegistration(req, res, next) {
+  try {
+    const event = await closeRegistration(req.user.id, req.params.id)
     return res.json({ event })
   } catch (err) {
     next(err)

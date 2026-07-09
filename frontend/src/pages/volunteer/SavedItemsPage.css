@@ -168,6 +168,17 @@
   color: var(--color-text-muted);
 }
 
+.saved-items-page__women-badge {
+  align-self: flex-start;
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  color: var(--color-secondary-dark);
+  background: var(--color-secondary-soft);
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .saved-items-page__actions {
   display: flex;
   align-items: center;

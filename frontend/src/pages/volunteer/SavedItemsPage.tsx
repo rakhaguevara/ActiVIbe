@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FiSearch, FiBookmark, FiShare2 } from 'react-icons/fi'
 import AccountSidebar from '../../components/AccountSidebar'
@@ -7,6 +7,7 @@ import SectionState from '../../components/SectionState'
 import MobileSearchHeader from '../../components/MobileSearchHeader'
 import { useBookmarkedEvents } from '../../hooks/useBookmarkedEvents'
 import { useRecommendations } from '../../hooks/useRecommendations'
+import { getMyProfile, type Gender } from '../../lib/profileApi'
 import { getCategoryStyle } from '../../utils/categoryStyle'
 import { formatDateShort } from '../../utils/formatDate'
 import './SavedItemsPage.css'
@@ -21,6 +22,14 @@ export default function SavedItemsPage() {
   const [tab, setTab] = useState<Tab>('kegiatan')
   const [keyword, setKeyword] = useState('')
   const [copiedEventId, setCopiedEventId] = useState<string | null>(null)
+  // Fitur "women respect" — lihat FindActivityPage.tsx utk pola yang sama.
+  const [currentUserGender, setCurrentUserGender] = useState<Gender | null>(null)
+
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => setCurrentUserGender(profile.gender))
+      .catch(() => {})
+  }, [])
 
   const savedEvents = useMemo(
     () => events.filter((event) => bookmarkedIds.includes(event.id)),
@@ -124,6 +133,12 @@ export default function SavedItemsPage() {
                     <span>{event.filledSlots}/{event.quota} slot</span>
                     <span>{formatDateShort(event.startDate)} – {formatDateShort(event.endDate)}</span>
                   </div>
+
+                  {currentUserGender === 'FEMALE' && event.femaleAcceptedCount !== undefined && (
+                    <span className="saved-items-page__women-badge">
+                      👩 {event.femaleAcceptedCount} perempuan terdaftar
+                    </span>
+                  )}
 
                   <div className="saved-items-page__actions">
                     <Link
