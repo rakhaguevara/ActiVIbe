@@ -1,0 +1,218 @@
+/* Modal hasil sesi Mode Swipe — bahasa visual mengikuti PersonalizationResultModal
+   (backdrop putih blur, panel radius 20px, token design.md), satu tahap saja. */
+
+.swipe-result__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: swipeResultFadeIn 0.2s ease;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .swipe-result__backdrop {
+    background-color: rgba(255, 255, 255, 0.94);
+  }
+}
+
+@keyframes swipeResultFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.swipe-result {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  background: var(--color-bg-true);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(26, 26, 46, 0.16);
+  padding: var(--space-xl) var(--space-lg);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+
+  animation: swipeResultPopIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes swipeResultPopIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.swipe-result__header {
+  text-align: center;
+}
+
+.swipe-result__title {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.swipe-result__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+  line-height: var(--leading-normal);
+  margin: var(--space-2xs) 0 0;
+}
+
+/* ── Empty state ── */
+
+.swipe-result__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+}
+
+.swipe-result__empty-emoji {
+  font-size: 2.5rem;
+}
+
+/* ── Kartu rekomendasi ── */
+
+.swipe-result__cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.swipe-result__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: var(--space-md);
+  background: var(--color-bg-surface);
+}
+
+.swipe-result__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.swipe-result__symbol {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.swipe-result__score {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.swipe-result__score--success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.swipe-result__score--info {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+.swipe-result__score--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-chart);
+}
+
+.swipe-result__relevance {
+  align-self: flex-start;
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.swipe-result__relevance--success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.swipe-result__relevance--info {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+.swipe-result__relevance--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-chart);
+}
+
+.swipe-result__card-title {
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+.swipe-result__card-meta {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── CTA ── */
+
+.swipe-result__cta {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-on-accent);
+  background: var(--color-primary);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.swipe-result__cta:hover {
+  background: var(--color-primary-hover);
+}
+
+.swipe-result__cta:active {
+  background: var(--color-primary-active);
+}
+
+.swipe-result__secondary {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  align-self: center;
+  padding: var(--space-2xs) var(--space-sm);
+}
+
+.swipe-result__secondary:hover {
+  text-decoration: underline;
+}

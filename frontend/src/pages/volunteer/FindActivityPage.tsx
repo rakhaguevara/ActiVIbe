@@ -10,7 +10,10 @@ import SectionState from '../../components/SectionState'
 import VolunteerSearchBar, { type EventFilters } from '../../components/VolunteerSearchBar'
 import MobileSearchHeader from '../../components/MobileSearchHeader'
 import MobileSearchModal from '../../components/MobileSearchModal'
+import SwipeDeck from '../../components/SwipeDeck'
+import SwipeResultModal from '../../components/SwipeResultModal'
 import { useRecommendations } from '../../hooks/useRecommendations'
+import type { Event } from '../../types/event'
 import './FindActivityPage.css'
 
 type SortOption = 'matchScore' | 'dateAsc'
@@ -31,6 +34,8 @@ export default function FindActivityPage() {
   const [sortBy, setSortBy] = useState<SortOption>('matchScore')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
+  const [isSwipeMode, setIsSwipeMode] = useState(false)
+  const [swipeResult, setSwipeResult] = useState<Event[] | null>(null)
 
   // Hasil personalisasi FR-005 dari backend (algoritma rule-based + AI).
   const { events, isLoading: isLoadingEvents, error: recommendationsError, aiEnabled, aiProvider, profileComplete } =
@@ -169,6 +174,23 @@ export default function FindActivityPage() {
         </div>
 
         <div className="find-activity-page__results-filters">
+          <div className="find-activity-page__mode-toggle" role="group" aria-label="Mode tampilan kegiatan">
+            <button
+              type="button"
+              className={`find-activity-page__mode-button${!isSwipeMode ? ' find-activity-page__mode-button--active' : ''}`}
+              onClick={() => setIsSwipeMode(false)}
+            >
+              📋 Daftar
+            </button>
+            <button
+              type="button"
+              className={`find-activity-page__mode-button${isSwipeMode ? ' find-activity-page__mode-button--active' : ''}`}
+              onClick={() => setIsSwipeMode(true)}
+            >
+              🔥 Swipe
+            </button>
+          </div>
+
           <select
             className="find-activity-page__skill"
             value={filters.skill}
@@ -207,6 +229,8 @@ export default function FindActivityPage() {
           <SectionState variant="error" title={recommendationsError} onRetry={() => window.location.reload()} />
         ) : sortedEvents.length === 0 ? (
           <SectionState variant="empty" title="Tidak ada kegiatan yang cocok dengan filter ini." />
+        ) : isSwipeMode ? (
+          <SwipeDeck events={sortedEvents} onComplete={setSwipeResult} />
         ) : (
           <ScrollPane>
             <EventListSidebar
@@ -238,6 +262,16 @@ export default function FindActivityPage() {
           />
         )}
       </div>
+
+      {swipeResult && (
+        <SwipeResultModal
+          savedEvents={swipeResult}
+          onClose={() => {
+            setSwipeResult(null)
+            setIsSwipeMode(false)
+          }}
+        />
+      )}
     </main>
   )
 }
