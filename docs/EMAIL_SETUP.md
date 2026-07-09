@@ -14,9 +14,8 @@ Semua ini ada di `backend/.env` (lihat `backend/.env.example` untuk daftar lengk
 |---|---|
 | `RESEND_API_KEY` | API key dari [resend.com](https://resend.com) → dashboard → API Keys. Kosong = fallback log-to-console (dev mode). |
 | `RESEND_FROM_EMAIL` | Alamat pengirim, format `"Nama <email@domain>"`. |
-| `BACKEND_URL` | Dipakai untuk link aktivasi organisasi di email (`GET /organizations/activate?token=...`). |
-| `ORGANIZER_PORTAL_URL` | Redirect tujuan setelah klik link aktivasi organisasi. |
-| `OTP_EXPIRY_MINUTES`, `OTP_MAX_RESEND_ATTEMPTS` | Bukan soal Resend langsung, tapi terkait alur OTP yang emailnya lewat Resend juga (`sendOtpEmail`). |
+| `VOLUNTEER_PORTAL_URL` | Dipakai untuk link "atur password" di email "Daftarkan Organisasimu" (`/set-password-organisasi?token=...`, lihat `organization.service.js`). Opsional, default ke origin pertama di `FRONTEND_URL`. |
+| `OTP_EXPIRY_MINUTES`, `OTP_MAX_RESEND_ATTEMPTS` | Bukan soal Resend langsung, tapi terkait alur OTP yang emailnya lewat Resend juga (`sendOtpEmail` utk registrasi FR-002/003, dan `sendOrganizationActivationOtpEmail` utk aktivasi organisasi). |
 
 ## Cara menyamakan di PC baru
 

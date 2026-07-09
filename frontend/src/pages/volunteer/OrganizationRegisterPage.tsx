@@ -7,6 +7,7 @@ import { CAUSE_AREA_OPTIONS } from '../../utils/causeAreaStyle'
 import './OrganizationRegisterPage.css'
 
 export default function OrganizationRegisterPage() {
+  const [contactName, setContactName] = useState('')
   const [name, setName] = useState('')
   const [shortProfile, setShortProfile] = useState('')
   const [location, setLocation] = useState<LocationValue>(EMPTY_LOCATION)
@@ -30,6 +31,7 @@ export default function OrganizationRegisterPage() {
   }
 
   const resetForm = () => {
+    setContactName('')
     setName('')
     setShortProfile('')
     setLocation(EMPTY_LOCATION)
@@ -62,6 +64,7 @@ export default function OrganizationRegisterPage() {
         email,
         phone,
         causeAreas: Array.from(causeAreas),
+        contactName,
       })
       setSubmittedEmail(email)
     } catch (err) {
@@ -83,8 +86,8 @@ export default function OrganizationRegisterPage() {
             <FiCheckCircle className="org-register-page__confirmation-icon" />
             <h1>Berhasil mengajukan organisasi!</h1>
             <p>
-              Cek email <strong>{submittedEmail}</strong> untuk link aktivasi. Setelah diaktivasi, kamu akan otomatis
-              menjadi organizer dan bisa mengelola organisasi ini lewat dashboard organizer.
+              Cek email <strong>{submittedEmail}</strong> untuk link <strong>atur password</strong>. Ikuti langkahnya
+              (password + kode verifikasi) untuk mengaktifkan organisasi dan masuk sebagai organizer.
             </p>
             <button type="button" className="btn btn--primary" onClick={resetForm}>
               Daftarkan Organisasi Lain
@@ -94,11 +97,21 @@ export default function OrganizationRegisterPage() {
           <>
             <h1 className="org-register-page__title">Daftarkan Organisasimu</h1>
             <p className="org-register-page__subtitle">
-              Isi profil organisasimu di bawah ini. Kami akan mengirim link aktivasi ke email organisasi setelah kamu
-              submit.
+              Isi profil organisasimu di bawah ini. Kami akan mengirim link atur password ke email organisasi setelah
+              kamu submit.
             </p>
 
             <form className="org-register-page__form" onSubmit={handleSubmit}>
+              <label className="org-register-page__field">
+                <span>Nama Kamu (Penanggung Jawab)</span>
+                <input
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder="Nama lengkapmu"
+                  required
+                />
+              </label>
+
               <label className="org-register-page__field">
                 <span>Nama Organisasi</span>
                 <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Yayasan Peduli Bumi" required />

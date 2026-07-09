@@ -10,9 +10,11 @@ interface OtpVerifyFormProps {
   onVerified: (user: AuthUser) => void
 }
 
-// FR-002/003: form verifikasi kode OTP registrasi — dipakai baik dari
-// AuthModal (volunteer, popup) maupun SignupPage (organizer/admin, halaman
-// penuh) supaya logikanya satu tempat, bukan diduplikasi di dua form.
+// FR-002/003: form verifikasi kode OTP registrasi, dipakai dari AuthModal
+// (volunteer, popup). Portal Organizer/Admin login-only sejak halaman
+// signup mandirinya dihapus — organizer baru masuk lewat alur "Daftarkan
+// Organisasimu" + SetOrganizationPasswordPage (beda OTP purpose, tidak
+// lewat komponen ini — lihat organization.service.js).
 export default function OtpVerifyForm({ email, onVerified }: OtpVerifyFormProps) {
   const { verifyOtp, resendOtp } = useAuth()
   const [code, setCode] = useState('')

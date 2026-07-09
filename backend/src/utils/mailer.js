@@ -3,27 +3,87 @@ import { env } from '../config/env.js'
 
 const resendClient = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
-// Tanpa RESEND_API_KEY (dev lokal), jangan gagal keras — log link-nya saja
-// ke console supaya flow aktivasi tetap bisa dites manual, sama seperti pola
-// fallback AI provider di ai.service.js.
-export async function sendOrganizationActivationEmail(to, { organizationName, activationUrl }) {
+// SDK `resend` TIDAK melempar exception kalau Resend menolak pengiriman
+// (mis. 403 batas sandbox "cuma bisa kirim ke email pemilik akun") — dia
+// resolve dengan `{ data: null, error: {...} }`. Tanpa dicek, kode pemanggil
+// terlihat "sukses" padahal emailnya tidak pernah terkirim (beda kasus dari
+// RESEND_API_KEY kosong di atas, yang memang sengaja fail-soft). Helper ini
+// cuma log jelas ke console, sengaja TIDAK throw — biar fail-soft juga
+// (registrasi/OTP/tiket tetap sukses secara data), tapi developer bisa lihat
+// kegagalannya alih2 diam-diam menghilang.
+function logSendResult(context, { error }) {
+  if (error) {
+    console.error(`[mailer] Resend menolak pengiriman (${context}):`, error.message ?? error)
+  }
+}
+
+// Email pertama alur "Daftarkan Organisasimu" (lihat organization.service.js
+// registerOrganization) — SATU alur untuk semua pendaftar, tidak peduli sudah
+// punya akun ActiVibe atau belum (login state tidak lagi relevan di sini).
+// Klik link -> SetOrganizationPasswordPage (frontend) -> isi password &
+// konfirmasi -> baru di titik itu OTP dikirim (lihat sendOrganizationActivationOtpEmail)
+// sbg pembuktian pemilik email sebelum password beneran disimpan & organisasi aktif.
+export async function sendOrganizationSetPasswordEmail(to, { organizationName, contactName, setPasswordUrl }) {
   if (!resendClient) {
-    console.log(`[mailer] RESEND_API_KEY kosong — link aktivasi untuk "${organizationName}" (${to}): ${activationUrl}`)
+    console.log(`[mailer] RESEND_API_KEY kosong — link atur password utk "${organizationName}" (${to}): ${setPasswordUrl}`)
     return
   }
 
-  await resendClient.emails.send({
+  const result = await resendClient.emails.send({
     from: env.RESEND_FROM_EMAIL,
     to,
-    subject: `Aktivasi pendaftaran organisasi "${organizationName}" di ActiVibe`,
+    subject: `Atur password & aktifkan organisasi "${organizationName}" di ActiVibe`,
     html: `
-      <p>Halo,</p>
+      <p>Halo ${contactName},</p>
       <p>Terima kasih sudah mendaftarkan <strong>${organizationName}</strong> di ActiVibe.</p>
-      <p>Klik tombol di bawah untuk mengaktifkan organisasi kamu dan akses dashboard organizer:</p>
-      <p><a href="${activationUrl}" style="display:inline-block;padding:12px 20px;background:#5B21B6;color:#fff;border-radius:8px;text-decoration:none;">Aktifkan Organisasi</a></p>
+      <p>Klik tombol di bawah untuk mengatur password akunmu sekaligus mengaktifkan organisasi:</p>
+      <p><a href="${setPasswordUrl}" style="display:inline-block;padding:12px 20px;background:#5B21B6;color:#fff;border-radius:8px;text-decoration:none;">Atur Password & Aktifkan</a></p>
+      <p>Setelah ini kamu bisa login sebagai organizer memakai email <strong>${to}</strong> dan password yang kamu atur.</p>
       <p>Link ini berlaku selama 24 jam. Kalau kamu tidak merasa mendaftarkan organisasi ini, abaikan saja email ini.</p>
     `,
+    text: `Halo ${contactName},
+
+Terima kasih sudah mendaftarkan ${organizationName} di ActiVibe.
+
+Buka link berikut untuk mengatur password akunmu sekaligus mengaktifkan organisasi:
+${setPasswordUrl}
+
+Setelah ini kamu bisa login sebagai organizer memakai email ${to} dan password yang kamu atur.
+
+Link ini berlaku selama 24 jam. Kalau kamu tidak merasa mendaftarkan organisasi ini, abaikan saja email ini.`,
   })
+  logSendResult(`atur password organisasi -> ${to}`, result)
+}
+
+// Langkah ke-2 alur set-password organisasi: dikirim setelah user submit
+// password+konfirmasi di SetOrganizationPasswordPage (lihat
+// organization.service.js requestOrganizationActivationOtp) — kode ini yang
+// jadi pembuktian pemilik email sebelum password beneran disimpan.
+export async function sendOrganizationActivationOtpEmail(to, { organizationName, code, expiryMinutes }) {
+  if (!resendClient) {
+    console.log(`[mailer] RESEND_API_KEY kosong — kode OTP aktivasi organisasi "${organizationName}" utk ${to}: ${code} (berlaku ${expiryMinutes} menit)`)
+    return
+  }
+
+  const result = await resendClient.emails.send({
+    from: env.RESEND_FROM_EMAIL,
+    to,
+    subject: `Kode verifikasi aktivasi organisasi "${organizationName}"`,
+    html: `
+      <p>Halo,</p>
+      <p>Gunakan kode berikut untuk menyelesaikan pengaturan password & aktivasi <strong>${organizationName}</strong>:</p>
+      <p style="font-size:28px;font-weight:700;letter-spacing:4px;">${code}</p>
+      <p>Kode ini berlaku selama ${expiryMinutes} menit. Kalau kamu tidak merasa mendaftarkan organisasi ini, abaikan saja email ini.</p>
+    `,
+    text: `Halo,
+
+Gunakan kode berikut untuk menyelesaikan pengaturan password & aktivasi ${organizationName}:
+
+${code}
+
+Kode ini berlaku selama ${expiryMinutes} menit. Kalau kamu tidak merasa mendaftarkan organisasi ini, abaikan saja email ini.`,
+  })
+  logSendResult(`OTP aktivasi organisasi -> ${to}`, result)
 }
 
 export async function sendOtpEmail(to, { name, code, expiryMinutes }) {
@@ -32,7 +92,7 @@ export async function sendOtpEmail(to, { name, code, expiryMinutes }) {
     return
   }
 
-  await resendClient.emails.send({
+  const result = await resendClient.emails.send({
     from: env.RESEND_FROM_EMAIL,
     to,
     subject: 'Kode verifikasi registrasi ActiVibe',
@@ -42,7 +102,15 @@ export async function sendOtpEmail(to, { name, code, expiryMinutes }) {
       <p style="font-size:28px;font-weight:700;letter-spacing:4px;">${code}</p>
       <p>Kode ini berlaku selama ${expiryMinutes} menit. Kalau kamu tidak merasa mendaftar di ActiVibe, abaikan saja email ini.</p>
     `,
+    text: `Halo ${name},
+
+Gunakan kode berikut untuk menyelesaikan registrasi akun ActiVibe kamu:
+
+${code}
+
+Kode ini berlaku selama ${expiryMinutes} menit. Kalau kamu tidak merasa mendaftar di ActiVibe, abaikan saja email ini.`,
   })
+  logSendResult(`OTP registrasi -> ${to}`, result)
 }
 
 function formatDateRange(startDate, endDate) {
@@ -64,7 +132,7 @@ export async function sendApplicationPendingEmail(
     return
   }
 
-  await resendClient.emails.send({
+  const result = await resendClient.emails.send({
     from: env.RESEND_FROM_EMAIL,
     to,
     subject: `Pendaftaranmu ke "${eventTitle}" sedang ditinjau`,
@@ -78,7 +146,17 @@ export async function sendApplicationPendingEmail(
       </p>
       <p>Kamu akan menerima email tiket beserta QR check-in begitu pendaftaranmu diterima.</p>
     `,
+    text: `Halo ${volunteerName},
+
+Pendaftaranmu ke ${eventTitle} sudah kami terima dan sedang ditinjau oleh penyelenggara.
+
+Tanggal: ${dateRange}
+Lokasi: ${eventLocation}
+Penyelenggara: ${organizerName}
+
+Kamu akan menerima email tiket beserta QR check-in begitu pendaftaranmu diterima.`,
   })
+  logSendResult(`konfirmasi pendaftaran "${eventTitle}" -> ${to}`, result)
 }
 
 // qrBuffer = PNG Buffer (QRCode.toBuffer), dikirim sbg attachment inline
@@ -95,7 +173,7 @@ export async function sendEventTicketEmail(
     return
   }
 
-  await resendClient.emails.send({
+  const result = await resendClient.emails.send({
     from: env.RESEND_FROM_EMAIL,
     to,
     subject: `Tiket pendaftaran "${eventTitle}" di ActiVibe`,
@@ -110,6 +188,15 @@ export async function sendEventTicketEmail(
       <p><img src="cid:qr-ticket" alt="QR Tiket" width="200" height="200" /></p>
       <p>Kode tiket: <strong>${ticketCode}</strong> (kalau QR tidak bisa dipindai, panitia bisa input kode ini secara manual)</p>
     `,
+    text: `Halo ${volunteerName},
+
+Pendaftaranmu ke ${eventTitle} diterima. Tunjukkan kode tiket ini ke panitia saat check-in di lokasi (QR ada di versi HTML email ini).
+
+Tanggal: ${dateRange}
+Lokasi: ${eventLocation}
+Penyelenggara: ${organizerName}
+
+Kode tiket: ${ticketCode}`,
     attachments: [
       {
         filename: 'tiket-qr.png',
@@ -119,4 +206,5 @@ export async function sendEventTicketEmail(
       },
     ],
   })
+  logSendResult(`tiket "${eventTitle}" -> ${to}`, result)
 }

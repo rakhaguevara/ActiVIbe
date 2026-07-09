@@ -40,10 +40,45 @@ export interface OrganizationRegistrationPayload {
   email: string
   phone: string
   causeAreas: string[]
+  // Dipakai backend sbg nama owner organisasi (User baru dibuat/dipakai ulang
+  // dari email organisasi ini) — selalu wajib, login state tidak relevan lagi.
+  contactName: string
 }
 
-export async function registerOrganization(payload: OrganizationRegistrationPayload): Promise<{ organizationId: string }> {
+export async function registerOrganization(
+  payload: OrganizationRegistrationPayload,
+): Promise<{ organizationId: string }> {
   const res = await apiFetch(`${API_URL}/organizations/register`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+// Langkah 1 di SetOrganizationPasswordPage — trigger kirim OTP ke email
+// organisasi begitu user submit password+konfirmasi (password sendiri belum
+// dikirim di sini, cuma divalidasi client-side; baru dikirim di langkah 2).
+export async function requestOrganizationSetPasswordOtp(payload: {
+  token: string
+}): Promise<{ organizationName: string }> {
+  const res = await apiFetch(`${API_URL}/organizations/set-password/request-otp`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+// Langkah 2 — verifikasi kode OTP + simpan password + aktivasi organisasi.
+export async function setOrganizationPassword(payload: {
+  token: string
+  password: string
+  code: string
+}): Promise<{ organizationName: string; email: string }> {
+  const res = await apiFetch(`${API_URL}/organizations/set-password`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },

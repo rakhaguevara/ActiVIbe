@@ -12,10 +12,9 @@ interface LoginPageProps {
   homeRoute: string
   title: string
   subtitle?: string
-  showSignupLink?: boolean
 }
 
-export default function LoginPage({ allowedRole, homeRoute, title, subtitle, showSignupLink }: LoginPageProps) {
+export default function LoginPage({ allowedRole, homeRoute, title, subtitle }: LoginPageProps) {
   const { login, logout } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
@@ -61,15 +60,6 @@ export default function LoginPage({ allowedRole, homeRoute, title, subtitle, sho
 
         <h1 className="auth-page__title">{title}</h1>
         {subtitle && <p className="auth-page__subtitle">{subtitle}</p>}
-
-        {showSignupLink && (
-          <p className="auth-page__subtitle">
-            Belum punya akun?{' '}
-            <Link to="/daftar" className="auth-page__switch">
-              Daftar
-            </Link>
-          </p>
-        )}
 
         <form className="auth-page__form" onSubmit={handleSubmit}>
           <div className="auth-page__field">

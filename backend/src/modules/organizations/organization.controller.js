@@ -1,5 +1,10 @@
-import { listOrganizations, getOrganizationById, registerOrganization, activateOrganization } from './organization.service.js'
-import { env } from '../../config/env.js'
+import {
+  listOrganizations,
+  getOrganizationById,
+  registerOrganization,
+  requestOrganizationActivationOtp,
+  verifyOrganizationActivationOtp,
+} from './organization.service.js'
 
 export async function list(req, res, next) {
   try {
@@ -20,13 +25,17 @@ export async function getOne(req, res, next) {
   }
 }
 
+// Tidak requireAuth: siapapun boleh submit, login ataupun belum (login state
+// tidak relevan lagi sejak alurnya disatukan — lihat organization.service.js
+// registerOrganization).
 export async function register(req, res, next) {
   try {
-    const { name, shortProfile, location, address, website, email, phone, causeAreas } = req.body
+    const { name, shortProfile, location, address, website, email, phone, causeAreas, contactName } = req.body
     if (!name || !shortProfile || !location || !email || !phone) {
       return res.status(400).json({ error: { message: 'Nama, profil singkat, lokasi, email, dan telepon wajib diisi' } })
     }
-    const organization = await registerOrganization(req.user.id, {
+
+    const organization = await registerOrganization({
       name,
       shortProfile,
       location,
@@ -35,6 +44,7 @@ export async function register(req, res, next) {
       email,
       phone,
       causeAreas,
+      contactName,
     })
     return res.status(201).json({ organizationId: organization.id })
   } catch (err) {
@@ -42,14 +52,42 @@ export async function register(req, res, next) {
   }
 }
 
-// Link dari email — tanpa requireAuth, jadi tidak ada req.user/AppError JSON
-// handler yang relevan di sini; redirect ke portal organizer baik sukses
-// maupun gagal, bedakan lewat query param.
-export async function activate(req, res) {
+// Langkah 1 di SetOrganizationPasswordPage — trigger kirim OTP begitu user
+// submit password+konfirmasi (password itu sendiri belum dikirim/disimpan di
+// sini, cuma divalidasi di frontend; baru dipakai betulan di langkah 2).
+// Sengaja TANPA requireAuth — token di body sendiri jadi bukti kepemilikan.
+export async function requestSetPasswordOtp(req, res, next) {
   try {
-    await activateOrganization(String(req.query.token ?? ''))
-    return res.redirect(`${env.ORGANIZER_PORTAL_URL}/organizer?activated=1`)
+    const { token } = req.body
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: { message: 'Token tidak valid' } })
+    }
+
+    const result = await requestOrganizationActivationOtp(token)
+    return res.status(200).json(result)
   } catch (err) {
-    return res.redirect(`${env.ORGANIZER_PORTAL_URL}/?activation-error=1`)
+    next(err)
+  }
+}
+
+// Langkah 2 — verifikasi kode OTP + simpan password beneran + aktivasi
+// organisasi. Sengaja TANPA requireAuth — token+OTP sendiri jadi bukti kepemilikan.
+export async function setPassword(req, res, next) {
+  try {
+    const { token, password, code } = req.body
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: { message: 'Token tidak valid' } })
+    }
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ error: { message: 'Password minimal 8 karakter' } })
+    }
+    if (!code || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ error: { message: 'Kode OTP harus 6 digit angka' } })
+    }
+
+    const result = await verifyOrganizationActivationOtp(token, password, code)
+    return res.status(200).json(result)
+  } catch (err) {
+    next(err)
   }
 }

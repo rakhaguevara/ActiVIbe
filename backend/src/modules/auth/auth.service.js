@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } from '../../utils/jwt.js'
 import { hashToken } from '../../utils/hash.js'
+import { generateOtpCode } from '../../utils/otp.js'
 import { AppError } from '../../utils/AppError.js'
 import { sendOtpEmail } from '../../utils/mailer.js'
 import { env } from '../../config/env.js'
@@ -32,10 +33,6 @@ async function issueTokens(user) {
   })
 
   return { accessToken, refreshToken }
-}
-
-function generateOtpCode() {
-  return String(crypto.randomInt(100000, 1000000))
 }
 
 // Dipakai register (kode pertama) & resendRegistrationOtp (kirim ulang) —

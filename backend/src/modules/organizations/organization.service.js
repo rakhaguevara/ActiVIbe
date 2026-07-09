@@ -1,11 +1,15 @@
 import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
 import { hashToken } from '../../utils/hash.js'
-import { sendOrganizationActivationEmail } from '../../utils/mailer.js'
+import { generateOtpCode } from '../../utils/otp.js'
+import { sendOrganizationSetPasswordEmail, sendOrganizationActivationOtpEmail } from '../../utils/mailer.js'
 import { env } from '../../config/env.js'
 
 const ACTIVATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
+const OTP_MAX_VERIFY_ATTEMPTS = 5
 
 // Status event yang dihitung sbg "aktif/berjalan" utk eventsCount organisasi —
 // sama dengan filter yang dipakai listing publik volunteer (lihat event.service.js).
@@ -92,16 +96,54 @@ export async function ensureOrganizationForOwner(ownerId, defaults) {
   })
 }
 
+// Dipanggil dari registerOrganization() — SATU alur untuk semua pendaftar,
+// tidak peduli sudah punya akun ActiVibe atau belum (login state tidak
+// dicek/tidak relevan di sini sama sekali). Kalau email organisasi sudah
+// terdaftar (User manapun, sudah/belum verified), user itu dijadikan owner
+// tanpa disentuh (password/isVerified/role-nya tidak diubah di sini — cuma
+// diubah nanti di verifyOrganizationActivationOtp() KALAU dia berhasil
+// membuktikan pemilik email lewat OTP). Kalau belum ada User sama sekali,
+// dibuat baru dengan password placeholder acak (tidak bisa dipakai login,
+// lagipula isVerified masih false sampai OTP diverifikasi).
+async function resolveOwner(payload) {
+  const contactName = payload.contactName?.trim()
+  if (!contactName) {
+    throw new AppError(400, 'Nama penanggung jawab wajib diisi')
+  }
+
+  const email = payload.email.trim()
+  const existing = await prisma.user.findUnique({ where: { email } })
+  if (existing) return existing
+
+  const placeholderPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10)
+  try {
+    return await prisma.user.create({
+      data: { name: contactName, email, password: placeholderPassword, isVerified: false },
+    })
+  } catch (error) {
+    // Race condition: email yang sama dibuat request lain di antara findUnique
+    // di atas dan create ini — bukan error bagi user, cukup ambil yang sudah
+    // dibuat request lain itu (sama-sama valid jadi owner).
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return prisma.user.findUniqueOrThrow({ where: { email } })
+    }
+    throw error
+  }
+}
+
 // Form self-service "Daftarkan Organisasimu" — beda dari ensureOrganizationForOwner:
-// bisa dipanggil siapapun yang login (bukan cuma role ORGANIZER), org dibuat
-// PENDING_VERIFICATION dulu, dan satu owner boleh punya banyak baris (tidak
-// dicek existing seperti ensureOrganizationForOwner).
-export async function registerOrganization(ownerId, payload) {
+// bisa dipanggil siapapun (tidak perlu login), org dibuat PENDING_VERIFICATION
+// dulu, dan satu owner boleh punya banyak baris (tidak dicek existing seperti
+// ensureOrganizationForOwner). SATU alur email untuk semua kasus: link "atur
+// password" (lihat requestOrganizationActivationOtp/verifyOrganizationActivationOtp
+// di bawah utk 2 langkah setelahnya).
+export async function registerOrganization(payload) {
+  const owner = await resolveOwner(payload)
   const token = crypto.randomBytes(32).toString('hex')
 
   const organization = await prisma.organization.create({
     data: {
-      ownerId,
+      ownerId: owner.id,
       name: payload.name.trim(),
       shortProfile: payload.shortProfile.trim(),
       location: payload.location.trim(),
@@ -116,42 +158,105 @@ export async function registerOrganization(ownerId, payload) {
     },
   })
 
-  const activationUrl = `${env.BACKEND_URL}/organizations/activate?token=${token}`
-  await sendOrganizationActivationEmail(organization.email, {
+  const setPasswordUrl = `${env.VOLUNTEER_PORTAL_URL}/set-password-organisasi?token=${token}`
+  await sendOrganizationSetPasswordEmail(organization.email, {
     organizationName: organization.name,
-    activationUrl,
+    contactName: payload.contactName.trim(),
+    setPasswordUrl,
   })
 
   return organization
 }
 
-// Dipanggil dari GET /organizations/activate?token=... (link di email, tanpa
-// requireAuth — token itu sendiri buktinya). Menaikkan role owner ke
-// ORGANIZER kalau belum, supaya begitu ini jalan, owner langsung bisa akses
-// dashboard organizer (requireRole('ORGANIZER') re-fetch role dari DB tiap
-// request lewat getUserFromAccessToken, jadi tidak perlu login ulang).
-export async function activateOrganization(token) {
-  const organization = await prisma.organization.findUnique({
-    where: { activationTokenHash: hashToken(token) },
-  })
+function findPendingOrganizationByToken(token) {
+  return prisma.organization.findUnique({ where: { activationTokenHash: hashToken(token) } })
+}
 
+function assertActivationTokenValid(organization) {
   if (!organization || organization.status === 'ACTIVE') {
-    throw new AppError(400, 'Link aktivasi tidak valid atau sudah dipakai')
+    throw new AppError(400, 'Link tidak valid atau sudah dipakai')
   }
   if (organization.activationTokenExpiresAt && organization.activationTokenExpiresAt < new Date()) {
-    throw new AppError(400, 'Link aktivasi sudah kedaluwarsa')
+    throw new AppError(400, 'Link sudah kedaluwarsa')
+  }
+}
+
+// Langkah 1 dari 2 di SetOrganizationPasswordPage (frontend): dipanggil begitu
+// user submit password+konfirmasi (password itu sendiri baru DIVALIDASI, belum
+// disimpan — lihat verifyOrganizationActivationOtp). Kirim kode OTP ke email
+// organisasi sbg pembuktian pemilik email, sama seperti OTP registrasi biasa
+// (auth.service.js) tapi pakai purpose terpisah (ORGANIZATION_ACTIVATION) &
+// keyed ke owner organisasi ini, bukan ke sesi login.
+export async function requestOrganizationActivationOtp(token) {
+  const organization = await findPendingOrganizationByToken(token)
+  assertActivationTokenValid(organization)
+
+  const code = generateOtpCode()
+  await prisma.otpRequest.create({
+    data: {
+      userId: organization.ownerId,
+      code: hashToken(code),
+      purpose: 'ORGANIZATION_ACTIVATION',
+      expiresAt: new Date(Date.now() + env.OTP_EXPIRY_MINUTES * 60 * 1000),
+    },
+  })
+  await sendOrganizationActivationOtpEmail(organization.email, {
+    organizationName: organization.name,
+    code,
+    expiryMinutes: env.OTP_EXPIRY_MINUTES,
+  })
+
+  return { organizationName: organization.name }
+}
+
+// Langkah 2: user submit kode OTP dari email + password (dikirim ulang dari
+// state form, bukan disimpan di server sejak langkah 1) — begitu kode benar,
+// password BARU disimpan (hash) + isVerified:true + role ORGANIZER + organisasi
+// diaktifkan, semua dalam satu transaksi. Kalau owner sudah isVerified duluan
+// (skenario: daftar >1 organisasi dgn email yg sama, atau emailnya memang
+// akun ActiVibe existing) OTP tetap wajib dibuktikan dulu (email itu tetap
+// bisa dipakai reset password akun manapun via alur ini — sengaja, krn sudah
+// digate OTP), tapi passwordnya TETAP diganti sesuai yang baru diisi di sini.
+export async function verifyOrganizationActivationOtp(token, password, code) {
+  const organization = await findPendingOrganizationByToken(token)
+  assertActivationTokenValid(organization)
+
+  const owner = await prisma.user.findUnique({ where: { id: organization.ownerId } })
+  if (!owner) {
+    throw new AppError(400, 'Link tidak valid')
   }
 
+  const otp = await prisma.otpRequest.findFirst({
+    where: { userId: owner.id, purpose: 'ORGANIZATION_ACTIVATION', verifiedAt: null },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!otp || otp.expiresAt < new Date()) {
+    throw new AppError(400, 'Kode OTP sudah kedaluwarsa, minta kode baru')
+  }
+  if (otp.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+    throw new AppError(429, 'Terlalu banyak percobaan salah, minta kode baru')
+  }
+  if (hashToken(code) !== otp.code) {
+    await prisma.otpRequest.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } })
+    throw new AppError(400, 'Kode OTP salah')
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10)
   await prisma.$transaction([
+    prisma.otpRequest.update({ where: { id: otp.id }, data: { verifiedAt: new Date() } }),
+    prisma.user.update({
+      where: { id: owner.id },
+      data: {
+        password: hashedPassword,
+        isVerified: true,
+        ...(owner.role !== 'ORGANIZER' ? { role: 'ORGANIZER' } : {}),
+      },
+    }),
     prisma.organization.update({
       where: { id: organization.id },
       data: { status: 'ACTIVE', activationTokenHash: null, activationTokenExpiresAt: null },
     }),
-    prisma.user.updateMany({
-      where: { id: organization.ownerId, role: { not: 'ORGANIZER' } },
-      data: { role: 'ORGANIZER' },
-    }),
   ])
 
-  return organization
+  return { organizationName: organization.name, email: owner.email }
 }

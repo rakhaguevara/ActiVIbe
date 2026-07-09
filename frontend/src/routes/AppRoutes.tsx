@@ -11,6 +11,7 @@ import NotFoundPage from '../pages/NotFoundPage'
 import FindActivityPage from '../pages/volunteer/FindActivityPage'
 import FindOrganizationPage from '../pages/volunteer/FindOrganizationPage'
 import OrganizationRegisterPage from '../pages/volunteer/OrganizationRegisterPage'
+import SetOrganizationPasswordPage from '../pages/volunteer/SetOrganizationPasswordPage'
 import PassportPage from '../pages/volunteer/PassportPage'
 import PassportBookPreview from '../pages/volunteer/PassportBookPreview'
 import VolunteerSettingsPage from '../pages/volunteer/SettingsPage'
@@ -18,7 +19,6 @@ import SavedItemsPage from '../pages/volunteer/SavedItemsPage'
 import ApplicationHistoryPage from '../pages/volunteer/ApplicationHistoryPage'
 import ActivityDetailPage from '../pages/volunteer/ActivityDetailPage'
 import LoginPage from '../pages/auth/LoginPage'
-import SignupPage from '../pages/auth/SignupPage'
 import OverviewPage from '../pages/admin/OverviewPage'
 import UsersPage from '../pages/admin/UsersPage'
 import EventsPage from '../pages/admin/EventsPage'
@@ -59,16 +59,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
   if (PORTAL === 'admin') {
     return (
       <Routes>
-        <Route
-          path="/"
-          element={
-            <LoginPage allowedRole="ADMIN" homeRoute="/admin" title="Masuk sebagai Admin" showSignupLink />
-          }
-        />
-        <Route
-          path="/daftar"
-          element={<SignupPage role="ADMIN" homeRoute="/admin" loginRoute="/" title="Daftar sebagai Admin" />}
-        />
+        <Route path="/" element={<LoginPage allowedRole="ADMIN" homeRoute="/admin" title="Masuk sebagai Admin" />} />
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<OverviewPage />} />
           <Route path="/admin/users" element={<UsersPage />} />
@@ -87,20 +78,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
       <Routes>
         <Route
           path="/"
-          element={
-            <LoginPage
-              allowedRole="ORGANIZER"
-              homeRoute="/organizer"
-              title="Masuk sebagai Organizer"
-              showSignupLink
-            />
-          }
-        />
-        <Route
-          path="/daftar"
-          element={
-            <SignupPage role="ORGANIZER" homeRoute="/organizer" loginRoute="/" title="Daftar sebagai Organizer" />
-          }
+          element={<LoginPage allowedRole="ORGANIZER" homeRoute="/organizer" title="Masuk sebagai Organizer" />}
         />
         <Route element={<OrganizerLayout />}>
           <Route path="/organizer" element={<OrganizerOverviewPage />} />
@@ -138,6 +116,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
         <Route path="/tentang-kami" element={<AboutPage onSignupClick={onSignupClick} />} />
         <Route path="/cara-kerja" element={<CaraKerjaPage onSignupClick={onSignupClick} />} />
         <Route path="/donasi" element={<DonatePage />} />
+        <Route path="/set-password-organisasi" element={<SetOrganizationPasswordPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
