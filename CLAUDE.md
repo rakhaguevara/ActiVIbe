@@ -16,7 +16,7 @@ Sebelum menambah atau mengubah style:
 Monorepo dengan 3 bagian utama:
 - `frontend/` — Web app (React 19 + TypeScript + Vite, pakai `pnpm`)
 - `backend/` — API & services (Express.js + PostgreSQL + Prisma + JWT — lihat [backend/README.md](backend/README.md)). Register & Login (`/auth/register`, `/auth/login`, `/auth/me`, `/auth/logout`) sudah dibangun & diverifikasi end-to-end, termasuk OTP (FR-002/003, lihat Section "Verifikasi OTP & Tiket Event" di bawah). Auth dipanggil langsung dari frontend lewat REST API (`fetch`, `credentials: 'include'`), **bukan** Next.js/NextAuth — token disimpan sebagai httpOnly cookie, frontend tidak pegang token mentah (lihat `frontend/src/contexts/AuthContext.tsx`).
-- `docs/` — Dokumentasi product (PRD, design system, dst.)
+- `docs/` — Dokumentasi product (PRD, design system, dst.). Untuk setup env var email (Resend) yang konsisten lintas-PC, lihat [docs/EMAIL_SETUP.md](docs/EMAIL_SETUP.md) — `backend/.env` sengaja gitignored jadi tidak ikut sinkron lewat git.
 
 Lihat [README.md](README.md) dan [docs/PRD-ActiVibe-v2.0.md](docs/PRD-ActiVibe-v2.0.md) untuk detail produk lengkap. Untuk requirement detail dashboard Organizer/NGO (role & shift, pipeline applicant, attendance, close-event flow, dst — FR-028 s.d. FR-052), lihat addendum [docs/PRD-ActiVibe-v2.1-Organizer-Addendum.md](docs/PRD-ActiVibe-v2.1-Organizer-Addendum.md).
 
