@@ -247,3 +247,35 @@ ${coordinatorText}`,
   })
   logSendResult(`tiket "${eventTitle}" -> ${to}`, result)
 }
+
+// Dikirim admin lewat panel "Penutupan Dini" (admin.service.js sendOrganizerWarning)
+// setelah organizer menutup event sebelum endDate lewat dgn partisipasi rendah
+// (lihat Event.closedBeforeSchedule). Bukan strike/suspend otomatis — murni
+// pesan tercatat, organizer tetap bisa beroperasi normal.
+export async function sendOrganizerWarningEmail(to, { organizerName, eventTitle, message, participationRatePercent }) {
+  if (!resendClient) {
+    console.log(`[mailer] RESEND_API_KEY kosong — peringatan penutupan dini "${eventTitle}" utk ${to}: ${message}`)
+    return
+  }
+
+  const result = await resendClient.emails.send({
+    from: env.RESEND_FROM_EMAIL,
+    to,
+    subject: `Peringatan: penutupan dini "${eventTitle}"`,
+    html: `
+      <p>Halo ${organizerName},</p>
+      <p>Event <strong>${eventTitle}</strong> tercatat ditutup sebelum jadwal selesai dengan partisipasi baru mencapai <strong>${participationRatePercent}%</strong> dari kuota.</p>
+      <p style="padding:12px 16px;background:#FBE7E7;border-radius:8px;color:#8A2C2C;"><strong>Pesan dari Admin:</strong><br/>${message}</p>
+      <p>Mohon perhatikan perencanaan jadwal & rekrutmen volunteer untuk kegiatan berikutnya.</p>
+    `,
+    text: `Halo ${organizerName},
+
+Event ${eventTitle} tercatat ditutup sebelum jadwal selesai dengan partisipasi baru mencapai ${participationRatePercent}% dari kuota.
+
+Pesan dari Admin:
+${message}
+
+Mohon perhatikan perencanaan jadwal & rekrutmen volunteer untuk kegiatan berikutnya.`,
+  })
+  logSendResult(`peringatan penutupan dini "${eventTitle}" -> ${to}`, result)
+}

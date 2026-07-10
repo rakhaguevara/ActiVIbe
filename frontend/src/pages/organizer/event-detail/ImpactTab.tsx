@@ -3,8 +3,11 @@ import { canCloseEvent } from '../../../lib/eventLifecycle'
 import type { EventDetailOutletContext } from '../EventDetailPage'
 
 export default function ImpactTab() {
-  const { event, openCloseWizard } = useOutletContext<EventDetailOutletContext>()
-  const canClose = canCloseEvent(event)
+  const { event, eventApplicants, openCloseWizard } = useOutletContext<EventDetailOutletContext>()
+  const acceptedCount = eventApplicants.filter(
+    (a) => a.status === 'accepted' || a.status === 'checked_in' || a.status === 'completed',
+  ).length
+  const canClose = canCloseEvent(event, acceptedCount)
 
   return (
     <div className="card event-detail__panel">

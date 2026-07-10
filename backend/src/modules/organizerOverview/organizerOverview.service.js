@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma.js'
+import { AppError } from '../../utils/AppError.js'
 import { generateInsights } from './organizerOverviewAi.service.js'
 
 const ACTIVE_EVENT_STATUSES = ['PUBLISHED', 'ONGOING']
@@ -160,6 +161,36 @@ async function getRecentActivity(organizerId) {
   return logs.map(serializeAuditLog)
 }
 
+// Peringatan admin (Event.closedBeforeSchedule -> OrganizerWarning) yang
+// belum di-dismiss organizer — dipakai banner Dashboard Home (bukan dropdown
+// notifikasi, yang masih static stub, lihat CLAUDE.md). Hanya diambil lintas
+// event organizer ini sendiri (organizerId di-filter langsung, tidak lewat
+// eventIds — OrganizerWarning.organizerId sudah scoped saat dibuat admin).
+async function getActiveWarnings(organizerId) {
+  const warnings = await prisma.organizerWarning.findMany({
+    where: { organizerId, acknowledgedAt: null },
+    include: { event: { select: { id: true, title: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  })
+  return warnings.map((w) => ({
+    id: w.id,
+    eventId: w.eventId,
+    eventTitle: w.event.title,
+    message: w.message,
+    participationRatePercent: w.participationRatePercent,
+    createdAt: w.createdAt.toISOString(),
+  }))
+}
+
+export async function acknowledgeOrganizerWarning(organizerId, warningId) {
+  const warning = await prisma.organizerWarning.findUnique({ where: { id: warningId } })
+  if (!warning || warning.organizerId !== organizerId) {
+    throw new AppError(404, 'Peringatan tidak ditemukan')
+  }
+  await prisma.organizerWarning.update({ where: { id: warningId }, data: { acknowledgedAt: new Date() } })
+}
+
 // Ringkasan angka nyata dipakai organizerOverview.service.js sendiri
 // (getOrganizerOverviewStats) DAN organizerOverviewAi.service.js (insight
 // cards + chat) — satu sumber angka, sama spt buildDashboardSummary milik
@@ -173,7 +204,7 @@ export async function buildOrganizerSummary(organizerId) {
   const eventIds = events.map((e) => e.id)
   const today = startOfToday()
 
-  const [pendingApplicants, acceptedVolunteers, todayAttendance, applicantsGrowth, recentActivity, totals, thisMonth] =
+  const [pendingApplicants, acceptedVolunteers, todayAttendance, applicantsGrowth, recentActivity, totals, thisMonth, warnings] =
     await Promise.all([
       eventIds.length
         ? prisma.application.count({ where: { eventId: { in: eventIds }, status: { in: PENDING_APPLICANT_STATUSES } } })
@@ -186,6 +217,7 @@ export async function buildOrganizerSummary(organizerId) {
       getRecentActivity(organizerId),
       getImpactTotals(organizerId),
       getImpactTotals(organizerId, { thisMonthOnly: true }),
+      getActiveWarnings(organizerId),
     ])
 
   const activeEvents = events.filter((e) => ACTIVE_EVENT_STATUSES.includes(e.status)).length
@@ -201,6 +233,7 @@ export async function buildOrganizerSummary(organizerId) {
     recentActivity,
     totals,
     thisMonth,
+    warnings,
   }
 }
 

@@ -10,6 +10,7 @@ import {
   FiSearch,
   FiHelpCircle,
   FiChevronDown,
+  FiAlertTriangle,
 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/Admin-logo.svg'
@@ -45,6 +46,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/admin/participation', label: 'Ekspor Partisipasi', icon: FiDownload, end: false },
       { to: '/admin/activity-log', label: 'Log Aktivitas', icon: FiClipboard, end: false },
+      { to: '/admin/premature-closures', label: 'Penutupan Dini', icon: FiAlertTriangle, end: false },
     ],
   },
 ]

@@ -45,6 +45,31 @@ export default function OverviewTab() {
           </span>
         )}
 
+        {event.closedBeforeSchedule && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              background: 'var(--color-danger-soft)',
+              color: 'var(--color-danger)',
+            }}
+          >
+            <strong>⚠ Event ini ditutup sebelum jadwal selesai</strong>
+            <span>
+              Partisipasi baru mencapai <strong>{event.participationRatePercentAtClose ?? 0}%</strong> dari kuota
+              saat ditutup. Penutupan dini seperti ini tercatat sistem dan dapat ditinjau admin.
+            </span>
+            {event.lastWarningMessage && (
+              <span>
+                <strong>Peringatan dari Admin:</strong> {event.lastWarningMessage}
+              </span>
+            )}
+          </div>
+        )}
+
         <hr style={{ border: 'none', borderTop: '1px solid var(--color-border-light)', margin: '0' }} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>

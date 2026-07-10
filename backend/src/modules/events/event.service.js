@@ -208,6 +208,8 @@ function serializeEvent(event) {
     picEmail: event.picEmail ?? undefined,
     picSubOrganizerId: event.picSubOrganizerId ?? undefined,
     registrationClosedAt: event.registrationClosedAt ? event.registrationClosedAt.toISOString() : undefined,
+    closedBeforeSchedule: event.closedBeforeSchedule,
+    participationRatePercentAtClose: event.participationRatePercentAtClose ?? undefined,
     closeReport: event.closeReport
       ? {
           narrativeSummary: event.closeReport.narrativeSummary,
@@ -462,6 +464,18 @@ export async function getEventForOrganizer(organizerId, eventId) {
     serialized.impactValue = impactLog.value
   }
 
+  // Peringatan admin terakhir (kalau ada) — cuma di-lampirkan di detail
+  // single-event ini, bukan di serializeEvent/listMyEvents, supaya list event
+  // tidak kena N+1 query tambahan.
+  const lastWarning = await prisma.organizerWarning.findFirst({
+    where: { eventId },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (lastWarning) {
+    serialized.lastWarningMessage = lastWarning.message
+    serialized.lastWarningAt = lastWarning.createdAt.toISOString()
+  }
+
   return serialized
 }
 
@@ -515,6 +529,18 @@ export async function closeEvent(organizerId, eventId, { finalStatuses, impactVa
 
   assertCategoryMetricsValid(event.category, closeReport.categoryMetrics)
 
+  // Penutupan dini (closedBeforeSchedule): closeEvent dipanggil sebelum
+  // endDate lewat — organizer sudah lewat konfirmasi peringatan partisipasi
+  // rendah di frontend (lihat eventLifecycle.ts isEarlyLowParticipationClose),
+  // di sini kita cuma mencatat fakta, TIDAK memblokir. acceptedCount dihitung
+  // dari status Application SEBELUM finalStatuses diterapkan di bawah, krn
+  // yang relevan adalah "berapa yang sempat diterima" bukan hasil kehadiran.
+  const acceptedCount = await prisma.application.count({
+    where: { eventId, status: { in: FEMALE_APPLICANT_STATUSES } },
+  })
+  const participationRatePercent = event.quota > 0 ? Math.round((acceptedCount / event.quota) * 100) : 100
+  const closedBeforeSchedule = new Date() < event.endDate
+
   await prisma.$transaction(async (tx) => {
     for (const [applicationId, status] of Object.entries(finalStatuses)) {
       const application = await tx.application.findUnique({ where: { id: applicationId } })
@@ -567,11 +593,26 @@ export async function closeEvent(organizerId, eventId, { finalStatuses, impactVa
       },
     })
 
-    await tx.event.update({ where: { id: eventId }, data: { status: 'COMPLETED' } })
+    await tx.event.update({
+      where: { id: eventId },
+      data: {
+        status: 'COMPLETED',
+        closedAt: new Date(),
+        closedBeforeSchedule,
+        participationRatePercentAtClose: participationRatePercent,
+      },
+    })
   })
 
   await prisma.auditLog.create({
-    data: { actorId: organizerId, action: 'Menutup kegiatan', targetType: 'Event', targetId: eventId, targetLabel: event.title },
+    data: {
+      actorId: organizerId,
+      action: closedBeforeSchedule ? 'Menutup kegiatan sebelum jadwal berakhir' : 'Menutup kegiatan',
+      targetType: 'Event',
+      targetId: eventId,
+      targetLabel: event.title,
+      metadata: closedBeforeSchedule ? { participationRatePercent } : undefined,
+    },
   })
 
   return getEventForOrganizer(organizerId, eventId)

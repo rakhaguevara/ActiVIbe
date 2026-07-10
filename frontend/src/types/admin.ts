@@ -44,3 +44,17 @@ export interface ActivityLogEntry {
   targetLabel: string
   timestamp: string
 }
+
+// Event yang ditutup organizer sebelum endDate lewat (Event.closedBeforeSchedule)
+// — panel review admin "Penutupan Dini", lihat admin.service.js listPrematureClosures.
+export interface PrematureClosure {
+  id: string
+  title: string
+  organizerName: string
+  closedAt: string | null
+  endDate: string
+  participationRatePercentAtClose: number
+  hasWarning: boolean
+  lastWarningMessage?: string
+  lastWarningAt?: string
+}

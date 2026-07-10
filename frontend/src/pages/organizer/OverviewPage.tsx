@@ -10,6 +10,7 @@ import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import {
   getOrganizerOverviewStats,
   sendOrganizerAiChat,
+  acknowledgeOrganizerWarning,
   type OrganizerOverviewStats,
   type OrganizerAiChatMessage,
 } from '../../lib/organizerOverviewApi'
@@ -28,6 +29,7 @@ const EMPTY_STATS: OrganizerOverviewStats = {
   recentActivity: [],
   totals: { eventsCompleted: 0, volunteersReached: 0, contributionHours: 0, impact: { category: null, label: 'Jam Kontribusi', unit: 'Jam', value: 0 } },
   thisMonth: { eventsCompleted: 0, volunteersReached: 0, contributionHours: 0, impact: { category: null, label: 'Jam Kontribusi', unit: 'Jam', value: 0 } },
+  warnings: [],
   aiInsights: [],
 }
 
@@ -115,6 +117,17 @@ export default function OverviewPage() {
 
   const handleMockClick = (feature: string) => {
     alert(`Fitur "${feature}" belum tersedia — belum ada fitur generate laporan di backend.`)
+  }
+
+  const handleDismissWarning = async (id: string) => {
+    // Optimistic: hilangkan dari UI dulu, baru panggil API — banner peringatan
+    // ini bukan data kritikal (murni reminder), tidak perlu rollback kalau gagal.
+    setStats((prev) => ({ ...prev, warnings: prev.warnings.filter((w) => w.id !== id) }))
+    try {
+      await acknowledgeOrganizerWarning(id)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal menandai peringatan sudah dibaca.')
+    }
   }
 
   /* ── Ask AI chat modal — POST /organizer/overview/ai-chat, jawaban
@@ -249,6 +262,45 @@ export default function OverviewPage() {
 
       {/* ================= SCROLLABLE CONTENT ================= */}
       <div className="admin-overview__scroll-content">
+        {/* 1b. ADMIN WARNINGS — penutupan dini event (closedBeforeSchedule),
+            lihat backend organizerOverview.service.js getActiveWarnings.
+            Cuma peringatan tercatat, bukan strike/suspend — bisa di-dismiss. */}
+        {stats.warnings.length > 0 && (
+          <section style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {stats.warnings.map((warning) => (
+              <div
+                key={warning.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: '16px',
+                  padding: '14px 18px',
+                  borderRadius: '12px',
+                  background: 'var(--color-danger-soft)',
+                  color: 'var(--color-danger)',
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <strong>⚠ Peringatan dari Admin — {warning.eventTitle}</strong>
+                  <span>
+                    Event ditutup sebelum jadwal dengan partisipasi {warning.participationRatePercent}% dari kuota.
+                  </span>
+                  <span>{warning.message}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn--outline btn--sm"
+                  style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)', flexShrink: 0 }}
+                  onClick={() => handleDismissWarning(warning.id)}
+                >
+                  <FiX /> Tutup
+                </button>
+              </div>
+            ))}
+          </section>
+        )}
+
         {/* 2. QUICK ACTIONS */}
         <section className="quick-actions-grid">
           <Link to="/organizer/events/new" className="quick-action-card">

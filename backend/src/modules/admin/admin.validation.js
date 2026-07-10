@@ -13,3 +13,13 @@ export function validateEventReject(body) {
   }
   return { valid: true }
 }
+
+export function validateOrganizerWarning(body) {
+  if (!body.message || typeof body.message !== 'string' || !body.message.trim()) {
+    return { valid: false, message: 'Pesan peringatan wajib diisi' }
+  }
+  if (body.message.trim().length > 500) {
+    return { valid: false, message: 'Pesan peringatan maksimal 500 karakter' }
+  }
+  return { valid: true }
+}

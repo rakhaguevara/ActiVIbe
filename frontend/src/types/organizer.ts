@@ -107,6 +107,26 @@ export interface OrganizerEvent {
   // eventLifecycle.ts.
   registrationClosedAt?: string
   closeReport?: EventCloseReport
+  // Diisi closeEvent() — true kalau ditutup sebelum endDate lewat (penutupan
+  // dini krn partisipasi rendah, lihat eventLifecycle.ts isEarlyLowParticipationClose).
+  closedBeforeSchedule: boolean
+  participationRatePercentAtClose?: number
+  // Pesan peringatan admin terakhir (kalau ada) — cuma diisi di detail
+  // single-event, lihat backend getEventForOrganizer.
+  lastWarningMessage?: string
+  lastWarningAt?: string
+}
+
+// Peringatan admin ke organizer krn menutup event sebelum jadwal dgn
+// partisipasi rendah — dipakai banner Dashboard Home (OverviewPage.tsx),
+// beda dari OrganizerEvent.lastWarningMessage yang cuma utk 1 event spesifik.
+export interface OrganizerWarning {
+  id: string
+  eventId: string
+  eventTitle: string
+  message: string
+  participationRatePercent: number
+  createdAt: string
 }
 
 // Kontak koordinator/PIC reusable milik satu Organization — orangnya tidak

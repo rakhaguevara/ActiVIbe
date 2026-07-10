@@ -11,6 +11,8 @@ import {
   getOverviewStats,
   getRegionDistribution,
   buildDashboardSummary,
+  listPrematureClosures,
+  sendOrganizerWarning,
 } from './admin.service.js'
 import { chat as chatWithAdminAi } from './adminAi.service.js'
 
@@ -118,6 +120,24 @@ export async function getActivityLog(req, res, next) {
   try {
     const entries = await listActivityLog()
     return res.json({ entries })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getPrematureClosures(req, res, next) {
+  try {
+    const events = await listPrematureClosures()
+    return res.json({ events })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postOrganizerWarning(req, res, next) {
+  try {
+    const event = await sendOrganizerWarning(req.user.id, req.params.eventId, req.body.message)
+    return res.json({ event })
   } catch (err) {
     next(err)
   }

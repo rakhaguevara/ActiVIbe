@@ -2,6 +2,7 @@ import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
 import { matchProvince } from '../../utils/provinces.js'
 import { generateInsights } from './adminAi.service.js'
+import { sendOrganizerWarningEmail } from '../../utils/mailer.js'
 import bcrypt from 'bcryptjs'
 
 const ACCEPTED_APPLICATION_STATUSES = ['ACCEPTED', 'CHECKED_IN', 'COMPLETED']
@@ -231,6 +232,83 @@ export async function deleteEvent(adminId, eventId) {
   })
 
   await prisma.event.delete({ where: { id: eventId } })
+}
+
+// ============================================
+// Penutupan Dini (Event.closedBeforeSchedule) — organizer menutup event
+// sebelum endDate lewat dgn partisipasi rendah (lihat event.service.js
+// closeEvent & frontend eventLifecycle.ts). Admin cuma mereview & bisa
+// mengirim peringatan tercatat — bukan strike/suspend otomatis.
+// ============================================
+
+function serializePrematureClosure(event) {
+  const lastWarning = event.organizerWarnings[0]
+  return {
+    id: event.id,
+    title: event.title,
+    organizerName: event.organizer.name,
+    closedAt: event.closedAt ? event.closedAt.toISOString() : null,
+    endDate: toDateOnly(event.endDate),
+    participationRatePercentAtClose: event.participationRatePercentAtClose ?? 0,
+    hasWarning: Boolean(lastWarning),
+    lastWarningMessage: lastWarning?.message ?? undefined,
+    lastWarningAt: lastWarning ? lastWarning.createdAt.toISOString() : undefined,
+  }
+}
+
+export async function listPrematureClosures() {
+  const events = await prisma.event.findMany({
+    where: { closedBeforeSchedule: true },
+    include: {
+      organizer: true,
+      organizerWarnings: { orderBy: { createdAt: 'desc' }, take: 1 },
+    },
+    orderBy: { closedAt: 'desc' },
+  })
+  return events.map(serializePrematureClosure)
+}
+
+export async function sendOrganizerWarning(adminId, eventId, message) {
+  const event = await prisma.event.findUnique({ where: { id: eventId }, include: { organizer: true } })
+  if (!event) throw new AppError(404, 'Kegiatan tidak ditemukan')
+  if (!event.closedBeforeSchedule) {
+    throw new AppError(400, 'Event ini bukan penutupan dini, tidak bisa dikirim peringatan')
+  }
+
+  await prisma.organizerWarning.create({
+    data: {
+      eventId,
+      organizerId: event.organizerId,
+      adminId,
+      message: message.trim(),
+      participationRatePercent: event.participationRatePercentAtClose ?? 0,
+    },
+  })
+
+  if (event.organizer.email) {
+    sendOrganizerWarningEmail(event.organizer.email, {
+      organizerName: event.organizer.name,
+      eventTitle: event.title,
+      message: message.trim(),
+      participationRatePercent: event.participationRatePercentAtClose ?? 0,
+    }).catch((err) => console.error('[admin] gagal mengirim email peringatan penutupan dini:', err))
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: adminId,
+      action: 'Mengirim peringatan penutupan dini',
+      targetType: 'Event',
+      targetId: eventId,
+      targetLabel: event.title,
+    },
+  })
+
+  const refreshed = await prisma.event.findUnique({
+    where: { id: eventId },
+    include: { organizer: true, organizerWarnings: { orderBy: { createdAt: 'desc' }, take: 1 } },
+  })
+  return serializePrematureClosure(refreshed)
 }
 
 // ============================================

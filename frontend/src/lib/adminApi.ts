@@ -1,4 +1,4 @@
-import type { AdminUser, AdminEvent, ParticipationRecord, ActivityLogEntry } from '../types/admin'
+import type { AdminUser, AdminEvent, ParticipationRecord, ActivityLogEntry, PrematureClosure } from '../types/admin'
 import type { RegionDistributionResponse } from '../types/region'
 import { apiFetch } from './apiFetch'
 
@@ -152,6 +152,23 @@ export async function listActivityLog(): Promise<ActivityLogEntry[]> {
 export async function getRegionDistribution(): Promise<RegionDistributionResponse> {
   const res = await apiFetch(`${API_URL}/admin/overview/regions`, { credentials: 'include' })
   return parseResponse(res)
+}
+
+export async function listPrematureClosures(): Promise<PrematureClosure[]> {
+  const res = await apiFetch(`${API_URL}/admin/premature-closures`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.events
+}
+
+export async function sendOrganizerWarning(eventId: string, message: string): Promise<PrematureClosure> {
+  const res = await apiFetch(`${API_URL}/admin/premature-closures/${eventId}/warn`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ message }),
+  })
+  const data = await parseResponse(res)
+  return data.event
 }
 
 export async function sendAdminAiChat(messages: AiChatMessage[]): Promise<{ reply: string; aiGenerated: boolean }> {

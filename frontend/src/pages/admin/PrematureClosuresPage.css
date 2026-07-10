@@ -1,0 +1,30 @@
+@import './admin-shared.css';
+
+.premature-closures__warning-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 240px;
+}
+
+.premature-closures__warning-form textarea {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  padding: var(--space-xs) var(--space-sm);
+  resize: vertical;
+}
+
+.premature-closures__sent-warning {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-width: 240px;
+}
+
+.premature-closures__sent-warning p {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}

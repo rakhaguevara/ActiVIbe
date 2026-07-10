@@ -12,11 +12,13 @@ import {
   getActivityLog,
   getOverviewRegions,
   postAiChat,
+  getPrematureClosures,
+  postOrganizerWarning,
 } from './admin.controller.js'
 import { requireAuth } from '../../middlewares/requireAuth.js'
 import { requireRole } from '../../middlewares/requireRole.js'
 import { validateRequest } from '../../middlewares/validateRequest.js'
-import { validateUserStatus, validateEventReject } from './admin.validation.js'
+import { validateUserStatus, validateEventReject, validateOrganizerWarning } from './admin.validation.js'
 
 const router = Router()
 
@@ -38,5 +40,8 @@ router.delete('/events/:id', remove)
 
 router.get('/participation', getParticipation)
 router.get('/activity-log', getActivityLog)
+
+router.get('/premature-closures', getPrematureClosures)
+router.post('/premature-closures/:eventId/warn', validateRequest(validateOrganizerWarning), postOrganizerWarning)
 
 export default router

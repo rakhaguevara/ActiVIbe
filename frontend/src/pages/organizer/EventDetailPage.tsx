@@ -3,7 +3,8 @@ import { NavLink, Outlet, useNavigate, useParams } from 'react-router-dom'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import { formatDateShort } from '../../utils/formatDate'
 import CloseEventWizard from '../../components/organizer/CloseEventWizard'
-import { canCloseEvent, canCloseRegistration } from '../../lib/eventLifecycle'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import { canCloseEvent, canCloseRegistration, isEarlyLowParticipationClose } from '../../lib/eventLifecycle'
 import type { Applicant, OrganizerEvent } from '../../types/organizer'
 import './EventDetailPage.css'
 
@@ -30,6 +31,7 @@ export default function EventDetailPage() {
   const navigate = useNavigate()
   const { events, applicants, closeEvent, closeRegistration } = useOrganizerData()
   const [showCloseWizard, setShowCloseWizard] = useState(false)
+  const [showLowParticipationConfirm, setShowLowParticipationConfirm] = useState(false)
 
   const event = events.find((e) => e.id === eventId)
 
@@ -52,9 +54,14 @@ export default function EventDetailPage() {
     (a) => a.assignedRoleId || a.status === 'accepted' || a.status === 'checked_in',
   )
 
+  const acceptedCount = eventApplicants.filter(
+    (a) => a.status === 'accepted' || a.status === 'checked_in' || a.status === 'completed',
+  ).length
   const eventIsCompleted = event.status === 'completed'
   const registrationClosable = canCloseRegistration(event)
-  const eventClosable = canCloseEvent(event)
+  const eventClosable = canCloseEvent(event, acceptedCount)
+  const earlyLowParticipation = isEarlyLowParticipationClose(event, acceptedCount)
+  const participationPct = event.quota > 0 ? Math.round((acceptedCount / event.quota) * 100) : 100
 
   const handleCloseRegistration = () => {
     if (!registrationClosable) return
@@ -64,17 +71,21 @@ export default function EventDetailPage() {
   }
 
   const handleCloseEventClick = () => {
-    if (eventClosable) {
-      setShowCloseWizard(true)
-    } else {
+    if (!eventClosable) {
       window.alert('Event belum bisa ditutup. Pastikan event sudah melewati tanggal selesai (' + event.endDate + ').')
+      return
+    }
+    if (earlyLowParticipation) {
+      setShowLowParticipationConfirm(true)
+    } else {
+      setShowCloseWizard(true)
     }
   }
 
   const outletContext: EventDetailOutletContext = {
     event,
     eventApplicants,
-    openCloseWizard: () => setShowCloseWizard(true),
+    openCloseWizard: handleCloseEventClick,
   }
 
   return (
@@ -119,6 +130,20 @@ export default function EventDetailPage() {
       </div>
 
       <Outlet context={outletContext} />
+
+      {showLowParticipationConfirm && (
+        <ConfirmDialog
+          title="Partisipasi Belum Mencukupi"
+          message={`Event ini baru mencapai ${participationPct}% dari kuota (${acceptedCount}/${event.quota} volunteer) dan belum melewati tanggal selesai (${event.endDate}). Menutup sekarang akan tercatat sistem sebagai penutupan dini dan dapat ditinjau admin. Yakin ingin melanjutkan?`}
+          confirmLabel="Ya, Tetap Tutup Event"
+          tone="danger"
+          onConfirm={() => {
+            setShowLowParticipationConfirm(false)
+            setShowCloseWizard(true)
+          }}
+          onCancel={() => setShowLowParticipationConfirm(false)}
+        />
+      )}
 
       {showCloseWizard && (
         <CloseEventWizard

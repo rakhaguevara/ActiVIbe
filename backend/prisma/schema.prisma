@@ -46,6 +46,11 @@ model User {
   communicationsSent   CommunicationLog[]    @relation("CommunicationSentBy")
   attendanceChecksMade AttendanceLog[]       @relation("AttendanceCheckedBy")
   eventFeedbacks       EventFeedback[]
+
+  // Penutupan dini event (closedBeforeSchedule) — organizer bisa menerima
+  // banyak peringatan, admin bisa mengirim banyak peringatan (lintas organizer).
+  organizerWarningsReceived OrganizerWarning[] @relation("OrganizerWarningsReceived")
+  organizerWarningsSent     OrganizerWarning[] @relation("OrganizerWarningsSent")
 }
 
 enum Role {
@@ -315,6 +320,16 @@ model Event {
   // penuh) — begitu terisi, applyToEvent() menolak pendaftaran baru.
   registrationClosedAt DateTime?
 
+  // Diisi closeEvent() — closedBeforeSchedule true kalau closeEvent dipanggil
+  // sebelum endDate lewat (penutupan dini, biasanya krn partisipasi rendah,
+  // lihat LOW_PARTICIPATION_THRESHOLD di event.service.js & eventLifecycle.ts).
+  // Dipakai admin utk panel review "Penutupan Dini" (admin.service.js
+  // listPrematureClosures). participationRatePercentAtClose selalu diisi saat
+  // close (bukan cuma saat closedBeforeSchedule) sbg konteks angka.
+  closedAt                        DateTime?
+  closedBeforeSchedule            Boolean    @default(false)
+  participationRatePercentAtClose Int?
+
   organizer       User          @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
   approvedBy      User?         @relation("EventApprovedBy", fields: [approvedById], references: [id])
   organization    Organization? @relation(fields: [organizationId], references: [id])
@@ -333,6 +348,7 @@ model Event {
   galleryImages     EventGalleryImage[]
   legalDocuments    EventLegalDocument[]
   closeReport       EventCloseReport?
+  organizerWarnings OrganizerWarning[]
 
   @@index([organizerId])
   @@index([organizationId])
@@ -653,6 +669,31 @@ model EventCloseReport {
   updatedAt              DateTime @updatedAt
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// Peringatan admin ke organizer krn menutup event sebelum jadwal (endDate)
+// dgn partisipasi rendah (lihat Event.closedBeforeSchedule) — dikirim manual
+// oleh admin dari panel "Penutupan Dini" (admin.service.js listPrematureClosures/
+// sendOrganizerWarning), bukan otomatis/strike system. acknowledgedAt diisi
+// saat organizer dismiss banner di Dashboard Home (organizerOverview.service.js
+// acknowledgeOrganizerWarning) — banner di halaman event sendiri tidak
+// dipengaruhi field ini, tetap tampil permanen sbg fakta historis.
+model OrganizerWarning {
+  id                       String    @id @default(cuid())
+  eventId                  String
+  organizerId              String
+  adminId                  String
+  message                  String
+  participationRatePercent Int
+  acknowledgedAt           DateTime?
+  createdAt                DateTime  @default(now())
+
+  event      Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organizer  User  @relation("OrganizerWarningsReceived", fields: [organizerId], references: [id])
+  admin      User  @relation("OrganizerWarningsSent", fields: [adminId], references: [id])
+
+  @@index([eventId])
+  @@index([organizerId])
 }
 
 // ============================================

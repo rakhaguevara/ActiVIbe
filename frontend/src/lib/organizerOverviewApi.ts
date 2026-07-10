@@ -1,4 +1,5 @@
 import { apiFetch } from './apiFetch'
+import type { OrganizerWarning } from '../types/organizer'
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 
@@ -56,6 +57,7 @@ export interface OrganizerOverviewStats {
   recentActivity: OrganizerActivityEntry[]
   totals: OrganizerImpactTotals
   thisMonth: OrganizerImpactTotals
+  warnings: OrganizerWarning[]
   aiInsights: OrganizerAiInsight[]
 }
 
@@ -80,4 +82,15 @@ export async function sendOrganizerAiChat(messages: OrganizerAiChatMessage[]): P
     body: JSON.stringify({ messages }),
   })
   return parseResponse(res)
+}
+
+export async function acknowledgeOrganizerWarning(id: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/organizer/warnings/${id}/acknowledge`, {
+    method: 'PATCH',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data?.error?.message ?? 'Terjadi kesalahan, coba lagi.')
+  }
 }
