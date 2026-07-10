@@ -100,6 +100,47 @@ pnpm dev:admin         # portal Admin
 
 > Frontend punya 3 mode build/dev terpisah (Volunteer, Organizer, Admin) — masing-masing portal berjalan di port berbeda tapi berbagi satu backend API yang sama.
 
+### Troubleshooting: `Failed to resolve import "xxx"` dari Vite
+
+Kalau habis `git pull` (atau baru clone) muncul error Vite seperti `Failed to resolve import "qr-scanner"` / `"qrcode"` dkk, itu tandanya `node_modules` di PC kamu belum sinkron dengan `package.json` + `pnpm-lock.yaml` (dependency baru sudah di-commit tapi belum ke-install lokal). `node_modules/` sendiri gitignored jadi memang tidak ikut kepull — cukup jalankan ulang:
+
+```bash
+cd frontend
+pnpm install
+```
+
+Lakukan ini tiap kali `frontend/package.json` atau `frontend/pnpm-lock.yaml` berubah (baik hasil `git pull` maupun checkout branch lain), bukan cuma sekali waktu clone pertama. Berlaku juga di `backend/` dengan `npm install` kalau errornya soal module Node.js sisi backend.
+
+### Troubleshooting: Error 500 di endpoint backend (mis. `/events/mine`, `/recommendations`) padahal kode terlihat benar
+
+Kalau tiba-tiba banyak endpoint balas 500 — terutama setelah `git pull` yang menyentuh `backend/prisma/schema.prisma` atau ada file baru di `backend/prisma/migrations/` — itu hampir selalu berarti **skema Prisma sudah berubah di kode tapi database lokal kamu belum ikut di-migrasi**. Prisma Client dibuat berdasarkan `schema.prisma`, jadi begitu ada kolom/tabel baru di situ (mis. `Event.picName`, `Event.registrationClosedAt`, tabel `SubOrganizer`, dst), query apapun yang menyentuhnya akan gagal di level database ("column ... does not exist") walau kodenya sendiri tidak salah. Ini bukan bug per-endpoint — `/events/mine` (organizer) dan `/recommendations` (volunteer, lewat `listMatchableEvents()`) sama-sama query tabel `Event`, jadi keduanya bisa 500 bareng dari satu migrasi yang sama yang belum jalan. Satu kali `prisma migrate dev`/`deploy` yang benar akan langsung memperbaiki semua endpoint yang kena, bukan cuma satu yang kamu tes duluan.
+
+Catatan lain: 401 yang muncul sesaat sebelum 500 di console browser biasanya cuma access token yang sudah expired (default 15 menit, lihat `JWT_ACCESS_EXPIRES_IN`) — frontend otomatis retry pakai refresh token, jadi 401 itu sendiri normal selama diikuti request yang berhasil (200) setelahnya, bukan penyebab error 500-nya.
+
+Cara cek & fix:
+
+```bash
+cd backend
+npx prisma migrate status   # lihat migrasi mana yang "have not yet been applied"
+npx prisma migrate dev      # terapkan migrasi yang pending ke database lokal
+```
+
+`npm run db:migrate` (lihat Setup Backend di atas) sebenarnya menjalankan perintah yang sama (`prisma migrate dev`) — jadi kalau lupa jalanin ini setelah pull, ya ini penyebabnya. Jalankan ulang setiap kali `prisma/schema.prisma` atau folder `prisma/migrations/` berubah, sama seperti aturan `pnpm install` di atas untuk dependency frontend.
+
+### Troubleshooting: 500 masih muncul terus padahal migrasi sudah up to date
+
+Kalau `npx prisma migrate status` sudah bilang "up to date" tapi endpoint tetap 500 terus-menerus (bukan sekali doang), curigai **ada lebih dari satu proses `npm run dev` backend yang menyala bersamaan** — biasanya sisa dari sesi/terminal yang lupa ditutup di hari-hari sebelumnya, rebutan port 4000. Proses yang lama itu bisa nyangkut dalam kondisi rusak (koneksi database basi, dll) sementara proses baru yang kamu buka justru gagal jalan diam-diam karena port-nya sudah dipakai duluan — jadi kelihatannya "restart" tidak pernah benar-benar mengganti proses yang melayani request.
+
+Cara cek & bersihkan:
+
+```bash
+lsof -i :4000 -sTCP:LISTEN -n -P   # lihat PID mana yang benar-benar pegang port 4000
+ps aux | grep nodemon              # lihat semua proses nodemon backend yang hidup, cek kolom waktu start
+kill <PID>                          # matikan yang basi (bukan yang barusan kamu buka)
+```
+
+Ini murni proses OS lokal (bukan git/commit/history repo) — aman dimatikan kapan saja, tinggal `npm run dev` lagi buat yang benar. Berlaku juga utk `pnpm dev`/`dev:organizer`/`dev:admin` di frontend kalau kamu curiga ada tab lama yang belum ketutup.
+
 ## 📂 Project Structure
 
 ```
