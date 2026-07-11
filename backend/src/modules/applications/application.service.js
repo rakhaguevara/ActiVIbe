@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import QRCode from 'qrcode'
 import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
-import { sendEventTicketEmail, sendApplicationPendingEmail } from '../../utils/mailer.js'
+import { sendEventTicketEmail, sendApplicationPendingEmail, sendApplicationAutoCancelledEmail } from '../../utils/mailer.js'
 
 function generateTicketCode() {
   return `AV-${crypto.randomBytes(5).toString('hex').toUpperCase()}`
@@ -240,6 +240,65 @@ async function assertOwnsApplication(organizerId, applicationId) {
   return application
 }
 
+// Dua rentang tanggal [s1,e1] dan [s2,e2] overlap kalau s1<=e2 DAN s2<=e1 —
+// dipakai baik utk cek konflik (assertNoDateConflict) maupun cascade batal
+// (cancelOverlappingPendingApplications) di bawah, satu definisi "bentrok".
+const OVERLAPPING_EVENT_FILTER = (startDate, endDate) => ({
+  startDate: { lte: endDate },
+  endDate: { gte: startDate },
+})
+
+// Dipanggil SEBELUM transisi ke ACCEPTED — cegah race condition (organizer
+// lain coba ACCEPT aplikasi yang jadwalnya sudah bentrok dgn event lain yang
+// SUDAH ACCEPTED duluan, mis. organizer belum refresh halaman).
+async function assertNoDateConflict(application) {
+  const conflict = await prisma.application.findFirst({
+    where: {
+      userId: application.userId,
+      id: { not: application.id },
+      status: { in: ['ACCEPTED', 'CHECKED_IN', 'COMPLETED'] },
+      event: OVERLAPPING_EVENT_FILTER(application.event.startDate, application.event.endDate),
+    },
+    include: { event: true },
+  })
+  if (conflict) {
+    throw new AppError(409, `Volunteer ini sudah diterima di event lain yang jadwalnya bentrok ("${conflict.event.title}")`)
+  }
+}
+
+// Dipanggil SETELAH transisi ke ACCEPTED commit — batalkan aplikasi PENDING
+// lain milik volunteer yang sama ke event yang tanggalnya bentrok dgn event
+// yang baru di-accept ini. WAITLISTED ikut dibatalkan (bukan cuma APPLIED/
+// UNDER_REVIEW) krn volunteer ini sudah pasti ambil event lain. Status
+// CANCELLED_DATE_CONFLICT sengaja bukan CANCELLED_BY_ORGANIZER — organizer
+// event yang dibatalkan ini tidak pernah menolak, sistem yang membatalkan.
+async function cancelOverlappingPendingApplications(acceptedApplication) {
+  const toCancel = await prisma.application.findMany({
+    where: {
+      userId: acceptedApplication.userId,
+      id: { not: acceptedApplication.id },
+      status: { in: ['APPLIED', 'UNDER_REVIEW', 'WAITLISTED'] },
+      event: OVERLAPPING_EVENT_FILTER(acceptedApplication.event.startDate, acceptedApplication.event.endDate),
+    },
+    include: { user: true, event: true },
+  })
+  if (toCancel.length === 0) return
+
+  await prisma.application.updateMany({
+    where: { id: { in: toCancel.map((a) => a.id) } },
+    data: { status: 'CANCELLED_DATE_CONFLICT' },
+  })
+
+  for (const app of toCancel) {
+    if (!app.user.email) continue
+    sendApplicationAutoCancelledEmail(app.user.email, {
+      volunteerName: app.user.name,
+      cancelledEventTitle: app.event.title,
+      acceptedEventTitle: acceptedApplication.event.title,
+    }).catch((err) => console.error('[cancelOverlappingPendingApplications] gagal mengirim email:', err))
+  }
+}
+
 export async function listApplicantsForEvent(organizerId, eventId) {
   await assertOwnsEvent(organizerId, eventId)
 
@@ -266,6 +325,11 @@ export async function listApplicantsForEvent(organizerId, eventId) {
 export async function updateApplicationStatus(organizerId, applicationId, status) {
   const application = await assertOwnsApplication(organizerId, applicationId)
   const normalizedStatus = status.toUpperCase()
+
+  if (normalizedStatus === 'ACCEPTED') {
+    await assertNoDateConflict(application)
+  }
+
   const data = { status: normalizedStatus }
 
   const shouldIssueTicket = normalizedStatus === 'ACCEPTED' && !application.ticketCode
@@ -274,6 +338,10 @@ export async function updateApplicationStatus(organizerId, applicationId, status
   }
 
   await prisma.application.update({ where: { id: applicationId }, data })
+
+  if (normalizedStatus === 'ACCEPTED') {
+    await cancelOverlappingPendingApplications(application)
+  }
 
   if (shouldIssueTicket) {
     QRCode.toBuffer(data.ticketCode, { type: 'png' })

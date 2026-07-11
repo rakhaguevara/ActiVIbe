@@ -15,6 +15,7 @@ import { claudeProvider } from '../recommendations/providers/claude.provider.js'
 import { openaiProvider } from '../recommendations/providers/openai.provider.js'
 import { geminiProvider } from '../recommendations/providers/gemini.provider.js'
 import { resolveAiProvider } from '../../utils/aiProviderResolver.js'
+import { searchIdeas } from '../../utils/aiIdeaSearch.js'
 
 const PROVIDERS = [claudeProvider, openaiProvider, geminiProvider]
 const MAX_CHAT_MESSAGES = 20
@@ -51,7 +52,7 @@ const INSIGHTS_SCHEMA = {
 }
 
 const INSIGHTS_SYSTEM_PROMPT = `Kamu adalah asisten analitik untuk admin platform volunteer ActiVibe.
-Kamu menerima ringkasan data dashboard (angka nyata, bukan contoh). Tugasmu membuat TEPAT 3 kartu insight
+Kamu menerima ringkasan data dashboard (angka nyata, bukan contoh). Tugasmu membuat 3 kartu insight WAJIB
 untuk admin berdasarkan angka itu SAJA — jangan mengarang angka yang tidak ada di ringkasan.
 Aturan tiap kartu:
 - tone: "success" untuk hal positif (pertumbuhan, capaian), "warning" untuk hal yang butuh perhatian
@@ -60,7 +61,11 @@ Aturan tiap kartu:
 - description: 1-2 kalimat, sebut angka aslinya, actionable.
 - actionLabel: label tombol aksi singkat (maks 4 kata), mis. "Tinjau Sekarang".
 Kalau suatu angka 0/tidak ada datanya, jangan buat insight seolah-olah ada masalah — buat insight netral
-atau soroti aspek lain yang datanya tersedia.`
+atau soroti aspek lain yang datanya tersedia.
+
+Kartu ke-4 KONDISIONAL: kalau registrantTrend.thisMonth < registrantTrend.lastMonth (pendaftar baru bulan ini
+lebih sedikit dari bulan lalu), WAJIB tambahkan kartu ke-4 (tone "warning") berisi 1-2 rekomendasi pemasaran
+aplikasi ActiVibe yang konkret, sebut kedua angka aslinya. Kalau tidak, jangan buat kartu ke-4 — cukup 3.`
 
 function buildFallbackInsights(summary) {
   const insights = []
@@ -101,6 +106,15 @@ function buildFallbackInsights(summary) {
     actionLabel: 'Tinjau Kegiatan',
   })
 
+  if (summary.registrantTrend && summary.registrantTrend.thisMonth < summary.registrantTrend.lastMonth) {
+    insights.push({
+      tone: 'warning',
+      title: 'Pendaftar bulan ini menurun',
+      description: `Pendaftar baru bulan ini ${summary.registrantTrend.thisMonth}, turun dari ${summary.registrantTrend.lastMonth} bulan lalu. Pertimbangkan campaign pemasaran tambahan.`,
+      actionLabel: 'Lihat Ide Campaign',
+    })
+  }
+
   return insights
 }
 
@@ -117,11 +131,27 @@ export async function generateInsights(summary) {
     if (!Array.isArray(parsed.insights) || parsed.insights.length === 0) {
       return buildFallbackInsights(summary)
     }
-    return parsed.insights.slice(0, 3)
+    return parsed.insights.slice(0, 4)
   } catch (error) {
     console.error('[admin-ai] Gagal generate insights, pakai fallback:', error.message)
     return buildFallbackInsights(summary)
   }
+}
+
+// ============================================
+// Cari Ide Campaign (on-demand, web search — lihat utils/aiIdeaSearch.js)
+// ============================================
+
+export async function generateCampaignIdeas(summary) {
+  return searchIdeas({
+    searchSystemPrompt: `Kamu adalah asisten riset marketing untuk aplikasi volunteer ActiVibe di Indonesia.
+Cari peluang campaign/promosi yang benar-benar sedang relevan SEKARANG (momentum nasional, hari peringatan,
+tren volunteering/kegiatan sosial terkini) yang bisa dipakai admin ActiVibe untuk menaikkan jumlah pendaftar
+platform. Fokus ke Indonesia.`,
+    searchPrompt: `Data pendaftar bulan ini: ${JSON.stringify(summary.registrantTrend)}. Cari 3 peluang campaign/promosi
+terkini yang relevan untuk menaikkan pendaftaran ActiVibe.`,
+    formatSystemPrompt: `Kamu memformat hasil riset campaign marketing untuk aplikasi volunteer ActiVibe menjadi kartu ide.`,
+  })
 }
 
 // ============================================

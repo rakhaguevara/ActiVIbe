@@ -13,6 +13,7 @@ export type ApplicationStatus =
   | 'NO_SHOW'
   | 'CANCELLED_BY_ORGANIZER'
   | 'CANCELLED_BY_VOLUNTEER'
+  | 'CANCELLED_DATE_CONFLICT'
 
 export interface ApplyPayload {
   eventId: string

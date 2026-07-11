@@ -25,6 +25,7 @@ const STATUS_LABEL: Record<ApplicationStatus, string> = {
   NO_SHOW: 'Tidak Hadir',
   CANCELLED_BY_ORGANIZER: 'Dibatalkan Organizer',
   CANCELLED_BY_VOLUNTEER: 'Dibatalkan Sendiri',
+  CANCELLED_DATE_CONFLICT: 'Dibatalkan — Bentrok Jadwal',
 }
 
 const STATUS_VARIANT: Record<ApplicationStatus, 'success' | 'warning' | 'danger' | 'info'> = {
@@ -38,6 +39,7 @@ const STATUS_VARIANT: Record<ApplicationStatus, 'success' | 'warning' | 'danger'
   NO_SHOW: 'danger',
   CANCELLED_BY_ORGANIZER: 'danger',
   CANCELLED_BY_VOLUNTEER: 'danger',
+  CANCELLED_DATE_CONFLICT: 'danger',
 }
 
 export default function ApplicationHistoryPage() {

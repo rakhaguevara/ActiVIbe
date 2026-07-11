@@ -11,7 +11,11 @@
   inset: 0;
   background: rgba(26, 26, 46, 0.55);
   backdrop-filter: blur(6px);
-  z-index: 998;
+  /* Di atas MobileBottomNav (z-index: 1000, fixed) — kalau tidak, nav bar
+     bawah tetap menangkap tap di lebar layar hp dan buku terasa "tidak
+     bisa dibuka", karena browser mengirim klik/tap ke elemen fixed dengan
+     z-index tertinggi yang overlap, bukan berdasar urutan DOM. */
+  z-index: 2998;
 }
 
 /* Bungkus buku + baris navigasi supaya keduanya ikut ter-center sebagai satu
@@ -30,7 +34,8 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-md);
-  z-index: 999;
+  /* Sejajar .passport-book__backdrop — lihat komentar di sana. */
+  z-index: 2999;
   pointer-events: none;
 }
 
@@ -39,7 +44,8 @@
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  z-index: 999;
+  /* Sejajar .passport-book__backdrop — lihat komentar di sana. */
+  z-index: 2999;
   pointer-events: auto;
   box-shadow:
     0 1px 0 1px var(--color-border-medium),
@@ -219,7 +225,8 @@
   width: min(92vw, 420px);
   display: flex;
   justify-content: space-between;
-  z-index: 999;
+  /* Sejajar .passport-book__backdrop — lihat komentar di sana. */
+  z-index: 2999;
 }
 
 @media (min-width: 1024px) {

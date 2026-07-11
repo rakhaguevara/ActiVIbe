@@ -58,7 +58,7 @@ export default function SubOrganizerView() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 'var(--space-xl)', alignItems: 'start' }}>
+    <div className="sub-organizer-layout">
       <section className="card" style={{ padding: '24px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Daftar Sub Organizer</h2>
         {subOrganizers.length === 0 ? (

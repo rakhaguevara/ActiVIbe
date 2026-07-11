@@ -14,10 +14,20 @@ export interface PassportChapterResponse extends Omit<PassportBookChapter, 'shar
   eventId: string
 }
 
+// ActiVibe Plus — chapter terkunci di tier FREE (2 kegiatan)/PLUS_STARTER
+// (5 kegiatan), lihat passport.service.js getMyPassport. `chapters` di atas
+// SUDAH terpotong sesuai cap ini; `passportLock` cuma metadata utk UI upsell.
+export interface PassportLock {
+  locked: boolean
+  totalChapters: number
+  visibleCount: number
+}
+
 export interface PassportResponse {
   stats: PassportStats
   skills: PassportSkill[]
   chapters: PassportChapterResponse[]
+  passportLock: PassportLock
 }
 
 export async function fetchMyPassport(): Promise<PassportResponse> {

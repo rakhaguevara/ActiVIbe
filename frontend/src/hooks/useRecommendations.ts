@@ -60,6 +60,7 @@ function toEvent(rec: RecommendedEvent, index: number): Event {
     organizerName: rec.organizerName,
     organizerGender: rec.organizerGender,
     femaleAcceptedCount: rec.femaleAcceptedCount,
+    certificateProvider: rec.certificateProvider,
     quota: rec.quota,
     filledSlots: rec.filledSlots,
     startDate: rec.startDate,

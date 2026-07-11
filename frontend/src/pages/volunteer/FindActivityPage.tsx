@@ -14,6 +14,7 @@ import SwipeDeck from '../../components/SwipeDeck'
 import SwipeResultModal from '../../components/SwipeResultModal'
 import { useRecommendations } from '../../hooks/useRecommendations'
 import { getMyProfile, type Gender } from '../../lib/profileApi'
+import { getMySubscription } from '../../lib/subscriptionApi'
 import type { Event } from '../../types/event'
 import './FindActivityPage.css'
 
@@ -41,10 +42,16 @@ export default function FindActivityPage() {
   // jumlah peserta perempuan & gender organizer di card/form pendaftaran,
   // lihat EventListSidebar & EventApplyForm.
   const [currentUserGender, setCurrentUserGender] = useState<Gender | null>(null)
+  // ActiVibe Plus — house ad di hasil pencarian cuma tampil utk tier FREE
+  // (lihat EventListSidebar `showAd` prop), hilang otomatis setelah upgrade.
+  const [showAd, setShowAd] = useState(false)
 
   useEffect(() => {
     getMyProfile()
       .then((profile) => setCurrentUserGender(profile.gender))
+      .catch(() => {})
+    getMySubscription()
+      .then((sub) => setShowAd(sub.plan.limits.adsEnabled))
       .catch(() => {})
   }, [])
 
@@ -249,6 +256,7 @@ export default function FindActivityPage() {
               selectedEventId={selectedEventId}
               onSelect={handleSelectEvent}
               currentUserGender={currentUserGender}
+              showAd={showAd}
             />
           </ScrollPane>
         )}

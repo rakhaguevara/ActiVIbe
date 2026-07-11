@@ -1,5 +1,5 @@
 import { getOrganizerOverviewStats, buildOrganizerSummary, acknowledgeOrganizerWarning } from './organizerOverview.service.js'
-import { chat as chatWithOrganizerAi } from './organizerOverviewAi.service.js'
+import { chat as chatWithOrganizerAi, generateGrowthIdeas } from './organizerOverviewAi.service.js'
 
 export async function overview(req, res, next) {
   try {
@@ -14,6 +14,16 @@ export async function postAiChat(req, res, next) {
   try {
     const summary = await buildOrganizerSummary(req.user.id)
     const result = await chatWithOrganizerAi(summary, req.body.messages)
+    return res.json(result)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postGrowthIdeas(req, res, next) {
+  try {
+    const summary = await buildOrganizerSummary(req.user.id)
+    const result = await generateGrowthIdeas(summary)
     return res.json(result)
   } catch (err) {
     next(err)

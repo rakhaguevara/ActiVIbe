@@ -289,6 +289,9 @@ export default function EventsPage() {
                       {initials}
                     </div>
                     <span className="events-page__org-name">{e.organizerName}</span>
+                    {e.organizerTier !== 'FREE' && (
+                      <span className="badge badge--warning" style={{ fontSize: '11px' }}>⭐ Premium</span>
+                    )}
                   </div>
                   <span className="events-page__event-id">No. Kegiatan {e.id.toUpperCase()}</span>
                 </div>

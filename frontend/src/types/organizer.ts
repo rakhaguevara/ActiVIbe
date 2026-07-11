@@ -115,6 +115,8 @@ export interface OrganizerEvent {
   // single-event, lihat backend getEventForOrganizer.
   lastWarningMessage?: string
   lastWarningAt?: string
+  // ActiVibe Plus — transparansi sertifikat, lihat CertificateBadge.tsx.
+  certificateProvider?: 'NONE' | 'ACTIVIBE' | 'EXTERNAL'
 }
 
 // Peringatan admin ke organizer krn menutup event sebelum jadwal dgn
@@ -170,6 +172,7 @@ export type ApplicantStatus =
   | 'no_show'
   | 'cancelled_by_organizer'
   | 'cancelled_by_volunteer'
+  | 'cancelled_date_conflict'
 
 export type RequirementStatus = 'not_started' | 'in_progress' | 'completed'
 
@@ -217,4 +220,88 @@ export interface EventRequirement {
   title: string
   type: 'read_acknowledge' | 'checklist' | 'upload_proof'
   isMandatory: boolean
+}
+
+// Volunteers CRM (`/organizer/volunteers`, 5 sub-views) — satu baris per
+// volunteer (userId) yang di-agregasi lintas SEMUA event organizer ini,
+// beda dari `Applicant` (satu baris per Application, per-event) di atas.
+// Lihat organizerVolunteers.service.js utk sumber tiap field.
+export interface OrganizerVolunteerApplication {
+  applicationId: string
+  eventId: string
+  eventTitle: string
+  eventLocation: string
+  eventStatus: OrganizerEventStatus
+  status: ApplicantStatus
+  appliedAt: string
+  updatedAt: string
+  assignedRoleName: string | null
+  assignedShiftLabel: string | null
+  assignedShiftStart: string | null
+  requirementsCompleted: number
+  requirementsTotal: number
+  checkedInAt: string | null
+  certificateIssued: boolean
+  hoursForThisEvent: number
+}
+
+export interface OrganizerVolunteer {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  avatarInitials: string
+  location: string | null
+  bio: string | null
+  skills: string[]
+  eventsJoined: number
+  hoursCompleted: number
+  // null kalau volunteer ini belum pernah punya application yang "diharapkan
+  // hadir" (accepted/checked_in/completed/no_show) — bukan 0% yang dikarang.
+  attendanceRatePercent: number | null
+  // Proxy 1-5 deterministik dari attendanceRatePercent (bukan rating asli —
+  // tidak ada konsep organizer menilai volunteer di backend).
+  ratingProxy: number | null
+  returningVolunteer: boolean
+  noShowCount: number
+  lastActivityAt: string | null
+  applications: OrganizerVolunteerApplication[]
+}
+
+export interface OrganizerVolunteerKpis {
+  totalVolunteers: number
+  currentlyActive: number
+  completedEventParticipations: number
+  averageAttendancePercent: number | null
+  veteranVolunteers: number
+  returningVolunteersPercent: number | null
+}
+
+export interface OrganizerVolunteerSkillDistributionEntry {
+  name: string
+  value: number
+}
+
+export interface OrganizerVolunteerActivityEntry {
+  id: string
+  text: string
+  timestamp: string
+}
+
+export interface OrganizerVolunteerRecommendation {
+  volunteerId: string
+  volunteerName: string
+  eventId: string
+  eventTitle: string
+  matchPercent: number
+  reasoning: string
+}
+
+export interface OrganizerVolunteersResponse {
+  volunteers: OrganizerVolunteer[]
+  kpis: OrganizerVolunteerKpis
+  skillDistribution: OrganizerVolunteerSkillDistributionEntry[]
+  recentActivity: OrganizerVolunteerActivityEntry[]
+  noShowTrend: { months: string[]; counts: number[] }
+  recommendations: OrganizerVolunteerRecommendation[]
 }

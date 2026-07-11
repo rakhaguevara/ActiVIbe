@@ -15,6 +15,7 @@ import { claudeProvider } from '../recommendations/providers/claude.provider.js'
 import { openaiProvider } from '../recommendations/providers/openai.provider.js'
 import { geminiProvider } from '../recommendations/providers/gemini.provider.js'
 import { resolveAiProvider } from '../../utils/aiProviderResolver.js'
+import { searchIdeas } from '../../utils/aiIdeaSearch.js'
 
 const PROVIDERS = [claudeProvider, openaiProvider, geminiProvider]
 const MAX_CHAT_MESSAGES = 20
@@ -51,8 +52,8 @@ const INSIGHTS_SCHEMA = {
 }
 
 const INSIGHTS_SYSTEM_PROMPT = `Kamu adalah asisten analitik untuk organizer/NGO di platform volunteer ActiVibe.
-Kamu menerima ringkasan data dashboard organizer ini (angka nyata, bukan contoh). Tugasmu membuat TEPAT 3 kartu
-insight berdasarkan angka itu SAJA — jangan mengarang angka yang tidak ada di ringkasan.
+Kamu menerima ringkasan data dashboard organizer ini (angka nyata, bukan contoh). Tugasmu membuat 3 kartu
+insight WAJIB berdasarkan angka itu SAJA — jangan mengarang angka yang tidak ada di ringkasan.
 Aturan tiap kartu:
 - tone: "success" untuk hal positif (attendance tinggi, tidak ada antrean), "warning" untuk hal yang butuh
   perhatian (pelamar menumpuk, event belum ditutup), "info" untuk aksi rutin yang disarankan.
@@ -60,7 +61,11 @@ Aturan tiap kartu:
 - description: 1-2 kalimat, sebut angka aslinya, actionable.
 - actionLabel: label tombol aksi singkat (maks 4 kata), mis. "Tinjau Pelamar".
 Kalau suatu angka 0/tidak ada datanya, jangan buat insight seolah-olah ada masalah — buat insight netral
-atau soroti aspek lain yang datanya tersedia.`
+atau soroti aspek lain yang datanya tersedia.
+
+Kartu ke-4 KONDISIONAL: kalau eventsNeedingBoost tidak kosong, WAJIB tambahkan kartu ke-4 (tone "warning")
+merekomendasikan "boost"/promosi event paling mendesak (elemen pertama array — sebut namanya, filled/quota,
+dan daysUntilStart aslinya). Kalau eventsNeedingBoost kosong, jangan buat kartu ke-4 — cukup 3.`
 
 function buildFallbackInsights(summary) {
   const insights = []
@@ -101,10 +106,28 @@ function buildFallbackInsights(summary) {
         },
   )
 
+  if (Array.isArray(summary.eventsNeedingBoost) && summary.eventsNeedingBoost.length > 0) {
+    const urgent = summary.eventsNeedingBoost[0]
+    insights.push({
+      tone: 'warning',
+      title: `Boost pendaftaran "${urgent.title}"`,
+      description: `Baru ${urgent.filled}/${urgent.quota} slot terisi, sementara kegiatan mulai dalam ${urgent.daysUntilStart} hari. Pertimbangkan promosi tambahan.`,
+      actionLabel: 'Cari Ide Campaign',
+    })
+  }
+
   return insights
 }
 
-export async function generateInsights(summary) {
+// ActiVibe Plus — "AI Management Recommendation" (insight cards asli dari
+// provider) khusus tier PLUS_PRO; FREE & PLUS_STARTER selalu dapat
+// buildFallbackInsights() ("insight biasa", deterministik dari angka
+// summary) — TIDAK memanggil provider sama sekali (skip resolveProvider,
+// bukan cuma menyembunyikan hasilnya di frontend). "Ask AI" chat di bawah
+// TIDAK ikut dibatasi tier ini (cuma kartu insight yang dibatasi).
+export async function generateInsights(summary, tier) {
+  if (tier !== 'PLUS_PRO') return buildFallbackInsights(summary)
+
   const provider = resolveProvider()
   if (!provider) return buildFallbackInsights(summary)
 
@@ -117,11 +140,43 @@ export async function generateInsights(summary) {
     if (!Array.isArray(parsed.insights) || parsed.insights.length === 0) {
       return buildFallbackInsights(summary)
     }
-    return parsed.insights.slice(0, 3)
+    return parsed.insights.slice(0, 4)
   } catch (error) {
     console.error('[organizer-ai] Gagal generate insights, pakai fallback:', error.message)
     return buildFallbackInsights(summary)
   }
+}
+
+// ============================================
+// Cari Ide Event/Campaign Baru (on-demand, web search — lihat utils/aiIdeaSearch.js)
+// ============================================
+
+export async function generateGrowthIdeas(summary) {
+  const hasRecentCompletion = summary.thisMonth?.eventsCompleted > 0
+  const urgentEvent = summary.eventsNeedingBoost?.[0] ?? null
+
+  if (hasRecentCompletion) {
+    return searchIdeas({
+      searchSystemPrompt: `Kamu adalah asisten riset untuk organizer/NGO volunteer di Indonesia yang baru saja
+menyelesaikan kegiatan. Cari isu/kebutuhan sosial yang benar-benar sedang mendesak SEKARANG di Indonesia (mis.
+kekurangan tenaga pengajar di daerah, bencana alam terkini, isu lingkungan/kesehatan yang lagi ramai) yang bisa
+jadi ide kegiatan volunteer baru.`,
+      searchPrompt: `Organizer ini baru menyelesaikan ${summary.thisMonth.eventsCompleted} kegiatan bulan ini. Cari 3 ide
+kegiatan volunteer baru yang relevan dengan kebutuhan/isu terkini di Indonesia.`,
+      formatSystemPrompt: `Kamu memformat hasil riset ide kegiatan volunteer baru untuk organizer ActiVibe menjadi kartu ide.`,
+    })
+  }
+
+  return searchIdeas({
+    searchSystemPrompt: `Kamu adalah asisten riset marketing untuk organizer/NGO volunteer di platform ActiVibe,
+Indonesia. Cari peluang campaign/promosi yang benar-benar sedang relevan SEKARANG (momentum nasional, tren
+volunteering, komunitas/media sosial relevan) yang bisa dipakai organizer untuk menaikkan pendaftaran event mereka.`,
+    searchPrompt: urgentEvent
+      ? `Event "${urgentEvent.title}" baru terisi ${urgentEvent.filled}/${urgentEvent.quota} slot, mulai dalam
+${urgentEvent.daysUntilStart} hari. Cari 3 ide campaign/promosi terkini untuk membantu menaikkan pendaftaran event ini.`
+      : `Cari 3 ide campaign/promosi terkini yang relevan untuk organizer volunteer di Indonesia menaikkan pendaftaran event mereka.`,
+    formatSystemPrompt: `Kamu memformat hasil riset campaign marketing untuk organizer ActiVibe menjadi kartu ide.`,
+  })
 }
 
 // ============================================

@@ -14,6 +14,9 @@ import adminRoutes from './modules/admin/admin.routes.js'
 import locationRoutes from './modules/location/location.routes.js'
 import passportRoutes from './modules/passport/passport.routes.js'
 import organizerOverviewRoutes from './modules/organizerOverview/organizerOverview.routes.js'
+import organizerVolunteersRoutes from './modules/organizerVolunteers/organizerVolunteers.routes.js'
+import subscriptionRoutes from './modules/subscriptions/subscription.routes.js'
+import communicationRoutes from './modules/communication/communication.routes.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { sessionSlot } from './middlewares/sessionSlot.js'
 
@@ -57,5 +60,8 @@ app.use('/admin', adminRoutes)
 app.use('/locations', locationRoutes)
 app.use('/passport', passportRoutes)
 app.use('/organizer', organizerOverviewRoutes)
+app.use('/organizer', organizerVolunteersRoutes)
+app.use('/subscriptions', subscriptionRoutes)
+app.use('/communication', communicationRoutes)
 
 app.use(errorHandler)

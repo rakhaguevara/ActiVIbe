@@ -3,14 +3,43 @@
    sendiri (lihat PassportBook.css). */
 .passport-page {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-md);
   min-height: calc(100vh - 88px);
   padding: 32px 48px 64px;
   background-image: url('../../assets/png/Onboarding.png');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+}
+
+.passport-page__lock-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  max-width: 640px;
+  padding: 16px 24px;
+  border-radius: 20px;
+  background: var(--color-bg-true);
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 8px 24px rgba(26, 26, 46, 0.08);
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-body);
+}
+
+.passport-page__lock-banner p {
+  margin: 0;
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .passport-page__lock-banner {
+    flex-direction: column;
+    text-align: center;
+  }
 }
 
 @media (max-width: 600px) {

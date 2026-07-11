@@ -5,6 +5,7 @@ import { loadDraft, saveDraft, clearDraft } from '../lib/formDraft'
 import type { Gender } from '../lib/profileApi'
 import type { Event } from '../types/event'
 import { formatDateShort } from '../utils/formatDate'
+import CertificateBadge from './CertificateBadge'
 import './EventApplyForm.css'
 
 interface EventApplyFormProps {
@@ -167,6 +168,8 @@ export default function EventApplyForm({ event, currentUserGender }: EventApplyF
         {formatDateShort(event.startDate)}
         {event.startDate !== event.endDate && ` – ${formatDateShort(event.endDate)}`}
       </p>
+
+      <CertificateBadge certificateProvider={event.certificateProvider} />
 
       {currentUserGender === 'FEMALE' && (
         <div className="event-apply-form__women-info">

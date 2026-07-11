@@ -2,6 +2,7 @@ import {
   listUsers,
   updateUserStatus,
   updateUserPassword,
+  deleteUser,
   listEvents,
   approveEvent,
   rejectEvent,
@@ -13,8 +14,11 @@ import {
   buildDashboardSummary,
   listPrematureClosures,
   sendOrganizerWarning,
+  getRevenueSummary,
+  listSubscriptions,
+  adminSetSubscriptionTier,
 } from './admin.service.js'
-import { chat as chatWithAdminAi } from './adminAi.service.js'
+import { chat as chatWithAdminAi, generateCampaignIdeas } from './adminAi.service.js'
 
 export async function overview(req, res, next) {
   try {
@@ -44,6 +48,16 @@ export async function postAiChat(req, res, next) {
   }
 }
 
+export async function postCampaignIdeas(req, res, next) {
+  try {
+    const summary = await buildDashboardSummary()
+    const result = await generateCampaignIdeas(summary)
+    return res.json(result)
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function getUsers(req, res, next) {
   try {
     const users = await listUsers(req.query.role)
@@ -66,6 +80,15 @@ export async function patchUserPassword(req, res, next) {
   try {
     const user = await updateUserPassword(req.user.id, req.params.id, req.body.password)
     return res.json({ user })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function removeUser(req, res, next) {
+  try {
+    await deleteUser(req.user.id, req.params.id)
+    return res.status(204).send()
   } catch (err) {
     next(err)
   }
@@ -138,6 +161,33 @@ export async function postOrganizerWarning(req, res, next) {
   try {
     const event = await sendOrganizerWarning(req.user.id, req.params.eventId, req.body.message)
     return res.json({ event })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getRevenue(req, res, next) {
+  try {
+    const revenue = await getRevenueSummary()
+    return res.json({ revenue })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getSubscriptions(req, res, next) {
+  try {
+    const subscriptions = await listSubscriptions()
+    return res.json({ subscriptions })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function patchSubscriptionTier(req, res, next) {
+  try {
+    const subscription = await adminSetSubscriptionTier(req.user.id, req.params.userId, req.body.tier)
+    return res.json({ subscription })
   } catch (err) {
     next(err)
   }

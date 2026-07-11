@@ -1,6 +1,7 @@
 import { Link, useOutletContext } from 'react-router-dom'
 import { FiMapPin, FiTag, FiGlobe, FiInfo, FiUser, FiPhone, FiMail, FiFileText } from 'react-icons/fi'
 import type { EventDetailOutletContext } from '../EventDetailPage'
+import { resolveAssetUrl } from '../../../lib/assetUrl'
 
 const DOCUMENT_LABELS: Record<string, string> = {
   proposal: 'Proposal Kegiatan',
@@ -16,7 +17,7 @@ export default function OverviewTab() {
   const { event, eventApplicants } = useOutletContext<EventDetailOutletContext>()
 
   const heroImage = event.galleryImages && event.galleryImages.length > 0
-    ? event.galleryImages[0]
+    ? resolveAssetUrl(event.galleryImages[0])
     : 'https://via.placeholder.com/800x400?text=No+Photo+Available'
 
   const uploadedDocuments = Object.entries(event.documents ?? {}).filter(([, doc]) => doc)
@@ -186,7 +187,7 @@ export default function OverviewTab() {
               <h4 style={{ marginBottom: '12px', color: 'var(--color-text-heading)' }}>Dokumentasi Event</h4>
               <div className="event-detail__gallery-grid">
                 {event.galleryImages.map((url) => (
-                  <img key={url} src={url} alt={event.title} />
+                  <img key={url} src={resolveAssetUrl(url)} alt={event.title} />
                 ))}
               </div>
             </div>

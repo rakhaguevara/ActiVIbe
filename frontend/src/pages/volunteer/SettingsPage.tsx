@@ -16,6 +16,7 @@ import {
   type TaxonomyItem,
 } from '../../lib/profileApi'
 import { loadDraft, saveDraft, clearDraft } from '../../lib/formDraft'
+import { getMySubscription, type MySubscription } from '../../lib/subscriptionApi'
 import './SettingsPage.css'
 
 // Field yang dipersist sbg draft lokal — SENGAJA TIDAK termasuk newPassword
@@ -109,6 +110,13 @@ export default function SettingsPage() {
   const [gender, setGender] = useState<Gender | null>(() => draft?.gender ?? null)
   const [isSavingGender, setIsSavingGender] = useState(false)
   const [genderSaved, setGenderSaved] = useState(false)
+
+  // ActiVibe Plus (real — subscriptionApi)
+  const [subscription, setSubscription] = useState<MySubscription | null>(null)
+
+  useEffect(() => {
+    getMySubscription().then(setSubscription).catch(() => {})
+  }, [])
 
   // Pendidikan & CV (real — profileApi)
   const [education, setEducation] = useState('')
@@ -557,6 +565,20 @@ export default function SettingsPage() {
               {isSavingGender ? 'Menyimpan...' : 'Simpan Perubahan'}
             </button>
             {genderSaved && <span className="settings-page__saved">Tersimpan!</span>}
+          </div>
+        </section>
+
+        <section className="card settings-page__section">
+          <h2>ActiVibe Plus</h2>
+          <p className="settings-page__section-desc">
+            {subscription?.tier === 'FREE'
+              ? 'Kamu masih di paket Free — Impact Passport dibatasi 2 kegiatan selesai & ada iklan di halaman Cari Kegiatan.'
+              : `Kamu berlangganan ${subscription?.plan.name ?? 'ActiVibe Plus'} — Impact Passport & bebas iklan sesuai paketmu.`}
+          </p>
+          <div className="settings-page__section-footer">
+            <a href="/activibe-plus" className="btn btn--primary btn--sm">
+              {subscription?.tier === 'FREE' ? 'Upgrade ke ActiVibe Plus' : 'Kelola Langganan'}
+            </a>
           </div>
         </section>
 

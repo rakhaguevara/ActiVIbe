@@ -10,6 +10,7 @@ import { useRecommendations } from '../../hooks/useRecommendations'
 import { getMyProfile, type Gender } from '../../lib/profileApi'
 import { getCategoryStyle } from '../../utils/categoryStyle'
 import { formatDateShort } from '../../utils/formatDate'
+import CertificateBadge from '../../components/CertificateBadge'
 import './SavedItemsPage.css'
 
 type Tab = 'kegiatan' | 'organisasi'
@@ -139,6 +140,7 @@ export default function SavedItemsPage() {
                       👩 {event.femaleAcceptedCount} perempuan terdaftar
                     </span>
                   )}
+                  <CertificateBadge certificateProvider={event.certificateProvider} />
 
                   <div className="saved-items-page__actions">
                     <Link

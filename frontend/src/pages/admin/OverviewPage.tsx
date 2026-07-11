@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiSearch, FiBell, FiShare, FiCpu, FiCheckCircle, FiDownloadCloud, FiUploadCloud, FiPrinter, FiColumns, FiFileText, FiSend, FiX, FiTrendingUp, FiAlertCircle, FiPlus } from 'react-icons/fi'
-import { getOverviewStats, listActivityLog, sendAdminAiChat, type AdminOverviewStats, type AiChatMessage } from '../../lib/adminApi'
+import { getOverviewStats, listActivityLog, sendAdminAiChat, getCampaignIdeas, type AdminOverviewStats, type AiChatMessage, type AiIdea } from '../../lib/adminApi'
 import { getActivityLogStatus } from '../../lib/activityLogStatus'
 import { listOrganizations } from '../../lib/organizationApi'
 import type { ActivityLogEntry } from '../../types/admin'
@@ -103,6 +103,33 @@ export default function OverviewPage() {
       ])
     } finally {
       setIsSendingChat(false)
+    }
+  }
+
+  /* ── "Cari Ide Campaign" — POST /admin/ai/campaign-ideas, riset web on-demand
+     (lihat adminAi.service.js generateCampaignIdeas) — TIDAK auto-run di page
+     load, cuma dipicu klik krn butuh call web search (lambat + berbayar) ── */
+  const [campaignIdeas, setCampaignIdeas] = useState<AiIdea[] | null>(null)
+  const [campaignIdeasReason, setCampaignIdeasReason] = useState<string | null>(null)
+  const [isSearchingIdeas, setIsSearchingIdeas] = useState(false)
+
+  const handleSearchCampaignIdeas = async () => {
+    if (isSearchingIdeas) return
+    setIsSearchingIdeas(true)
+    setCampaignIdeasReason(null)
+    try {
+      const result = await getCampaignIdeas()
+      if (result.available && result.ideas) {
+        setCampaignIdeas(result.ideas)
+      } else {
+        setCampaignIdeas(null)
+        setCampaignIdeasReason(result.reason ?? 'Fitur riset AI sedang tidak tersedia.')
+      }
+    } catch (err) {
+      setCampaignIdeas(null)
+      setCampaignIdeasReason(err instanceof Error ? err.message : 'Gagal mengambil ide campaign, coba lagi.')
+    } finally {
+      setIsSearchingIdeas(false)
     }
   }
 
@@ -375,6 +402,37 @@ export default function OverviewPage() {
               </div>
             )
           })}
+        </div>
+
+        <div className="admin-overview__ai-search-panel">
+          <button
+            className="admin-overview__ai-search-btn"
+            onClick={handleSearchCampaignIdeas}
+            disabled={isSearchingIdeas}
+          >
+            <FiCpu /> {isSearchingIdeas ? 'Mencari ide...' : 'Cari Ide Campaign (AI + Internet)'}
+          </button>
+
+          {campaignIdeasReason && (
+            <p className="admin-overview__ai-search-empty">{campaignIdeasReason}</p>
+          )}
+
+          {campaignIdeas && (
+            <div className="admin-overview__ai-search-results">
+              {campaignIdeas.map((idea, i) => (
+                <div className="admin-overview__ai-card" key={i}>
+                  <div className="admin-overview__ai-card-icon primary">
+                    <FiCpu />
+                  </div>
+                  <div className="admin-overview__ai-card-content">
+                    <h4>{idea.title}</h4>
+                    <p>{idea.description}</p>
+                    <span className="admin-overview__ai-search-source">{idea.sourceHint}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -11,8 +11,10 @@ import {
   getOrganizerOverviewStats,
   sendOrganizerAiChat,
   acknowledgeOrganizerWarning,
+  getGrowthIdeas,
   type OrganizerOverviewStats,
   type OrganizerAiChatMessage,
+  type OrganizerAiIdea,
 } from '../../lib/organizerOverviewApi'
 import type { OrganizerEvent } from '../../types/organizer'
 import { formatDateShort } from '../../utils/formatDate'
@@ -30,7 +32,9 @@ const EMPTY_STATS: OrganizerOverviewStats = {
   totals: { eventsCompleted: 0, volunteersReached: 0, contributionHours: 0, impact: { category: null, label: 'Jam Kontribusi', unit: 'Jam', value: 0 } },
   thisMonth: { eventsCompleted: 0, volunteersReached: 0, contributionHours: 0, impact: { category: null, label: 'Jam Kontribusi', unit: 'Jam', value: 0 } },
   warnings: [],
+  eventsNeedingBoost: [],
   aiInsights: [],
+  aiInsightsUnlocked: false,
 }
 
 const ACCEPTED_STATUSES = ['accepted', 'checked_in', 'completed']
@@ -155,6 +159,34 @@ export default function OverviewPage() {
       ])
     } finally {
       setIsSendingChat(false)
+    }
+  }
+
+  /* ── "Cari Ide Event/Campaign Baru" — POST /organizer/overview/ai/growth-ideas,
+     riset web on-demand (lihat organizerOverviewAi.service.js generateGrowthIdeas)
+     — server-side memilih fokus riset (event baru vs campaign) dari data
+     dashboard, TIDAK auto-run di page load ── */
+  const [growthIdeas, setGrowthIdeas] = useState<OrganizerAiIdea[] | null>(null)
+  const [growthIdeasReason, setGrowthIdeasReason] = useState<string | null>(null)
+  const [isSearchingGrowthIdeas, setIsSearchingGrowthIdeas] = useState(false)
+
+  const handleSearchGrowthIdeas = async () => {
+    if (isSearchingGrowthIdeas) return
+    setIsSearchingGrowthIdeas(true)
+    setGrowthIdeasReason(null)
+    try {
+      const result = await getGrowthIdeas()
+      if (result.available && result.ideas) {
+        setGrowthIdeas(result.ideas)
+      } else {
+        setGrowthIdeas(null)
+        setGrowthIdeasReason(result.reason ?? 'Fitur riset AI sedang tidak tersedia.')
+      }
+    } catch (err) {
+      setGrowthIdeas(null)
+      setGrowthIdeasReason(err instanceof Error ? err.message : 'Gagal mengambil ide, coba lagi.')
+    } finally {
+      setIsSearchingGrowthIdeas(false)
     }
   }
 
@@ -494,7 +526,18 @@ export default function OverviewPage() {
 
             {/* AI INSIGHTS */}
             <section className="dashboard-section">
-              <h2>AI Insights</h2>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                AI Insights
+                {!stats.aiInsightsUnlocked && (
+                  <span className="badge badge--warning" style={{ fontSize: '11px' }}>Insight Biasa</span>
+                )}
+              </h2>
+              {!stats.aiInsightsUnlocked && (
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '-8px', marginBottom: '12px' }}>
+                  Rekomendasi AI Management penuh khusus <strong>ActiVibe Plus Pro</strong> — kartu di bawah adalah insight dasar dari data kegiatanmu.{' '}
+                  <Link to="/activibe-plus" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Upgrade</Link>
+                </p>
+              )}
               <div className="insights-grid">
                 {stats.aiInsights.length === 0 && (
                   <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Memuat insight...</p>
@@ -508,6 +551,34 @@ export default function OverviewPage() {
                     </div>
                   )
                 })}
+              </div>
+
+              <div className="admin-overview__ai-search-panel">
+                <button
+                  className="admin-overview__ai-search-btn"
+                  onClick={handleSearchGrowthIdeas}
+                  disabled={isSearchingGrowthIdeas}
+                >
+                  <FiCpu /> {isSearchingGrowthIdeas ? 'Mencari ide...' : 'Cari Ide Event/Campaign Baru'}
+                </button>
+
+                {growthIdeasReason && (
+                  <p className="admin-overview__ai-search-empty">{growthIdeasReason}</p>
+                )}
+
+                {growthIdeas && (
+                  <div className="admin-overview__ai-search-results" style={{ gridTemplateColumns: '1fr' }}>
+                    {growthIdeas.map((idea, i) => (
+                      <div className="insight-card" key={i}>
+                        <FiCpu className="insight-icon" />
+                        <div>
+                          <p className="insight-text"><strong>{idea.title}</strong> — {idea.description}</p>
+                          <span className="admin-overview__ai-search-source">{idea.sourceHint}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </section>
 

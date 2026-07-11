@@ -12,6 +12,7 @@ import type {
   FeedbackSummary,
   OrganizationEntityType,
   OrganizerEvent,
+  OrganizerVolunteersResponse,
   SubOrganizer,
   TrafficSummary,
   UploadedFile,
@@ -360,4 +361,13 @@ export async function updateSubOrganizerRequest(id: string, payload: SubOrganize
 export async function deleteSubOrganizerRequest(id: string): Promise<void> {
   const res = await apiFetch(`${API_URL}/sub-organizers/${id}`, { method: 'DELETE', credentials: 'include' })
   await parseResponse(res)
+}
+
+// Volunteers CRM (`/organizer/volunteers`) — satu payload lintas semua event
+// organizer ini, diagregasi server-side per volunteer (bukan per Application
+// spt listApplicantsRequest). Dipakai VolunteersPage.tsx, bukan
+// OrganizerDataContext (payload ini cuma dibutuhkan di halaman ini).
+export async function getOrganizerVolunteersRequest(): Promise<OrganizerVolunteersResponse> {
+  const res = await apiFetch(`${API_URL}/organizer/volunteers`, { credentials: 'include' })
+  return parseResponse(res)
 }

@@ -16,6 +16,7 @@ import EventReviewList from './EventReviewList'
 import EventLocationMap from './EventLocationMap'
 import OrganizerProfileCard from './OrganizerProfileCard'
 import EventPolicies from './EventPolicies'
+import CertificateBadge from './CertificateBadge'
 import './EventDetailPanel.css'
 
 interface EventDetailPanelProps {
@@ -77,6 +78,7 @@ export default function EventDetailPanel({ event, currentUserGender }: EventDeta
             👩 {event.femaleAcceptedCount} perempuan terdaftar
           </span>
         )}
+        <CertificateBadge certificateProvider={event.certificateProvider} />
       </div>
       <p className="event-detail-panel__match-reasoning">{event.matchReasoning}</p>
 

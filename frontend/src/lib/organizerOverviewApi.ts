@@ -15,6 +15,20 @@ export interface OrganizerAiChatMessage {
   content: string
 }
 
+export interface OrganizerAiIdea {
+  title: string
+  description: string
+  actionLabel: string
+  sourceHint: string
+}
+
+export interface OrganizerAiIdeaSearchResult {
+  available: boolean
+  ideas?: OrganizerAiIdea[]
+  reason?: string
+  generatedAt?: string
+}
+
 export interface OrganizerImpactMetric {
   category: string | null
   label: string
@@ -47,6 +61,15 @@ export interface OrganizerActivityEntry {
   timestamp: string
 }
 
+export interface OrganizerEventNeedingBoost {
+  id: string
+  title: string
+  quota: number
+  filled: number
+  fillRatio: number
+  daysUntilStart: number
+}
+
 export interface OrganizerOverviewStats {
   activeEvents: number
   pendingApplicants: number
@@ -58,7 +81,12 @@ export interface OrganizerOverviewStats {
   totals: OrganizerImpactTotals
   thisMonth: OrganizerImpactTotals
   warnings: OrganizerWarning[]
+  eventsNeedingBoost: OrganizerEventNeedingBoost[]
   aiInsights: OrganizerAiInsight[]
+  // ActiVibe Plus — false berarti aiInsights di atas adalah "insight biasa"
+  // (fallback deterministik), bukan AI Management Recommendation asli;
+  // cuma tier PLUS_PRO yang dapat true (lihat organizerOverview.service.js).
+  aiInsightsUnlocked: boolean
 }
 
 async function parseResponse(res: Response) {
@@ -80,6 +108,14 @@ export async function sendOrganizerAiChat(messages: OrganizerAiChatMessage[]): P
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({ messages }),
+  })
+  return parseResponse(res)
+}
+
+export async function getGrowthIdeas(): Promise<OrganizerAiIdeaSearchResult> {
+  const res = await apiFetch(`${API_URL}/organizer/overview/ai/growth-ideas`, {
+    method: 'POST',
+    credentials: 'include',
   })
   return parseResponse(res)
 }

@@ -1,4 +1,4 @@
-import type { AdminUser, AdminEvent, ParticipationRecord, ActivityLogEntry, PrematureClosure } from '../types/admin'
+import type { AdminUser, AdminEvent, ParticipationRecord, ActivityLogEntry, PrematureClosure, RevenueSummary, AdminSubscription, SubscriptionTier } from '../types/admin'
 import type { RegionDistributionResponse } from '../types/region'
 import { apiFetch } from './apiFetch'
 
@@ -38,6 +38,20 @@ export interface AdminOverviewStats {
 export interface AiChatMessage {
   role: 'user' | 'assistant'
   content: string
+}
+
+export interface AiIdea {
+  title: string
+  description: string
+  actionLabel: string
+  sourceHint: string
+}
+
+export interface AiIdeaSearchResult {
+  available: boolean
+  ideas?: AiIdea[]
+  reason?: string
+  generatedAt?: string
 }
 
 async function parseResponse(res: Response) {
@@ -179,4 +193,34 @@ export async function sendAdminAiChat(messages: AiChatMessage[]): Promise<{ repl
     body: JSON.stringify({ messages }),
   })
   return parseResponse(res)
+}
+
+export async function getCampaignIdeas(): Promise<AiIdeaSearchResult> {
+  const res = await apiFetch(`${API_URL}/admin/ai/campaign-ideas`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+  return parseResponse(res)
+}
+
+export async function getRevenueSummary(): Promise<RevenueSummary> {
+  const res = await apiFetch(`${API_URL}/admin/revenue`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.revenue
+}
+
+export async function listSubscriptions(): Promise<AdminSubscription[]> {
+  const res = await apiFetch(`${API_URL}/admin/subscriptions`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.subscriptions
+}
+
+export async function setSubscriptionTier(userId: string, tier: SubscriptionTier): Promise<void> {
+  const res = await apiFetch(`${API_URL}/admin/subscriptions/${userId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ tier }),
+  })
+  await parseResponse(res)
 }

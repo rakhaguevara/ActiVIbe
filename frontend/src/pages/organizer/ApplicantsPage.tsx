@@ -19,6 +19,7 @@ const STATUS_LABEL: Record<ApplicantStatus, string> = {
   no_show: 'No-show',
   cancelled_by_organizer: 'Dibatalkan Organizer',
   cancelled_by_volunteer: 'Dibatalkan Volunteer',
+  cancelled_date_conflict: 'Bentrok Jadwal Lain',
 }
 
 const STATUS_VARIANT: Record<ApplicantStatus, 'success' | 'warning' | 'danger' | 'info'> = {
@@ -32,6 +33,7 @@ const STATUS_VARIANT: Record<ApplicantStatus, 'success' | 'warning' | 'danger' |
   no_show: 'danger',
   cancelled_by_organizer: 'danger',
   cancelled_by_volunteer: 'danger',
+  cancelled_date_conflict: 'danger',
 }
 
 export default function ApplicantsPage() {

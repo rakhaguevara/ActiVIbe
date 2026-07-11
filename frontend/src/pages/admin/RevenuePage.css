@@ -1,0 +1,61 @@
+.revenue-page__section {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.revenue-page__section h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.revenue-page__tier-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.revenue-page__tier-bar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 48px;
+  align-items: center;
+  gap: 12px;
+}
+
+.revenue-page__tier-bar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-body);
+}
+
+.revenue-page__tier-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-border-light);
+  overflow: hidden;
+}
+
+.revenue-page__tier-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.revenue-page__tier-bar-fill--free {
+  background: var(--color-border-medium);
+}
+
+.revenue-page__tier-bar-fill--starter {
+  background: var(--color-secondary);
+}
+
+.revenue-page__tier-bar-fill--pro {
+  background: var(--color-primary);
+}
+
+.revenue-page__tier-bar-value {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}

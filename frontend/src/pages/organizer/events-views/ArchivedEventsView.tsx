@@ -4,6 +4,7 @@ import {
 } from 'react-icons/fi'
 import ReactECharts from 'echarts-for-react'
 import { useOrganizerData } from '../../../contexts/OrganizerDataContext'
+import CertificateBadge from '../../../components/CertificateBadge'
 import '../EventsPage.css'
 
 export default function ArchivedEventsView() {
@@ -112,7 +113,12 @@ export default function ArchivedEventsView() {
                       <td><span className="badge" style={{ background: '#f1f5f9' }}>{event.category ?? 'Umum'}</span></td>
                       <td style={{ color: 'var(--color-text-muted)' }}>{event.archivedAt ? new Date(event.archivedAt).toLocaleDateString('id-ID') : '-'}</td>
                       <td><strong>{event.impactValue !== undefined ? `${event.impactValue} ${event.impactMetricUnit}` : '-'}</strong></td>
-                      <td>{certificates.filter((c) => c.eventId === event.id).length} Diterbitkan</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span>{certificates.filter((c) => c.eventId === event.id).length} Diterbitkan</span>
+                          <CertificateBadge certificateProvider={event.certificateProvider} />
+                        </div>
+                      </td>
                       <td>
                         <div className="v-table-actions">
                           <button

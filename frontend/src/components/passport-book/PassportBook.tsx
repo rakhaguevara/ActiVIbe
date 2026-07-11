@@ -158,7 +158,17 @@ export default function PassportBook({
   const pages = buildPages(chapters, fillerPages)
 
   const handleOpen = () => setIsExpanded(true)
-  const handleOpenReader = () => setIsReaderSized(true)
+  const handleOpenReader = () => {
+    setIsReaderSized(true)
+    // Di bawah breakpoint desktop (lihat @media (min-width: 1024px) di
+    // PassportBook.css), surface--cover dan --reader punya lebar/tinggi yang
+    // identik — framer-motion tidak mendeteksi perubahan layout apa pun di
+    // sini, jadi onLayoutAnimationComplete tidak pernah terpanggil dan
+    // flipbook tidak pernah terpasang (isBookMounted macet di false). Pasang
+    // langsung di lebar ini karena memang tidak ada animasi resize yang perlu
+    // ditunggu.
+    if (window.innerWidth < 1024) setIsBookMounted(true)
+  }
 
   const handleFlipInit = (event: PageFlipEvent) => {
     setCurrentPage(event.object.getCurrentPageIndex())

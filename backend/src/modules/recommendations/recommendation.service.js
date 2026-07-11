@@ -112,6 +112,8 @@ export async function getRecommendations(userId) {
         // ditampilkan frontend kalau volunteer yg login FEMALE.
         organizerGender: event.organizerGender,
         femaleAcceptedCount: event.femaleAcceptedCount,
+        // ActiVibe Plus — transparansi sertifikat, lihat serializePublicEvent.
+        certificateProvider: event.certificateProvider,
         quota: event.quota,
         filledSlots: event.filledSlots,
         startDate: event.startDate,

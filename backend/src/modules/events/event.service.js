@@ -4,6 +4,8 @@ import { CATEGORY_SYMBOLS } from '../recommendations/recommendation.data.js'
 import { ensureOrganizationForOwner } from '../organizations/organization.service.js'
 import { findOwnedSubOrganizer } from '../subOrganizers/subOrganizer.service.js'
 import { isEventDocumentSetComplete } from './event.validation.js'
+import { getUserTier } from '../subscriptions/subscription.service.js'
+import { LIMITS, startOfCurrentMonth } from '../subscriptions/plans.js'
 
 // Status "pendaftaran terisi" — sama dengan definisi filledSlots di seluruh
 // app: semua status Application KECUALI yang berarti batal/ditolak.
@@ -84,6 +86,10 @@ function serializePublicEvent(event, filledSlots, femaleAcceptedCount) {
     mapLink: event.mapLink ?? undefined,
     photos: (event.galleryImages ?? []).map((g) => g.imageUrl),
     registrationClosedAt: event.registrationClosedAt ? event.registrationClosedAt.toISOString() : undefined,
+    // ActiVibe Plus — transparansi sertifikat (lihat komentar Event.certificateProvider
+    // di schema.prisma): NONE/ACTIVIBE/EXTERNAL, ditampilkan sbg badge di semua
+    // permukaan event volunteer-facing.
+    certificateProvider: event.certificateProvider,
   }
 }
 
@@ -221,6 +227,7 @@ function serializeEvent(event) {
           categoryMetrics: event.closeReport.categoryMetrics ?? undefined,
         }
       : undefined,
+    certificateProvider: event.certificateProvider,
   }
 }
 
@@ -243,6 +250,32 @@ const ACTIVE_CONFLICT_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'ONG
 
 function documentSlotOrNull(url) {
   return url ? { url } : null
+}
+
+// ActiVibe Plus — kuota pembuatan event per bulan (FREE 4, PLUS_STARTER 10,
+// PLUS_PRO unlimited, lihat subscriptions/plans.js). Sama seperti
+// assertNoPicConflict di bawah, cuma dicek saat submit ke pending_approval
+// (bukan draft — draft masih WIP bebas). Dihitung dari event non-draft yang
+// dibuat bulan berjalan, bukan seluruh draft yang belum tentu diajukan.
+async function assertMonthlyEventQuota(organizerId) {
+  const tier = await getUserTier(organizerId)
+  const limit = LIMITS[tier].eventsPerMonth
+  if (limit === Infinity) return
+
+  const count = await prisma.event.count({
+    where: {
+      organizerId,
+      status: { not: 'DRAFT' },
+      createdAt: { gte: startOfCurrentMonth() },
+    },
+  })
+  if (count >= limit) {
+    const planName = tier === 'FREE' ? 'Free' : 'ActiVibe Plus Starter'
+    throw new AppError(
+      409,
+      `Kuota pembuatan event bulan ini sudah habis (paket ${planName} maksimal ${limit} event/bulan). Upgrade ke ActiVibe Plus untuk kuota lebih besar.`,
+    )
+  }
 }
 
 async function assertNoPicConflict(organizerId, data) {
@@ -310,6 +343,7 @@ export async function createEvent(organizerId, data) {
   })
 
   if (data.status === 'pending_approval') {
+    await assertMonthlyEventQuota(organizerId)
     await assertNoPicConflict(organizerId, data)
   }
 
@@ -743,11 +777,40 @@ export async function listMyBookmarkedEventIds(userId) {
 // otomatis saat close event, supaya organizer bisa cek data dulu).
 // ============================================
 
+// ActiVibe Plus — gating fitur sertifikat: FREE tidak bisa aktifkan sama
+// sekali, PLUS_STARTER dibatasi 2 event/bulan (dihitung dari event DISTINCT
+// yang sudah pernah generate sertifikat bulan ini — generate ulang di event
+// yang sama tidak menghitung dua kali), PLUS_PRO unlimited.
+async function assertCertificateQuota(organizerId, eventId) {
+  const tier = await getUserTier(organizerId)
+  const limit = LIMITS[tier].certificateEventsPerMonth
+
+  if (limit === 0) {
+    throw new AppError(403, 'Fitur sertifikat khusus pengguna ActiVibe Plus. Upgrade paket untuk mengaktifkan sertifikat peserta.')
+  }
+  if (limit === Infinity) return
+
+  const distinctEvents = await prisma.certificate.findMany({
+    where: { event: { organizerId }, issuedAt: { gte: startOfCurrentMonth() } },
+    distinct: ['eventId'],
+    select: { eventId: true },
+  })
+  const eventIds = new Set(distinctEvents.map((c) => c.eventId))
+  if (!eventIds.has(eventId) && eventIds.size >= limit) {
+    throw new AppError(
+      403,
+      `Kuota sertifikat paket ActiVibe Plus Starter (${limit} event/bulan) sudah habis. Upgrade ke ActiVibe Plus Pro untuk sertifikat tanpa batas.`,
+    )
+  }
+}
+
 export async function generateEventCertificates(organizerId, eventId) {
   const event = await findOwnedEventOrThrow(organizerId, eventId)
   if (event.status !== 'COMPLETED') {
     throw new AppError(400, 'Sertifikat cuma bisa diterbitkan utk event yang sudah selesai (COMPLETED)')
   }
+
+  await assertCertificateQuota(organizerId, eventId)
 
   const completedApplications = await prisma.application.findMany({
     where: { eventId, status: 'COMPLETED' },
@@ -762,8 +825,26 @@ export async function generateEventCertificates(organizerId, eventId) {
     })
   }
 
+  await prisma.event.update({ where: { id: eventId }, data: { certificateProvider: 'ACTIVIBE' } })
+
   const total = await prisma.certificate.count({ where: { eventId } })
   return { issued: toIssue.length, total }
+}
+
+// Organizer menandai manual kalau sertifikat disediakan dari luar ActiVibe
+// (atau mengembalikan ke "tidak ada") — TIDAK bisa set ACTIVIBE lewat sini,
+// nilai itu cuma diset otomatis oleh generateEventCertificates() di atas.
+export async function setCertificateProvider(organizerId, eventId, certificateProvider) {
+  if (!['NONE', 'EXTERNAL'].includes(certificateProvider)) {
+    throw new AppError(400, 'Status sertifikat tidak valid')
+  }
+  await findOwnedEventOrThrow(organizerId, eventId)
+  const updated = await prisma.event.update({
+    where: { id: eventId },
+    data: { certificateProvider },
+    include: EVENT_INCLUDE,
+  })
+  return serializeEvent(updated)
 }
 
 export async function listEventCertificates(organizerId, eventId) {

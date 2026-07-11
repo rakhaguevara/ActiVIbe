@@ -8,6 +8,8 @@
 // untuk skip halaman terkait, bukan backend menampilkan placeholder karangan.
 import { prisma } from '../../config/prisma.js'
 import { deriveSkillXp } from './skillXp.js'
+import { getUserTier } from '../subscriptions/subscription.service.js'
+import { LIMITS } from '../subscriptions/plans.js'
 
 // Formula gamifikasi "Poin Reward" — tidak ada konsep poin di backend sama
 // sekali, jadi diturunkan deterministik dari 2 angka real yang sudah ada
@@ -129,6 +131,16 @@ export async function getMyPassport(userId) {
     }
   })
 
+  // ActiVibe Plus — chapter (per-kegiatan-selesai) dibatasi di tier FREE/
+  // PLUS_STARTER (lihat plans.js passportChapterCap); `stats`/`skills` TETAP
+  // dihitung dari seluruh riwayat (bukan cuma yang tidak terkunci) supaya
+  // angka ringkasan halaman 1-2 selalu akurat & jadi insentif upgrade yang
+  // jujur, bukan angka yang ikut terpotong.
+  const tier = await getUserTier(userId)
+  const cap = LIMITS[tier].passportChapterCap
+  const locked = cap !== Infinity && chapters.length > cap
+  const visibleChapters = locked ? chapters.slice(0, cap) : chapters
+
   return {
     stats: {
       totalHours: Math.round(totalHours * 10) / 10,
@@ -137,6 +149,7 @@ export async function getMyPassport(userId) {
       points,
     },
     skills,
-    chapters,
+    chapters: visibleChapters,
+    passportLock: { locked, totalChapters: chapters.length, visibleCount: visibleChapters.length },
   }
 }

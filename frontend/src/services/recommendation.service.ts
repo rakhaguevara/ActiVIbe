@@ -55,6 +55,8 @@ export interface RecommendedEvent {
    * perempuan yang sudah diterima (ACCEPTED+). Cuma dirender kalau viewer FEMALE. */
   organizerGender: 'MALE' | 'FEMALE' | null
   femaleAcceptedCount: number
+  /** Transparansi sertifikat (ActiVibe Plus) — NONE/ACTIVIBE/EXTERNAL */
+  certificateProvider: 'NONE' | 'ACTIVIBE' | 'EXTERNAL'
   quota: number
   filledSlots: number
   startDate: string

@@ -12,7 +12,7 @@ import './PassportPage.css'
 // tidak ada lagi fallback ke MOCK_CHAPTERS — lihat komentar di hook itu.
 export default function PassportPage() {
   const { user } = useAuth()
-  const { chapters, stats, skills, isLoading, error } = usePassportData()
+  const { chapters, stats, skills, isLoading, error, passportLock } = usePassportData()
 
   const firstName = user?.name.split(' ')[0] ?? 'Volunteer'
   const slug = useMemo(
@@ -53,6 +53,15 @@ export default function PassportPage() {
         skills={skills}
         publicUrl={publicUrl}
       />
+      {passportLock?.locked && (
+        <div className="passport-page__lock-banner">
+          <p>
+            🔒 {passportLock.totalChapters - passportLock.visibleCount} halaman kegiatan lainnya terkunci di paket Free/Starter —
+            upgrade ke <strong>ActiVibe Plus Pro</strong> untuk membuka semua halaman Impact Passport-mu.
+          </p>
+          <a href="/activibe-plus" className="btn btn--primary btn--sm">Upgrade Sekarang</a>
+        </div>
+      )}
     </main>
   )
 }

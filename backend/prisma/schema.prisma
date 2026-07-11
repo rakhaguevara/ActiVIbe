@@ -51,6 +51,13 @@ model User {
   // banyak peringatan, admin bisa mengirim banyak peringatan (lintas organizer).
   organizerWarningsReceived OrganizerWarning[] @relation("OrganizerWarningsReceived")
   organizerWarningsSent     OrganizerWarning[] @relation("OrganizerWarningsSent")
+
+  // ActiVibe Plus (freemium/premium) — satu User (organizer ATAUPUN volunteer,
+  // satu produk/harga sama utk kedua role, lihat subscriptions/plans.js) punya
+  // maks satu baris Subscription. TIDAK ADA baris = FREE tier secara implisit
+  // (lihat getUserTier di subscription.service.js) — sengaja tidak backfill
+  // semua user lama dgn baris FREE eksplisit.
+  subscription Subscription?
 }
 
 enum Role {
@@ -286,6 +293,13 @@ model Event {
   // Wajib kalau eventMode = OFFLINE.
   locationPermitUrl            String?
   locationPermitFileName       String?
+  // Transparansi sertifikat (ActiVibe Plus) — ACTIVIBE diset otomatis oleh
+  // generateEventCertificates() saat organizer benar2 menerbitkan sertifikat
+  // lewat ActiVibe (lihat gating tier di event.service.js), EXTERNAL diisi
+  // manual oleh organizer (PATCH /events/:id/certificate-provider) kalau
+  // sertifikat disediakan dari luar ActiVibe. Ditampilkan sbg badge di semua
+  // permukaan event volunteer-facing supaya jelas dari awal.
+  certificateProvider          CertificateProvider    @default(NONE)
   // Opsional — hanya kalau event bekerja sama dgn pihak lain.
   cooperationLetterUrl         String?
   cooperationLetterFileName    String?
@@ -388,6 +402,12 @@ enum LegalDocType {
   AKTA
   SK_KEMENKUMHAM
   NPWP
+}
+
+enum CertificateProvider {
+  NONE
+  ACTIVIBE
+  EXTERNAL
 }
 
 // Galeri dokumentasi event (1-6 foto) — sortOrder dipakai utk urutan drag & drop
@@ -594,6 +614,10 @@ enum ApplicationStatus {
   NO_SHOW
   CANCELLED_BY_ORGANIZER
   CANCELLED_BY_VOLUNTEER
+  // Dibatalkan sistem (bukan organizer/volunteer) — volunteer ini sudah
+  // ACCEPTED di event lain yang tanggalnya bentrok, lihat cascade di
+  // application.service.js updateApplicationStatus/cancelOverlappingPendingApplications.
+  CANCELLED_DATE_CONFLICT
 }
 
 // FR-009/FR-024: narasi & metrik dampak per volunteer per event
@@ -894,4 +918,64 @@ model AuditLog {
 
   @@index([actorId])
   @@index([createdAt])
+}
+
+// ============================================
+// ACTIVIBE PLUS — freemium/premium subscription
+// Satu produk/harga sama utk akun ORGANIZER maupun VOLUNTEER, manfaatnya
+// menyesuaikan role (lihat subscriptions/plans.js LIMITS). Pembayaran di-mock
+// (tidak ada payment gateway asli) — checkout() langsung aktifkan tier &
+// catat Transaction sbg simulasi; admin bisa juga override manual dari
+// halaman Revenue (adminSetTier), keduanya lewat jalur Transaction yang sama.
+// ============================================
+
+enum SubscriptionTier {
+  FREE
+  PLUS_STARTER
+  PLUS_PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum TransactionStatus {
+  SUCCESS
+  FAILED
+}
+
+model Subscription {
+  id               String             @id @default(uuid())
+  userId           String             @unique
+  tier             SubscriptionTier   @default(FREE)
+  status           SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+// Riwayat "pembayaran" (mock) — juga sumber angka utk halaman Admin Revenue
+// (getRevenueSummary/listSubscriptions di admin.service.js).
+model Transaction {
+  id             String            @id @default(uuid())
+  subscriptionId String
+  userId         String
+  tier           SubscriptionTier
+  amount         Int
+  status         TransactionStatus @default(SUCCESS)
+  // 'simulasi' = user checkout sendiri (mock instant-activate),
+  // 'admin-manual' = admin override lewat halaman Revenue (amount 0).
+  method         String
+  paidAt         DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subscriptionId])
 }

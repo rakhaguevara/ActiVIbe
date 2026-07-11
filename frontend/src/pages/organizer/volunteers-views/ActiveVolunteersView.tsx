@@ -1,68 +1,103 @@
-import React, { useState, useEffect } from 'react'
-import { 
-  FiSearch, FiUsers, FiActivity, FiClock, FiCoffee, FiMoreVertical, FiMapPin, FiPlayCircle
+import React, { useMemo, useState } from 'react'
+import {
+  FiUsers, FiActivity, FiClock, FiCoffee, FiMoreVertical, FiMapPin, FiPlayCircle
 } from 'react-icons/fi'
 import VolunteerProfileDrawer from '../../../components/organizer/VolunteerProfileDrawer'
-import type { VolunteerProfile } from '../../../components/organizer/VolunteerProfileDrawer'
+import { formatRelativeTime } from './volunteerFormat'
+import type { OrganizerVolunteer, OrganizerVolunteerApplication, OrganizerVolunteersResponse } from '../../../types/organizer'
 import '../VolunteersPage.css'
 
-interface ActiveVolunteer extends VolunteerProfile {
-  assignedEvent: string
-  assignedRole: string
-  currentStatus: 'On Duty' | 'Late Arrival' | 'Break'
-  checkInTime: string
-  activeHours: string
+type LiveStatus = 'On Duty' | 'Late Arrival' | 'Break'
+
+interface ActiveRow {
+  volunteer: OrganizerVolunteer
+  application: OrganizerVolunteerApplication
+  liveStatus: LiveStatus
 }
 
-const DUMMY_ACTIVE: ActiveVolunteer[] = [
-  {
-    id: '5', name: 'Michael Tan', avatarInitials: 'MT', skills: ['Logistics'],
-    eventsJoined: 18, hours: 312, attendance: '96%', status: 'Volunteer Leader', lastActivity: 'Today',
-    rating: 5, email: 'michael.t@example.com', phone: '+62 811-9988-7766', location: 'Jakarta Pusat',
-    bio: 'Ahli logistik.', impactTrees: 2450,
-    assignedEvent: 'Mangrove Planting', assignedRole: 'Logistics Coordinator', currentStatus: 'On Duty', checkInTime: '07:45 AM', activeHours: '3h 15m'
-  },
-  {
-    id: '6', name: 'Nabila Putri', avatarInitials: 'NP', skills: ['Administration'],
-    eventsJoined: 5, hours: 42, attendance: '89%', status: 'Active', lastActivity: 'Today',
-    rating: 4, email: 'nabila.p@example.com', phone: '+62 819-2233-4455', location: 'Tangerang',
-    bio: 'Mahasiswi administrasi.', impactTrees: 15,
-    assignedEvent: 'Mangrove Planting', assignedRole: 'Registration Desk', currentStatus: 'Break', checkInTime: '08:00 AM', activeHours: '3h 00m'
-  },
-  {
-    id: '1', name: 'Ahmad Fauzan', avatarInitials: 'AF', skills: ['Teaching'],
-    eventsJoined: 12, hours: 124, attendance: '98%', status: 'Active', lastActivity: 'Today',
-    rating: 5, email: 'ahmad@example.com', phone: '+62 812-3456-7890', location: 'Jakarta Selatan',
-    bio: 'Guru.', impactTrees: 150,
-    assignedEvent: 'Mangrove Planting', assignedRole: 'Planter', currentStatus: 'Late Arrival', checkInTime: '08:45 AM', activeHours: '2h 15m'
+function formatTime(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })
+}
+
+// assignedShiftStart disimpan pakai trik "Z" wall-clock (lihat combineDateTime
+// di event.service.js) — angka jam di dalamnya SUDAH jam dinding WIB, bukan
+// UTC asli, jadi dibaca lewat slice ISO yang sama (pola sama toTimeOnly),
+// BUKAN dikonversi timezone lagi. checkedInAt sebaliknya instant UTC asli
+// (AttendanceLog @default(now())), jadi harus diubah dulu ke jam dinding WIB
+// sebelum dibandingkan — membandingkan keduanya apa adanya (instant vs
+// wall-clock berlabel "Z") akan salah ~7 jam.
+function isLateArrival(checkedInAtIso: string | null, shiftStartIso: string | null): boolean {
+  if (!checkedInAtIso || !shiftStartIso) return false
+  const checkedIn = new Date(checkedInAtIso)
+  const checkedInWibMinutes = (checkedIn.getUTCHours() * 60 + checkedIn.getUTCMinutes() + 7 * 60) % (24 * 60)
+  const shiftStartWallTime = new Date(shiftStartIso).toISOString().slice(11, 16)
+  const [shiftHour, shiftMinute] = shiftStartWallTime.split(':').map(Number)
+  return checkedInWibMinutes > shiftHour * 60 + shiftMinute
+}
+
+function formatElapsed(iso: string | null): string {
+  if (!iso) return '—'
+  const ms = Date.now() - new Date(iso).getTime()
+  if (ms < 0) return '0h 0m'
+  const totalMinutes = Math.floor(ms / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${hours}h ${minutes}m`
+}
+
+export default function ActiveVolunteersView({ data }: { data: OrganizerVolunteersResponse }) {
+  const [selectedProfile, setSelectedProfile] = useState<OrganizerVolunteer | null>(null)
+
+  const expectedRows: { volunteer: OrganizerVolunteer; application: OrganizerVolunteerApplication }[] = []
+  const activeRows: ActiveRow[] = []
+  for (const volunteer of data.volunteers) {
+    for (const application of volunteer.applications) {
+      if (application.eventStatus !== 'ongoing') continue
+      if (['accepted', 'checked_in'].includes(application.status)) {
+        expectedRows.push({ volunteer, application })
+      }
+      if (application.status === 'checked_in') {
+        // "Break" tidak pernah muncul — tidak ada sinyal untuk itu di backend
+        // (hanya AttendanceLog.checkedInAt), cuma On Duty/Late Arrival yg real.
+        const isLate = isLateArrival(application.checkedInAt, application.assignedShiftStart)
+        activeRows.push({ volunteer, application, liveStatus: isLate ? 'Late Arrival' : 'On Duty' })
+      }
+    }
   }
-]
 
-export default function ActiveVolunteersView() {
-  const [loading, setLoading] = useState(true)
-  const [volunteers, setVolunteers] = useState<ActiveVolunteer[]>([])
-  const [selectedProfile, setSelectedProfile] = useState<VolunteerProfile | null>(null)
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setVolunteers(DUMMY_ACTIVE)
-      setLoading(false)
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [])
+  const activeEvents = useMemo(() => {
+    const map = new Map<string, { title: string; location: string }>()
+    for (const row of activeRows) {
+      map.set(row.application.eventId, { title: row.application.eventTitle, location: row.application.eventLocation })
+    }
+    return Array.from(map.values())
+  }, [activeRows])
 
-  if (loading) {
+  const recentCheckIns = useMemo(
+    () => [...activeRows].sort((a, b) => (b.application.checkedInAt ?? '').localeCompare(a.application.checkedInAt ?? '')).slice(0, 5),
+    [activeRows],
+  )
+
+  if (activeRows.length === 0) {
     return (
       <div className="volunteers-crm">
-        <div className="v-kpi-grid">
-          {[...Array(5)].map((_, i) => <div key={i} className="skeleton sk-card" />)}
+        <div className="v-empty-state">
+          <FiActivity size={64} color="var(--color-text-muted)" style={{ marginBottom: '16px' }} />
+          <h2 style={{ marginBottom: '8px' }}>No volunteers currently on duty.</h2>
+          <p style={{ color: 'var(--color-text-muted)' }}>Volunteers checked in to an ongoing event will appear here.</p>
         </div>
-        <div className="skeleton sk-table" />
       </div>
     )
   }
 
-  const getStatusBadge = (status: ActiveVolunteer['currentStatus']) => {
+  const checkedInCount = activeRows.length
+  const expectedCount = expectedRows.length
+  const lateCount = activeRows.filter((r) => r.liveStatus === 'Late Arrival').length
+  const onDutyCount = activeRows.filter((r) => r.liveStatus === 'On Duty').length
+  const currentAttendance = expectedCount > 0 ? Math.round((checkedInCount / expectedCount) * 100) : null
+
+  const getStatusBadge = (status: LiveStatus) => {
     switch (status) {
       case 'On Duty': return <span className="badge badge--success"><FiPlayCircle /> On Duty</span>
       case 'Break': return <span className="badge badge--info"><FiCoffee /> Break</span>
@@ -76,28 +111,28 @@ export default function ActiveVolunteersView() {
       <section className="v-kpi-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         <div className="v-kpi-card">
           <div className="v-kpi-header"><FiUsers /> Checked In</div>
-          <span className="v-kpi-value">280</span>
-          <span className="v-kpi-trend neutral">of 300 expected</span>
+          <span className="v-kpi-value">{checkedInCount}</span>
+          <span className="v-kpi-trend neutral">of {expectedCount} expected</span>
         </div>
         <div className="v-kpi-card">
           <div className="v-kpi-header"><FiActivity /> On Duty</div>
-          <span className="v-kpi-value">245</span>
+          <span className="v-kpi-value">{onDutyCount}</span>
           <span className="v-kpi-trend neutral">Actively volunteering</span>
         </div>
         <div className="v-kpi-card">
           <div className="v-kpi-header" style={{ color: 'var(--color-warning)' }}><FiClock /> Late Arrival</div>
-          <span className="v-kpi-value">12</span>
-          <span className="v-kpi-trend" style={{ color: 'var(--color-warning)' }}>Past 08:00 AM</span>
+          <span className="v-kpi-value">{lateCount}</span>
+          <span className="v-kpi-trend" style={{ color: 'var(--color-warning)' }}>Past shift start</span>
         </div>
         <div className="v-kpi-card">
           <div className="v-kpi-header"><FiCoffee /> On Break</div>
-          <span className="v-kpi-value">35</span>
-          <span className="v-kpi-trend neutral">Resting</span>
+          <span className="v-kpi-value">0</span>
+          <span className="v-kpi-trend neutral">Not tracked</span>
         </div>
         <div className="v-kpi-card">
           <div className="v-kpi-header"><FiActivity /> Current Attendance</div>
-          <span className="v-kpi-value">93%</span>
-          <span className="v-kpi-trend">+2% vs last hour</span>
+          <span className="v-kpi-value">{currentAttendance === null ? '—' : `${currentAttendance}%`}</span>
+          <span className="v-kpi-trend neutral">Checked in vs expected</span>
         </div>
       </section>
 
@@ -120,19 +155,19 @@ export default function ActiveVolunteersView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {volunteers.map(vol => (
-                    <tr key={vol.id}>
+                  {activeRows.map(({ volunteer: vol, application: app, liveStatus }) => (
+                    <tr key={app.applicationId}>
                       <td>
                         <div className="v-volunteer-info">
                           <div className="v-avatar">{vol.avatarInitials}</div>
                           <span className="v-volunteer-name">{vol.name}</span>
                         </div>
                       </td>
-                      <td style={{ fontWeight: 600 }}>{vol.assignedEvent}</td>
-                      <td>{vol.assignedRole}</td>
-                      <td>{vol.checkInTime}</td>
-                      <td style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 600 }}>{vol.activeHours}</td>
-                      <td>{getStatusBadge(vol.currentStatus)}</td>
+                      <td style={{ fontWeight: 600 }}>{app.eventTitle}</td>
+                      <td>{app.assignedRoleName ?? '—'}</td>
+                      <td>{formatTime(app.checkedInAt)}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 600 }}>{formatElapsed(app.checkedInAt)}</td>
+                      <td>{getStatusBadge(liveStatus)}</td>
                       <td>
                         <div className="v-table-actions">
                           <button className="btn btn--sm btn--outline" onClick={() => setSelectedProfile(vol)}>Profile</button>
@@ -151,39 +186,33 @@ export default function ActiveVolunteersView() {
           {/* Side Widgets */}
           <section className="v-section card">
             <h2>Active Events</h2>
-            <div style={{ background: 'var(--color-bg-subtle)', padding: '12px', borderRadius: '8px', borderLeft: '4px solid var(--color-success)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, marginBottom: '4px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-success)' }} />
-                Mangrove Planting
+            {activeEvents.map((ev) => (
+              <div key={ev.title} style={{ background: 'var(--color-bg-subtle)', padding: '12px', borderRadius: '8px', borderLeft: '4px solid var(--color-success)', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, marginBottom: '4px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-success)' }} />
+                  {ev.title}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}><FiMapPin /> {ev.location}</div>
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}><FiMapPin /> Teluk Naga, Tangerang</div>
-            </div>
+            ))}
           </section>
-          
+
           <section className="v-section card">
             <h2>Recent Check-ins</h2>
             <div className="v-timeline">
-              <div className="v-timeline-item">
-                <div className="v-timeline-dot" style={{ background: 'var(--color-success)' }} />
-                <div style={{ fontSize: '13px' }}><strong>Ahmad</strong> checked in at Registration Desk.</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>08:45 AM</div>
-              </div>
-              <div className="v-timeline-item">
-                <div className="v-timeline-dot" />
-                <div style={{ fontSize: '13px' }}><strong>Nabila</strong> checked in at Registration Desk.</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>08:00 AM</div>
-              </div>
-              <div className="v-timeline-item">
-                <div className="v-timeline-dot" />
-                <div style={{ fontSize: '13px' }}><strong>Michael</strong> checked in at Loading Bay.</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>07:45 AM</div>
-              </div>
+              {recentCheckIns.map(({ volunteer: vol, application: app }) => (
+                <div className="v-timeline-item" key={app.applicationId}>
+                  <div className="v-timeline-dot" style={{ background: 'var(--color-success)' }} />
+                  <div style={{ fontSize: '13px' }}><strong>{vol.name}</strong> checked in{app.assignedRoleName ? ` at ${app.assignedRoleName}` : ''}.</div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{formatRelativeTime(app.checkedInAt)}</div>
+                </div>
+              ))}
             </div>
           </section>
         </div>
       </div>
 
-      <VolunteerProfileDrawer 
+      <VolunteerProfileDrawer
         volunteer={selectedProfile}
         isOpen={selectedProfile !== null}
         onClose={() => setSelectedProfile(null)}

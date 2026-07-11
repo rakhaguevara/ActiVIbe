@@ -6,6 +6,7 @@ import { useBookmarkedEvents } from '../hooks/useBookmarkedEvents'
 import { trackEventView } from '../lib/eventApi'
 import type { Gender } from '../lib/profileApi'
 import type { Event } from '../types/event'
+import CertificateBadge from './CertificateBadge'
 import './EventListSidebar.css'
 
 interface EventListSidebarProps {
@@ -14,9 +15,11 @@ interface EventListSidebarProps {
   onSelect: (id: string) => void
   /** Fitur "women respect" — badge jumlah peserta perempuan cuma tampil kalau FEMALE */
   currentUserGender?: Gender | null
+  /** ActiVibe Plus — house ad utk volunteer tier FREE (hilang setelah upgrade) */
+  showAd?: boolean
 }
 
-export default function EventListSidebar({ events, selectedEventId, onSelect, currentUserGender }: EventListSidebarProps) {
+export default function EventListSidebar({ events, selectedEventId, onSelect, currentUserGender, showAd }: EventListSidebarProps) {
   const { isBookmarked, toggle } = useBookmarkedEvents()
   const [copiedEventId, setCopiedEventId] = useState<string | null>(null)
 
@@ -44,6 +47,12 @@ export default function EventListSidebar({ events, selectedEventId, onSelect, cu
 
   return (
     <div className="event-list-sidebar">
+      {showAd && (
+        <a href="/activibe-plus" className="event-list-sidebar__ad">
+          <span className="event-list-sidebar__ad-label">Sponsor</span>
+          <p><strong>Hilangkan iklan &amp; buka semua fitur</strong> — Upgrade ke ActiVibe Plus.</p>
+        </a>
+      )}
       {events.map((event) => {
         const { icon: Icon } = getCategoryStyle(event.category)
         const isSelected = event.id === selectedEventId
@@ -90,6 +99,7 @@ export default function EventListSidebar({ events, selectedEventId, onSelect, cu
                   👩 {event.femaleAcceptedCount} perempuan terdaftar
                 </span>
               )}
+              <CertificateBadge certificateProvider={event.certificateProvider} />
 
               <div className="event-list-sidebar__actions">
                 <button

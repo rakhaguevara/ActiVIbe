@@ -5,6 +5,25 @@
   width: 100%;
 }
 
+/* Sub Organizer view: list + side form */
+.sub-organizer-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--space-xl);
+  align-items: start;
+  min-width: 0;
+}
+
+.sub-organizer-layout > * {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .sub-organizer-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* 1. Page Header */
 .events-header {
   display: flex;

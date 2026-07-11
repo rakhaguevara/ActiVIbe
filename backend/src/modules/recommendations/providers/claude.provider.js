@@ -42,3 +42,33 @@ export const claudeProvider = {
     return JSON.parse(textBlock.text)
   },
 }
+
+// Riset web live (Claude-only — OpenAI/Gemini provider di repo ini tidak
+// dikawinkan dengan tool search apa pun). SENGAJA terpisah dari `claudeProvider`
+// di atas: bukan bagian dari kontrak generik generate({system,prompt,schema})
+// yang dipakai resolveAiProvider lintas 3 provider, jadi dipanggil langsung by
+// name oleh pemanggil yang memang butuh riset internet (bukan lewat provider
+// resolution biasa). Tidak dikombinasikan dengan output_config/json_schema
+// dalam satu call yang sama — dipisah jadi 2 langkah oleh pemanggil
+// (searchIdeas() di utils/aiIdeaSearch.js): call ini cuma mengembalikan teks
+// temuan mentah, lalu diformat ulang lewat `generate()` biasa di atas.
+export async function claudeWebSearch({ system, prompt }) {
+  if (!client) client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 4000,
+    tools: [{ type: 'web_search_20260318', name: 'web_search', max_uses: 3 }],
+    system,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  if (response.stop_reason === 'refusal') {
+    throw new Error('Claude menolak request riset (stop_reason: refusal)')
+  }
+
+  const textBlocks = response.content.filter((block) => block.type === 'text').map((block) => block.text)
+  if (textBlocks.length === 0) throw new Error('Respons riset Claude tidak berisi blok teks')
+
+  return textBlocks.join('\n\n')
+}

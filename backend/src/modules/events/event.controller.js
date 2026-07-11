@@ -8,6 +8,7 @@ import {
   getEventAttendance,
   generateEventCertificates,
   listEventCertificates,
+  setCertificateProvider,
   submitEventFeedback,
   getEventFeedbackSummary,
   getOrganizerTrafficSummary,
@@ -98,6 +99,15 @@ export async function getCertificates(req, res, next) {
   try {
     const certificates = await listEventCertificates(req.user.id, req.params.id)
     return res.json({ certificates })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function patchCertificateProvider(req, res, next) {
+  try {
+    const event = await setCertificateProvider(req.user.id, req.params.id, req.body.certificateProvider)
+    return res.json({ event })
   } catch (err) {
     next(err)
   }

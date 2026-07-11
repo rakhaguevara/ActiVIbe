@@ -279,3 +279,30 @@ Mohon perhatikan perencanaan jadwal & rekrutmen volunteer untuk kegiatan berikut
   })
   logSendResult(`peringatan penutupan dini "${eventTitle}" -> ${to}`, result)
 }
+
+// Dikirim sistem (bukan organizer) begitu aplikasi volunteer otomatis
+// dibatalkan krn bentrok jadwal dgn event lain yang lebih dulu ACCEPTED
+// (lihat application.service.js cancelOverlappingPendingApplications).
+export async function sendApplicationAutoCancelledEmail(to, { volunteerName, cancelledEventTitle, acceptedEventTitle }) {
+  if (!resendClient) {
+    console.log(`[mailer] RESEND_API_KEY kosong — pendaftaran "${cancelledEventTitle}" utk ${to} otomatis dibatalkan (bentrok dgn "${acceptedEventTitle}")`)
+    return
+  }
+
+  const result = await resendClient.emails.send({
+    from: env.RESEND_FROM_EMAIL,
+    to,
+    subject: `Pendaftaranmu ke "${cancelledEventTitle}" dibatalkan otomatis`,
+    html: `
+      <p>Halo ${volunteerName},</p>
+      <p>Pendaftaranmu ke <strong>${cancelledEventTitle}</strong> dibatalkan otomatis karena jadwalnya bentrok dengan <strong>${acceptedEventTitle}</strong>, yang sudah lebih dulu menerima pendaftaranmu.</p>
+      <p>Kamu tetap bisa mendaftar ke kegiatan lain yang jadwalnya tidak bentrok.</p>
+    `,
+    text: `Halo ${volunteerName},
+
+Pendaftaranmu ke ${cancelledEventTitle} dibatalkan otomatis karena jadwalnya bentrok dengan ${acceptedEventTitle}, yang sudah lebih dulu menerima pendaftaranmu.
+
+Kamu tetap bisa mendaftar ke kegiatan lain yang jadwalnya tidak bentrok.`,
+  })
+  logSendResult(`pembatalan otomatis "${cancelledEventTitle}" -> ${to}`, result)
+}

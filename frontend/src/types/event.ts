@@ -53,4 +53,7 @@ export interface Event {
    * yang sudah diterima (ACCEPTED+). Cuma dirender kalau volunteer yg login FEMALE. */
   organizerGender?: 'MALE' | 'FEMALE' | null
   femaleAcceptedCount?: number
+  /** Transparansi sertifikat (ActiVibe Plus) — NONE/ACTIVIBE/EXTERNAL, lihat
+   * Event.certificateProvider di backend schema.prisma. */
+  certificateProvider?: 'NONE' | 'ACTIVIBE' | 'EXTERNAL'
 }

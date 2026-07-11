@@ -11,6 +11,7 @@ const NAV_LINKS: { label: string; href: string; to?: string; accent: NavAccent }
   { label: 'Cari Organisasi', href: '#', accent: 'secondary' },
   { label: 'Cara Kerja', href: '#', to: '/cara-kerja', accent: 'orange' },
   { label: 'Tentang Kami', href: '#', to: '/tentang-kami', accent: 'yellow' },
+  { label: 'ActiVibe Plus', href: '#', to: '/activibe-plus', accent: 'yellow' },
 ]
 
 interface NavbarProps {

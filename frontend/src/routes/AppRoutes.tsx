@@ -7,6 +7,7 @@ import HomePage from '../pages/HomePage'
 import AboutPage from '../pages/AboutPage'
 import CaraKerjaPage from '../pages/CaraKerjaPage'
 import DonatePage from '../pages/DonatePage'
+import ActivibePlusPage from '../pages/ActivibePlusPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import FindActivityPage from '../pages/volunteer/FindActivityPage'
 import FindOrganizationPage from '../pages/volunteer/FindOrganizationPage'
@@ -26,6 +27,7 @@ import ParticipationExportPage from '../pages/admin/ParticipationExportPage'
 import ActivityLogPage from '../pages/admin/ActivityLogPage'
 import PrematureClosuresPage from '../pages/admin/PrematureClosuresPage'
 import OrganizersPage from '../pages/admin/OrganizersPage'
+import RevenuePage from '../pages/admin/RevenuePage'
 import OrganizerOverviewPage from '../pages/organizer/OverviewPage'
 import VolunteersPage from '../pages/organizer/VolunteersPage'
 import OrganizerEventsPage from '../pages/organizer/EventsPage'
@@ -69,6 +71,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
           <Route path="/admin/activity-log" element={<ActivityLogPage />} />
           <Route path="/admin/premature-closures" element={<PrematureClosuresPage />} />
           <Route path="/admin/organizers" element={<OrganizersPage />} />
+          <Route path="/admin/revenue" element={<RevenuePage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
@@ -118,6 +121,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
         <Route path="/tentang-kami" element={<AboutPage onSignupClick={onSignupClick} />} />
         <Route path="/cara-kerja" element={<CaraKerjaPage onSignupClick={onSignupClick} />} />
         <Route path="/donasi" element={<DonatePage />} />
+        <Route path="/activibe-plus" element={<ActivibePlusPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

@@ -13,6 +13,9 @@ export interface AdminEvent {
   title: string
   category?: string
   organizerName: string
+  // ActiVibe Plus — organizer PLUS_STARTER/PLUS_PRO dapat prioritas review
+  // (backend sudah sortir ke atas) + label "Premium" di daftar.
+  organizerTier: 'FREE' | 'PLUS_STARTER' | 'PLUS_PRO'
   location: string
   quota: number
   filledSlots: number
@@ -57,4 +60,37 @@ export interface PrematureClosure {
   hasWarning: boolean
   lastWarningMessage?: string
   lastWarningAt?: string
+}
+
+// ActiVibe Plus — halaman admin "Revenue" (grup Manajemen), lihat
+// admin.service.js getRevenueSummary/listSubscriptions.
+export type SubscriptionTier = 'FREE' | 'PLUS_STARTER' | 'PLUS_PRO'
+
+export interface RevenueTransaction {
+  id: string
+  userName: string
+  userEmail: string
+  userRole: 'VOLUNTEER' | 'ORGANIZER' | 'ADMIN'
+  tier: SubscriptionTier
+  amount: number
+  method: string
+  status: 'SUCCESS' | 'FAILED'
+  paidAt: string
+}
+
+export interface RevenueSummary {
+  totalRevenue: number
+  mrr: number
+  subscriberCounts: Record<SubscriptionTier, number>
+  recentTransactions: RevenueTransaction[]
+}
+
+export interface AdminSubscription {
+  userId: string
+  userName: string
+  userEmail: string
+  userRole: 'VOLUNTEER' | 'ORGANIZER' | 'ADMIN'
+  tier: SubscriptionTier
+  status: 'ACTIVE' | 'CANCELLED'
+  currentPeriodEnd: string | null
 }

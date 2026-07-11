@@ -4,6 +4,7 @@ import {
   FiSearch, FiFileText, FiClock, FiStar, FiCheckCircle, FiArchive,
 } from 'react-icons/fi'
 import { useOrganizerData } from '../../../contexts/OrganizerDataContext'
+import CertificateBadge from '../../../components/CertificateBadge'
 import '../EventsPage.css'
 
 export default function CompletedEventsView() {
@@ -11,6 +12,7 @@ export default function CompletedEventsView() {
   const [search, setSearch] = useState('')
   const [generatingId, setGeneratingId] = useState<string | null>(null)
   const [archivingId, setArchivingId] = useState<string | null>(null)
+  const [generateError, setGenerateError] = useState<string | null>(null)
 
   const completed = useMemo(() => events.filter((e) => e.status === 'completed'), [events])
   const filtered = completed.filter((e) => e.title.toLowerCase().includes(search.toLowerCase()))
@@ -37,8 +39,11 @@ export default function CompletedEventsView() {
 
   const handleGenerate = async (eventId: string) => {
     setGeneratingId(eventId)
+    setGenerateError(null)
     try {
       await generateCertificates(eventId)
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : 'Gagal menerbitkan sertifikat.')
     } finally {
       setGeneratingId(null)
     }
@@ -93,6 +98,12 @@ export default function CompletedEventsView() {
           </div>
         </div>
 
+        {generateError && (
+          <div className="card" style={{ padding: '12px 16px', marginBottom: '16px', borderColor: 'var(--color-warning)', background: 'var(--color-accent-yellow-soft)', fontSize: '13px' }}>
+            {generateError} <Link to="/organizer/organization?tab=subscription" style={{ fontWeight: 600, color: 'var(--color-primary)' }}>Upgrade ActiVibe Plus</Link>
+          </div>
+        )}
+
         {rows.length === 0 ? (
           <p style={{ color: 'var(--color-text-muted)' }}>Belum ada kegiatan yang selesai.</p>
         ) : (
@@ -126,7 +137,10 @@ export default function CompletedEventsView() {
                     </td>
                     <td>
                       {certificatesCount > 0 ? (
-                        <span className="badge badge--success"><FiCheckCircle /> {certificatesCount} Diterbitkan</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span className="badge badge--success"><FiCheckCircle /> {certificatesCount} Diterbitkan</span>
+                          <CertificateBadge certificateProvider={event.certificateProvider} />
+                        </div>
                       ) : (
                         <button
                           type="button"

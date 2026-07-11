@@ -1,10 +1,15 @@
 import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
 import { generateInsights } from './organizerOverviewAi.service.js'
+import { getUserTier } from '../subscriptions/subscription.service.js'
 
 const ACTIVE_EVENT_STATUSES = ['PUBLISHED', 'ONGOING']
 const PENDING_APPLICANT_STATUSES = ['APPLIED', 'UNDER_REVIEW']
 const ACCEPTED_APPLICANT_STATUSES = ['ACCEPTED', 'CHECKED_IN', 'COMPLETED']
+// Sama persis FILLED_SLOT_STATUSES di events/event.service.js — diduplikasi
+// lokal (bukan diimpor), pola sama getApplicantsGrowth di file ini: modul ini
+// sengaja tidak bergantung ke modul events.
+const FILLED_SLOT_STATUSES = ['APPLIED', 'UNDER_REVIEW', 'ACCEPTED', 'WAITLISTED', 'CHECKED_IN', 'COMPLETED', 'NO_SHOW']
 const MONTH_LABELS_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 
 function startOfToday() {
@@ -143,6 +148,36 @@ async function getApplicantsGrowth(eventIds) {
   return { months: months.map((m) => m.label), counts: months.map((m) => byMonth.get(m.key)) }
 }
 
+// Event aktif (published/ongoing) dengan pendaftaran masih sepi (<50% quota)
+// padahal startDate (= "tenggat" implisit — tidak ada field deadline
+// pendaftaran terpisah, volunteer tidak bisa daftar setelah event mulai)
+// sudah &lt;=7 hari lagi. Dipakai organizerOverviewAi.service.js utk kartu
+// "Boost Event" (fallback deterministik) & untuk mengarahkan riset "Cari Ide
+// Campaign/Event Baru" ke event yang paling butuh.
+async function getEventsNeedingBoost(activeEvents) {
+  if (activeEvents.length === 0) return []
+
+  const ids = activeEvents.map((e) => e.id)
+  const counts = await prisma.application.groupBy({
+    by: ['eventId'],
+    where: { eventId: { in: ids }, status: { in: FILLED_SLOT_STATUSES } },
+    _count: { _all: true },
+  })
+  const filledByEventId = new Map(counts.map((c) => [c.eventId, c._count._all]))
+
+  const today = startOfToday()
+  return activeEvents
+    .map((e) => {
+      const filled = filledByEventId.get(e.id) ?? 0
+      const fillRatio = e.quota > 0 ? filled / e.quota : 0
+      const daysUntilStart = Math.ceil((e.startDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+      return { id: e.id, title: e.title, quota: e.quota, filled, fillRatio, daysUntilStart }
+    })
+    .filter((e) => e.daysUntilStart >= 0 && e.daysUntilStart <= 7 && e.fillRatio < 0.5)
+    .sort((a, b) => a.daysUntilStart - b.daysUntilStart)
+    .slice(0, 2)
+}
+
 function serializeAuditLog(log) {
   return {
     id: log.id,
@@ -199,12 +234,13 @@ export async function acknowledgeOrganizerWarning(organizerId, warningId) {
 export async function buildOrganizerSummary(organizerId) {
   const events = await prisma.event.findMany({
     where: { organizerId },
-    select: { id: true, status: true, endDate: true },
+    select: { id: true, title: true, status: true, endDate: true, startDate: true, quota: true },
   })
   const eventIds = events.map((e) => e.id)
   const today = startOfToday()
+  const activeEventRows = events.filter((e) => ACTIVE_EVENT_STATUSES.includes(e.status))
 
-  const [pendingApplicants, acceptedVolunteers, todayAttendance, applicantsGrowth, recentActivity, totals, thisMonth, warnings] =
+  const [pendingApplicants, acceptedVolunteers, todayAttendance, applicantsGrowth, recentActivity, totals, thisMonth, warnings, eventsNeedingBoost] =
     await Promise.all([
       eventIds.length
         ? prisma.application.count({ where: { eventId: { in: eventIds }, status: { in: PENDING_APPLICANT_STATUSES } } })
@@ -218,9 +254,10 @@ export async function buildOrganizerSummary(organizerId) {
       getImpactTotals(organizerId),
       getImpactTotals(organizerId, { thisMonthOnly: true }),
       getActiveWarnings(organizerId),
+      getEventsNeedingBoost(activeEventRows),
     ])
 
-  const activeEvents = events.filter((e) => ACTIVE_EVENT_STATUSES.includes(e.status)).length
+  const activeEvents = activeEventRows.length
   const eventsNeedClosing = events.filter((e) => ACTIVE_EVENT_STATUSES.includes(e.status) && e.endDate < today).length
 
   return {
@@ -234,11 +271,16 @@ export async function buildOrganizerSummary(organizerId) {
     totals,
     thisMonth,
     warnings,
+    eventsNeedingBoost,
   }
 }
 
 export async function getOrganizerOverviewStats(organizerId) {
   const summary = await buildOrganizerSummary(organizerId)
-  const aiInsights = await generateInsights(summary)
-  return { ...summary, aiInsights }
+  const tier = await getUserTier(organizerId)
+  const aiInsights = await generateInsights(summary, tier)
+  // aiInsightsUnlocked: false berarti kartu di atas "insight biasa" (fallback
+  // deterministik), bukan rekomendasi AI asli — dipakai frontend utk badge/
+  // upsell "AI Management Recommendation khusus ActiVibe Plus Pro".
+  return { ...summary, aiInsights, aiInsightsUnlocked: tier === 'PLUS_PRO' }
 }

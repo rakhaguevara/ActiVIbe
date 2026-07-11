@@ -4,6 +4,7 @@ import {
   getUsers,
   patchUserStatus,
   patchUserPassword,
+  removeUser,
   getEvents,
   approve,
   reject,
@@ -12,8 +13,12 @@ import {
   getActivityLog,
   getOverviewRegions,
   postAiChat,
+  postCampaignIdeas,
   getPrematureClosures,
   postOrganizerWarning,
+  getRevenue,
+  getSubscriptions,
+  patchSubscriptionTier,
 } from './admin.controller.js'
 import { requireAuth } from '../../middlewares/requireAuth.js'
 import { requireRole } from '../../middlewares/requireRole.js'
@@ -28,10 +33,12 @@ router.get('/overview', overview)
 router.get('/overview/regions', getOverviewRegions)
 
 router.post('/ai/chat', postAiChat)
+router.post('/ai/campaign-ideas', postCampaignIdeas)
 
 router.get('/users', getUsers)
 router.patch('/users/:id/status', validateRequest(validateUserStatus), patchUserStatus)
 router.patch('/users/:id/password', patchUserPassword)
+router.delete('/users/:id', removeUser)
 
 router.get('/events', getEvents)
 router.patch('/events/:id/approve', approve)
@@ -43,5 +50,9 @@ router.get('/activity-log', getActivityLog)
 
 router.get('/premature-closures', getPrematureClosures)
 router.post('/premature-closures/:eventId/warn', validateRequest(validateOrganizerWarning), postOrganizerWarning)
+
+router.get('/revenue', getRevenue)
+router.get('/subscriptions', getSubscriptions)
+router.patch('/subscriptions/:userId', patchSubscriptionTier)
 
 export default router

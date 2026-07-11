@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import type { PassportBookChapter, PassportStats, PassportSkill } from '../components/passport-book/passportBook.types'
-import { fetchMyPassport } from '../services/passport.service'
+import { fetchMyPassport, type PassportLock } from '../services/passport.service'
 import { resolveAssetUrl } from '../lib/assetUrl'
 
 export interface UsePassportDataResult {
@@ -16,6 +16,8 @@ export interface UsePassportDataResult {
   isLoading: boolean
   /** Pesan error kalau fetch gagal — null berarti tidak ada error */
   error: string | null
+  /** ActiVibe Plus — chapter terkunci di tier FREE/PLUS_STARTER, lihat backend passport.service.js */
+  passportLock: PassportLock | null
 }
 
 const EMPTY_STATS: PassportStats = { totalHours: 0, eventsCompleted: 0, ngoCount: 0, points: 0 }
@@ -27,6 +29,7 @@ export function usePassportData(): UsePassportDataResult {
     skills: [],
     isLoading: true,
     error: null,
+    passportLock: null,
   })
 
   useEffect(() => {
@@ -44,7 +47,7 @@ export function usePassportData(): UsePassportDataResult {
           // dipakai PersonalizationResultModal (lihat CLAUDE.md).
           shareUrl: `${window.location.origin}/dashboard?event=${chapter.eventId}`,
         }))
-        setResult({ chapters, stats: data.stats, skills: data.skills, isLoading: false, error: null })
+        setResult({ chapters, stats: data.stats, skills: data.skills, isLoading: false, error: null, passportLock: data.passportLock })
       })
       .catch((err) => {
         if (cancelled) return
@@ -54,6 +57,7 @@ export function usePassportData(): UsePassportDataResult {
           skills: [],
           isLoading: false,
           error: err instanceof Error ? err.message : 'Gagal memuat Impact Passport, coba lagi.',
+          passportLock: null,
         })
       })
 

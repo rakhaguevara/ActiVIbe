@@ -3,6 +3,8 @@ import { AppError } from '../../utils/AppError.js'
 import { matchProvince } from '../../utils/provinces.js'
 import { generateInsights } from './adminAi.service.js'
 import { sendOrganizerWarningEmail } from '../../utils/mailer.js'
+import { getUserTiers, adminSetTier as adminSetTierService } from '../subscriptions/subscription.service.js'
+import { PLANS } from '../subscriptions/plans.js'
 import bcrypt from 'bcryptjs'
 
 const ACCEPTED_APPLICATION_STATUSES = ['ACCEPTED', 'CHECKED_IN', 'COMPLETED']
@@ -112,11 +114,34 @@ export async function updateUserPassword(adminId, userId, newPassword) {
   return serializeUser(updated, await countEventsJoined(updated))
 }
 
+export async function deleteUser(adminId, userId) {
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) throw new AppError(404, 'Pengguna tidak ditemukan')
+  if (user.role === 'ADMIN') throw new AppError(400, 'Akun admin tidak bisa dihapus lewat halaman ini')
+
+  // Sebagian besar relasi (Application/Profile/organizedEvents dst.) sudah
+  // onDelete: Cascade di schema.prisma. Tapi 3 tabel ini merujuk User via FK
+  // "siapa yang melakukan aksi" (CommunicationLog.sentById, VolunteerAssignment
+  // .assignedById, OrganizerWarning.organizerId) TANPA onDelete cascade/setNull
+  // — dites langsung terhadap DB (bukan cuma dibaca dari schema): Postgres
+  // TIDAK menunda FK check ini sampai cascade Event selesai, jadi harus
+  // dibersihkan manual dulu sebelum prisma.user.delete(), else P2003.
+  await prisma.$transaction([
+    prisma.communicationLog.deleteMany({ where: { sentById: userId } }),
+    prisma.volunteerAssignment.deleteMany({ where: { assignedById: userId } }),
+    prisma.organizerWarning.deleteMany({ where: { organizerId: userId } }),
+    prisma.auditLog.create({
+      data: { actorId: adminId, action: 'Menghapus akun pengguna', targetType: 'User', targetId: userId, targetLabel: user.name },
+    }),
+    prisma.user.delete({ where: { id: userId } }),
+  ])
+}
+
 // ============================================
 // Events (FR-020)
 // ============================================
 
-function serializeAdminEvent(event, filledSlots) {
+function serializeAdminEvent(event, filledSlots, organizerTier = 'FREE') {
   const statusMap = {
     PENDING_APPROVAL: 'pending',
     PUBLISHED: 'approved',
@@ -131,6 +156,9 @@ function serializeAdminEvent(event, filledSlots) {
     title: event.title,
     category: event.category ?? undefined,
     organizerName: event.organizer.name,
+    // ActiVibe Plus — organizer PLUS_STARTER/PLUS_PRO dapat prioritas review
+    // (disortir ke atas, lihat listEvents) + label "Premium" di UI admin.
+    organizerTier,
     location: event.location,
     quota: event.quota,
     filledSlots,
@@ -183,7 +211,14 @@ export async function listEvents(status) {
     orderBy: { createdAt: 'desc' },
   })
 
-  return Promise.all(events.map(async (e) => serializeAdminEvent(e, await countFilledSlots(e.id))))
+  // ActiVibe Plus — prioritas review: organizer PLUS_STARTER/PLUS_PRO
+  // disortir ke atas (stable sort, createdAt desc tetap jadi urutan sekunder,
+  // lihat komentar organizerTier di serializeAdminEvent).
+  const tierByOrganizerId = await getUserTiers(events.map((e) => e.organizerId))
+  const serialized = await Promise.all(
+    events.map(async (e) => serializeAdminEvent(e, await countFilledSlots(e.id), tierByOrganizerId.get(e.organizerId) ?? 'FREE')),
+  )
+  return serialized.sort((a, b) => Number(b.organizerTier !== 'FREE') - Number(a.organizerTier !== 'FREE'))
 }
 
 async function findEventOrThrow(eventId) {
@@ -534,7 +569,7 @@ async function getUnverifiedOrganizationCount() {
 // DAN adminAi.service.js (insight cards + chat) — satu sumber angka supaya
 // AI tidak pernah dikasih data yang berbeda dari yang ditampilkan di dashboard.
 export async function buildDashboardSummary() {
-  const [totalUsers, pendingEvents, approvedEvents, ongoingEvents, rejectedEvents, participation, regionData, pendingEventsAgingCount, unverifiedOrganizationCount] =
+  const [totalUsers, pendingEvents, approvedEvents, ongoingEvents, rejectedEvents, participation, regionData, pendingEventsAgingCount, unverifiedOrganizationCount, userGrowth] =
     await Promise.all([
       prisma.user.count({ where: { role: { in: ['VOLUNTEER', 'ORGANIZER'] } } }),
       prisma.event.count({ where: { status: 'PENDING_APPROVAL' } }),
@@ -545,12 +580,22 @@ export async function buildDashboardSummary() {
       getRegionDistribution(),
       getPendingEventsAgingCount(),
       getUnverifiedOrganizationCount(),
+      getUserGrowth(),
     ])
 
   const topGrowingRegion =
     regionData.regions
       .filter((r) => r.volunteerCount > 0 || r.ngoCount > 0)
       .sort((a, b) => b.growth - a.growth)[0] ?? null
+
+  // Pendaftar bulan ini vs bulan lalu, diturunkan dari 2 bucket terakhir
+  // getUserGrowth() (bukan query baru) — dipakai adminAi.service.js utk
+  // kartu rekomendasi pemasaran kalau pendaftar menurun.
+  const months = userGrowth.months.length
+  const registrantTrend = {
+    thisMonth: months >= 1 ? userGrowth.volunteer[months - 1] + userGrowth.organizer[months - 1] : 0,
+    lastMonth: months >= 2 ? userGrowth.volunteer[months - 2] + userGrowth.organizer[months - 2] : 0,
+  }
 
   return {
     totalUsers,
@@ -562,6 +607,7 @@ export async function buildDashboardSummary() {
     topGrowingRegion: topGrowingRegion ? { name: topGrowingRegion.name, growth: topGrowingRegion.growth } : null,
     pendingEventsAgingCount,
     unverifiedOrganizationCount,
+    registrantTrend,
   }
 }
 
@@ -585,4 +631,106 @@ export async function getOverviewStats() {
     participation: summary.participation,
     aiInsights,
   }
+}
+
+// ============================================
+// ActiVibe Plus — Revenue (nav baru "Revenue" di grup Manajemen, sejajar
+// "Pengguna"/"Kegiatan"). Pembayaran di-mock (lihat subscriptions/plans.js) —
+// angka di sini murni dari Transaction yang tercatat lewat checkout self-serve
+// (method 'simulasi') ATAU override manual admin (method 'admin-manual',
+// amount 0, lihat adminSetTier di bawah).
+// ============================================
+
+export async function getRevenueSummary() {
+  const [transactions, activeSubscriptions, totalUsers] = await Promise.all([
+    prisma.transaction.findMany({ where: { status: 'SUCCESS' } }),
+    prisma.subscription.findMany({ where: { status: 'ACTIVE' } }),
+    prisma.user.count(),
+  ])
+
+  const totalRevenue = transactions.reduce((sum, t) => sum + t.amount, 0)
+
+  const now = new Date()
+  const activeByTier = { PLUS_STARTER: 0, PLUS_PRO: 0 }
+  for (const sub of activeSubscriptions) {
+    if (sub.currentPeriodEnd && sub.currentPeriodEnd < now) continue
+    if (sub.tier === 'PLUS_STARTER') activeByTier.PLUS_STARTER += 1
+    else if (sub.tier === 'PLUS_PRO') activeByTier.PLUS_PRO += 1
+  }
+  // MRR (Monthly Recurring Revenue) — dihitung dari jumlah subscriber ACTIVE
+  // saat ini × harga plan, BUKAN dari total historis Transaction (yang bisa
+  // termasuk langganan yang sudah cancelled/expired).
+  const mrr = activeByTier.PLUS_STARTER * PLANS.PLUS_STARTER.priceMonthly + activeByTier.PLUS_PRO * PLANS.PLUS_PRO.priceMonthly
+
+  const paidSubscribers = activeByTier.PLUS_STARTER + activeByTier.PLUS_PRO
+  const subscriberCounts = {
+    FREE: Math.max(0, totalUsers - paidSubscribers),
+    PLUS_STARTER: activeByTier.PLUS_STARTER,
+    PLUS_PRO: activeByTier.PLUS_PRO,
+  }
+
+  const recentTransactions = await prisma.transaction.findMany({
+    orderBy: { paidAt: 'desc' },
+    take: 20,
+    include: { subscription: { include: { user: { select: { name: true, email: true, role: true } } } } },
+  })
+
+  return {
+    totalRevenue,
+    mrr,
+    subscriberCounts,
+    recentTransactions: recentTransactions.map((t) => ({
+      id: t.id,
+      userName: t.subscription.user.name,
+      userEmail: t.subscription.user.email,
+      userRole: t.subscription.user.role,
+      tier: t.tier,
+      amount: t.amount,
+      method: t.method,
+      status: t.status,
+      paidAt: t.paidAt,
+    })),
+  }
+}
+
+// Semua user ORGANIZER/VOLUNTEER (bukan cuma yang sudah pernah checkout) —
+// supaya admin bisa granting paket manual ke user yang belum pernah
+// bersentuhan dengan Subscription sama sekali (masih FREE implisit, lihat
+// getUserTier), bukan cuma mengelola yang sudah ada baris Subscription-nya.
+export async function listSubscriptions() {
+  const users = await prisma.user.findMany({
+    where: { role: { in: ['ORGANIZER', 'VOLUNTEER'] } },
+    select: { id: true, name: true, email: true, role: true, subscription: true },
+    orderBy: { createdAt: 'desc' },
+  })
+  const now = new Date()
+  return users.map((u) => {
+    const sub = u.subscription
+    const expired = Boolean(sub?.currentPeriodEnd && sub.currentPeriodEnd < now)
+    const tier = !sub || sub.status === 'CANCELLED' || expired ? 'FREE' : sub.tier
+    return {
+      userId: u.id,
+      userName: u.name,
+      userEmail: u.email,
+      userRole: u.role,
+      tier,
+      status: sub?.status ?? 'ACTIVE',
+      currentPeriodEnd: sub?.currentPeriodEnd ?? null,
+    }
+  })
+}
+
+// Jalur "approve manual" — admin override tier seorang user tanpa lewat
+// checkout self-serve (mis. pembayaran offline/manual di luar sistem).
+export async function adminSetSubscriptionTier(adminId, userId, tier) {
+  const result = await adminSetTierService(userId, tier)
+  await prisma.auditLog.create({
+    data: {
+      actorId: adminId,
+      action: `Mengubah paket ActiVibe Plus user jadi ${tier}`,
+      targetType: 'User',
+      targetId: userId,
+    },
+  })
+  return result
 }

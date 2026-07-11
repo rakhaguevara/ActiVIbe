@@ -9,6 +9,7 @@ import {
   getAttendance,
   generateCertificates,
   getCertificates,
+  patchCertificateProvider,
   submitFeedback,
   getFeedbackSummary,
   getTrafficSummary,
@@ -67,6 +68,7 @@ router.post('/:id/close', validateRequest(validateCloseEvent), close)
 router.get('/:id/attendance', getAttendance)
 router.post('/:id/certificates/generate', generateCertificates)
 router.get('/:id/certificates', getCertificates)
+router.patch('/:id/certificate-provider', patchCertificateProvider)
 router.get('/:id/feedback-summary', getFeedbackSummary)
 router.post('/:id/archive', archive)
 router.post('/:id/restore', restore)

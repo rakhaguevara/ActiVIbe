@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { FiDownload, FiUserPlus } from 'react-icons/fi'
 import AllVolunteersView from './volunteers-views/AllVolunteersView'
@@ -6,6 +6,9 @@ import AcceptedVolunteersView from './volunteers-views/AcceptedVolunteersView'
 import ActiveVolunteersView from './volunteers-views/ActiveVolunteersView'
 import CompletedVolunteersView from './volunteers-views/CompletedVolunteersView'
 import NoShowVolunteersView from './volunteers-views/NoShowVolunteersView'
+import SectionState from '../../components/SectionState'
+import { getOrganizerVolunteersRequest } from '../../lib/organizerApi'
+import type { OrganizerVolunteersResponse } from '../../types/organizer'
 import './VolunteersPage.css'
 
 export default function VolunteersPage() {
@@ -13,18 +16,61 @@ export default function VolunteersPage() {
   const searchParams = new URLSearchParams(location.search)
   const statusParam = searchParams.get('status')
 
+  const [data, setData] = useState<OrganizerVolunteersResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await getOrganizerVolunteersRequest()
+      setData(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gagal memuat data volunteer.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
   const renderView = () => {
+    if (loading) {
+      return (
+        <div className="volunteers-crm">
+          <div className="v-kpi-grid">
+            {[...Array(6)].map((_, i) => <div key={i} className="skeleton sk-card" />)}
+          </div>
+          <div className="skeleton sk-table" />
+        </div>
+      )
+    }
+
+    if (error || !data) {
+      return (
+        <SectionState
+          variant="error"
+          title="Gagal memuat data volunteer"
+          description={error ?? undefined}
+          onRetry={load}
+        />
+      )
+    }
+
     switch (statusParam) {
       case 'accepted':
-        return <AcceptedVolunteersView />
+        return <AcceptedVolunteersView data={data} />
       case 'active':
-        return <ActiveVolunteersView />
+        return <ActiveVolunteersView data={data} />
       case 'completed':
-        return <CompletedVolunteersView />
+        return <CompletedVolunteersView data={data} />
       case 'no_show':
-        return <NoShowVolunteersView />
+        return <NoShowVolunteersView data={data} />
       default:
-        return <AllVolunteersView />
+        return <AllVolunteersView data={data} />
     }
   }
 

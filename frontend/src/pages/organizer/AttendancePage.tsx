@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
-import { FiCheck, FiUserX, FiCamera } from 'react-icons/fi'
+import { FiCheck, FiUserX, FiCamera, FiLock } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import Badge from '../../components/Badge'
 import QrCheckInScanner from '../../components/organizer/QrCheckInScanner'
+import { getMySubscription, type SubscriptionTier } from '../../lib/subscriptionApi'
 import './AttendancePage.css'
 
 export default function AttendancePage() {
@@ -14,6 +15,15 @@ export default function AttendancePage() {
   const [ticketStatus, setTicketStatus] = useState<'idle' | 'submitting'>('idle')
   const [ticketError, setTicketError] = useState('')
   const [showQrScanner, setShowQrScanner] = useState(false)
+  // ActiVibe Plus — scan QR check-in khusus tier PLUS_PRO (lihat plans.js
+  // LIMITS.qrScanCheckIn); tiket manual tetap tersedia semua tier, backend
+  // checkInByTicketCode() sendiri tidak dibedakan berdasar cara input kode.
+  const [tier, setTier] = useState<SubscriptionTier>('FREE')
+
+  useEffect(() => {
+    getMySubscription().then((sub) => setTier(sub.tier)).catch(() => {})
+  }, [])
+  const qrScanUnlocked = tier === 'PLUS_PRO'
 
   const handleTicketCheckIn = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -41,10 +51,6 @@ export default function AttendancePage() {
     ...r,
     volunteerName: applicants.find((a) => a.id === r.applicantId)?.volunteerName ?? 'Volunteer',
   }))
-
-  const expected = withNames.filter((r) => r.status === 'expected')
-  const checkedIn = withNames.filter((r) => r.status === 'checked_in')
-  const noShow = withNames.filter((r) => r.status === 'no_show')
 
   if (isLoading) {
     return <p className="attendance-page__empty">Memuat data...</p>
@@ -75,21 +81,21 @@ export default function AttendancePage() {
             {ticketStatus === 'submitting' ? 'Memproses...' : 'Cek-in via Tiket'}
           </button>
         </form>
-        <button type="button" className="btn btn--primary btn--sm" onClick={() => setShowQrScanner(true)}>
-          <FiCamera /> Scan QR
-        </button>
+        {qrScanUnlocked ? (
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => setShowQrScanner(true)}>
+            <FiCamera /> Scan QR
+          </button>
+        ) : (
+          <a href="/activibe-plus" className="btn btn--outline btn--sm" title="Scan QR khusus ActiVibe Plus Pro">
+            <FiLock /> Scan QR (Plus Pro)
+          </a>
+        )}
       </div>
       {ticketError && <p className="attendance-page__ticket-error">{ticketError}</p>}
 
-      {showQrScanner && (
+      {showQrScanner && qrScanUnlocked && (
         <QrCheckInScanner onScan={checkInByTicket} onClose={() => setShowQrScanner(false)} />
       )}
-
-      <div className="attendance-page__summary">
-        <div className="card attendance-page__summary-item"><strong>{expected.length}</strong><span>Belum Hadir</span></div>
-        <div className="card attendance-page__summary-item"><strong>{checkedIn.length}</strong><span>Sudah Hadir</span></div>
-        <div className="card attendance-page__summary-item"><strong>{noShow.length}</strong><span>No-show</span></div>
-      </div>
 
       <div className="card attendance-page__list">
         {withNames.length === 0 && <p className="attendance-page__empty">Tidak ada volunteer terdaftar untuk shift ini.</p>}

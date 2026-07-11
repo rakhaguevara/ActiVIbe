@@ -8,6 +8,7 @@ import { bookmarkEventRequest } from '../lib/eventApi'
 import { invalidateRecommendations } from '../services/recommendation.service'
 import type { Gender } from '../lib/profileApi'
 import type { Event } from '../types/event'
+import CertificateBadge from './CertificateBadge'
 import './SwipeDeck.css'
 
 const DECK_SIZE = 10
@@ -194,6 +195,7 @@ function SwipeCard({ event, stackPos, isTop, exitDirection, onSwipe, currentUser
             👩 {event.femaleAcceptedCount} perempuan terdaftar
           </span>
         )}
+        <CertificateBadge certificateProvider={event.certificateProvider} />
       </div>
     </motion.div>
   )

@@ -182,3 +182,32 @@
   color: var(--color-text-muted);
   white-space: nowrap;
 }
+
+/* ActiVibe Plus — house ad utk volunteer tier FREE, lihat FindActivityPage.tsx */
+.event-list-sidebar__ad {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  background: var(--color-accent-yellow-soft);
+  border: 1px dashed var(--color-accent-yellow);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-decoration: none;
+  color: var(--color-text-body);
+  font-family: var(--font-body);
+}
+
+.event-list-sidebar__ad-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.event-list-sidebar__ad p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}

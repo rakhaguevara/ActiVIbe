@@ -11,6 +11,7 @@ import {
   FiHelpCircle,
   FiChevronDown,
   FiAlertTriangle,
+  FiDollarSign,
 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/Admin-logo.svg'
@@ -39,6 +40,9 @@ const NAV_SECTIONS = [
         ]
       },
       { to: '/admin/events', label: 'Kegiatan', icon: FiCalendar, end: false },
+      // ActiVibe Plus — freemium/premium (akun organizer & volunteer),
+      // lihat admin.service.js getRevenueSummary/listSubscriptions.
+      { to: '/admin/revenue', label: 'Revenue', icon: FiDollarSign, end: false },
     ],
   },
   {

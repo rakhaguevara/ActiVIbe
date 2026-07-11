@@ -183,6 +183,17 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
           >
             Donasi
           </NavLink>
+
+          <NavLink
+            to="/activibe-plus"
+            className={({ isActive }) =>
+              ['app-topbar__link', 'app-topbar__link--yellow', isActive ? 'is-active' : '']
+                .filter(Boolean)
+                .join(' ')
+            }
+          >
+            ActiVibe Plus
+          </NavLink>
         </nav>
 
         {user && (
@@ -313,6 +324,17 @@ export default function AppTopbar({ logoTo }: AppTopbarProps) {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Donasi
+            </NavLink>
+            <NavLink
+              to="/activibe-plus"
+              className={({ isActive }) =>
+                ['app-topbar__mobile-link', 'app-topbar__mobile-link--yellow', isActive ? 'is-active' : '']
+                  .filter(Boolean)
+                  .join(' ')
+              }
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              ActiVibe Plus
             </NavLink>
           </div>
         )}
