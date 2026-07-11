@@ -1,6 +1,4 @@
-import React from 'react'
 import { useLocation } from 'react-router-dom'
-import { FiRefreshCw, FiPlay } from 'react-icons/fi'
 
 import QueueCertificatesView from './certificates-views/QueueCertificatesView'
 import GeneratedCertificatesView from './certificates-views/GeneratedCertificatesView'
@@ -33,7 +31,7 @@ export default function CertificatesPage() {
       case 'generated': return 'Generated Certificates'
       case 'failed': return 'Failed Generation Jobs'
       case 'regenerate': return 'Re-generate Certificates'
-      case 'queue': 
+      case 'queue':
       default: return 'Certificate Generation Queue'
     }
   }
@@ -43,26 +41,20 @@ export default function CertificatesPage() {
       case 'generated': return 'Manage and share successfully generated volunteer certificates.'
       case 'failed': return 'Handle certificate generation failures and resolve missing requirements.'
       case 'regenerate': return 'Regenerate certificates after corrections or data updates.'
-      case 'queue': 
+      case 'queue':
       default: return 'Generate certificates for volunteers who successfully completed events.'
     }
   }
 
   return (
     <div className="certs-hub">
-      {/* Universal Page Header */}
+      {/* Universal Page Header — aksi khusus tab (mis. Refresh Queue/Generate
+          Selected) ada di masing-masing view, bukan di sini, karena state
+          selection-nya (checkbox) memang tinggal di view yang bersangkutan. */}
       <header className="certs-header">
         <div className="certs-header__title">
           <h1>{getTitle()}</h1>
           <p className="certs-header__subtitle">{getSubtitle()}</p>
-        </div>
-        <div className="certs-header__actions">
-          {(tabParam === 'queue' || !tabParam) && (
-            <>
-              <button type="button" className="btn btn--outline btn--sm"><FiRefreshCw /> Refresh Queue</button>
-              <button type="button" className="btn btn--primary btn--sm"><FiPlay /> Generate Selected</button>
-            </>
-          )}
         </div>
       </header>
 

@@ -17,6 +17,7 @@ import organizerOverviewRoutes from './modules/organizerOverview/organizerOvervi
 import organizerVolunteersRoutes from './modules/organizerVolunteers/organizerVolunteers.routes.js'
 import subscriptionRoutes from './modules/subscriptions/subscription.routes.js'
 import communicationRoutes from './modules/communication/communication.routes.js'
+import certificateRoutes from './modules/certificates/certificate.routes.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { sessionSlot } from './middlewares/sessionSlot.js'
 
@@ -63,5 +64,6 @@ app.use('/organizer', organizerOverviewRoutes)
 app.use('/organizer', organizerVolunteersRoutes)
 app.use('/subscriptions', subscriptionRoutes)
 app.use('/communication', communicationRoutes)
+app.use('/certificates', certificateRoutes)
 
 app.use(errorHandler)

@@ -507,6 +507,20 @@ async function main() {
     },
   })
   console.log('Seeded admin account admin1@gmail.com.')
+
+  const admin = await prisma.user.findUnique({ where: { email: 'admin1@gmail.com' } })
+  await prisma.certificateTemplate.upsert({
+    where: { id: 'cert-template-default' },
+    update: {},
+    create: {
+      id: 'cert-template-default',
+      name: 'Sertifikat Volunteer (Default)',
+      fileUrl: '/uploads/certificate-templates/default-template.pdf',
+      isActive: true,
+      uploadedById: admin.id,
+    },
+  })
+  console.log('Seeded default active CertificateTemplate.')
 }
 
 main()

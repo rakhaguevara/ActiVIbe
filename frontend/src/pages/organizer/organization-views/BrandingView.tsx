@@ -1,10 +1,47 @@
-import React from 'react'
-import { 
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import {
   FiImage, FiUploadCloud, FiMail, FiFileText, FiLayout
 } from 'react-icons/fi'
+import { getMyOrganization, uploadMyOrganizationLogo } from '../../../lib/organizationApi'
 import '../OrganizationPage.css'
 
+// Logo organizer dipakai jadi watermark kecil di tiap sertifikat yang
+// diterbitkan (lihat certificateGenerator.ts + certificate.service.js) —
+// makanya cuma bagian ini yang disambungkan ke backend sungguhan. Banner/
+// signature/stamp/warna/theme di bawah tetap placeholder statis (belum
+// diminta, di luar scope perubahan sertifikat).
 export default function BrandingView() {
+  const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined)
+  const [organizationName, setOrganizationName] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    getMyOrganization()
+      .then((org) => {
+        setLogoUrl(org.logoUrl)
+        setOrganizationName(org.name)
+      })
+      .catch((err) => window.alert(err instanceof Error ? err.message : 'Gagal memuat data organisasi.'))
+  }, [])
+
+  const handleUploadClick = () => fileInputRef.current?.click()
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsUploading(true)
+    try {
+      const org = await uploadMyOrganizationLogo(file)
+      setLogoUrl(org.logoUrl)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal mengunggah logo.')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-xl)', alignItems: 'start' }}>
@@ -14,16 +51,29 @@ export default function BrandingView() {
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <FiImage /> Visual Identity
             </h2>
-            
+
             <div className="settings-group">
               <label>Organization Logo</label>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <div style={{ width: '80px', height: '80px', borderRadius: '16px', background: 'var(--color-primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', fontSize: '24px', fontWeight: 700 }}>
-                  GE
-                </div>
+                {logoUrl ? (
+                  <img src={logoUrl} alt={organizationName} style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'cover', border: '1px solid var(--color-border-light)' }} />
+                ) : (
+                  <div style={{ width: '80px', height: '80px', borderRadius: '16px', background: 'var(--color-primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', fontSize: '12px', textAlign: 'center', padding: '4px' }}>
+                    Belum ada logo
+                  </div>
+                )}
                 <div>
-                  <button className="btn btn--outline btn--sm" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}><FiUploadCloud /> Upload New</button>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Recommended: 512x512px PNG or SVG</div>
+                  <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" style={{ display: 'none' }} onChange={handleFileChange} />
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    disabled={isUploading}
+                    onClick={handleUploadClick}
+                    style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <FiUploadCloud /> {isUploading ? 'Mengunggah...' : 'Upload New'}
+                  </button>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>PNG/JPG, dipakai juga di sertifikat volunteer</div>
                 </div>
               </div>
             </div>

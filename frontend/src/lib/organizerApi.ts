@@ -3,6 +3,9 @@ import type {
   ApplicantStatus,
   AttendanceRecord,
   Certificate,
+  CertificateQueueItem,
+  CertificateVersionEntry,
+  FailedCertificateCandidate,
   EventCloseReport,
   EventLegalDocument,
   EventMode,
@@ -274,18 +277,64 @@ export async function markNoShowRequest(assignmentId: string): Promise<Attendanc
   return data.record
 }
 
-export async function generateCertificatesRequest(eventId: string): Promise<{ issued: number; total: number }> {
-  const res = await apiFetch(`${API_URL}/events/${eventId}/certificates/generate`, {
+export async function getCertificateQueueRequest(): Promise<CertificateQueueItem[]> {
+  const res = await apiFetch(`${API_URL}/certificates/queue`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.queue
+}
+
+export async function listGeneratedCertificatesRequest(): Promise<Certificate[]> {
+  const res = await apiFetch(`${API_URL}/certificates/generated`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.certificates
+}
+
+export async function listFailedCertificatesRequest(): Promise<FailedCertificateCandidate[]> {
+  const res = await apiFetch(`${API_URL}/certificates/failed`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.failed
+}
+
+export async function listCertificateVersionsRequest(certificateId: string): Promise<CertificateVersionEntry[]> {
+  const res = await apiFetch(`${API_URL}/certificates/${certificateId}/versions`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.versions
+}
+
+export async function generateCertificateRequest(applicationId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/certificates/generate`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
+    body: JSON.stringify({ applicationId }),
+  })
+  await parseResponse(res)
+}
+
+export interface GenerateCertificatesBulkResult {
+  issued: number
+  alreadyIssued: number
+  failed: { applicationId: string; reason: string }[]
+}
+
+export async function generateCertificatesBulkRequest(applicationIds: string[]): Promise<GenerateCertificatesBulkResult> {
+  const res = await apiFetch(`${API_URL}/certificates/generate-bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ applicationIds }),
   })
   return parseResponse(res)
 }
 
-export async function listCertificatesRequest(eventId: string): Promise<Certificate[]> {
-  const res = await apiFetch(`${API_URL}/events/${eventId}/certificates`, { credentials: 'include' })
-  const data = await parseResponse(res)
-  return data.certificates
+export async function regenerateCertificateRequest(certificateId: string, note?: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/certificates/${certificateId}/regenerate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ note }),
+  })
+  await parseResponse(res)
 }
 
 export async function getFeedbackSummaryRequest(eventId: string): Promise<FeedbackSummary> {

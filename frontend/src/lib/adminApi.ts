@@ -1,4 +1,4 @@
-import type { AdminUser, AdminEvent, ParticipationRecord, ActivityLogEntry, PrematureClosure, RevenueSummary, AdminSubscription, SubscriptionTier } from '../types/admin'
+import type { AdminUser, AdminEvent, ParticipationRecord, ActivityLogEntry, PrematureClosure, RevenueSummary, AdminSubscription, SubscriptionTier, CertificateTemplate } from '../types/admin'
 import type { RegionDistributionResponse } from '../types/region'
 import { apiFetch } from './apiFetch'
 
@@ -223,4 +223,45 @@ export async function setSubscriptionTier(userId: string, tier: SubscriptionTier
     body: JSON.stringify({ tier }),
   })
   await parseResponse(res)
+}
+
+export async function listCertificateTemplates(): Promise<CertificateTemplate[]> {
+  const res = await apiFetch(`${API_URL}/admin/certificate-templates`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.templates
+}
+
+export async function createCertificateTemplate(name: string, file: File): Promise<CertificateTemplate> {
+  const formData = new FormData()
+  formData.append('name', name)
+  formData.append('file', file)
+  const res = await apiFetch(`${API_URL}/admin/certificate-templates`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  })
+  const data = await parseResponse(res)
+  return data.template
+}
+
+export async function setActiveCertificateTemplate(templateId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/admin/certificate-templates/${templateId}/activate`, {
+    method: 'PATCH',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data?.error?.message ?? 'Terjadi kesalahan, coba lagi.')
+  }
+}
+
+export async function deleteCertificateTemplate(templateId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/admin/certificate-templates/${templateId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data?.error?.message ?? 'Terjadi kesalahan, coba lagi.')
+  }
 }

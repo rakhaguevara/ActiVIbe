@@ -147,8 +147,42 @@ export interface Certificate {
   id: string
   applicationId: string
   eventId: string
+  eventTitle: string
   volunteerName: string
   issuedAt: string
+  updatedAt: string
+  currentVersion: number
+  templateName: string | null
+  // Dipakai render ulang PDF client-side (certificateGenerator.ts) dari
+  // snapshot versi terbaru — bukan cuma metadata tampilan.
+  templateUrl: string | null
+  participantName: string
+  organizationLogoUrl: string | null
+}
+
+// Kehadiran (CHECKED_IN) sudah cukup utk berhak sertifikat, tidak perlu
+// menunggu Application.status COMPLETED — lihat certificate.service.js.
+export interface CertificateQueueItem {
+  applicationId: string
+  eventId: string
+  eventTitle: string
+  volunteerName: string
+  status: 'CHECKED_IN' | 'COMPLETED'
+}
+
+export interface FailedCertificateCandidate extends CertificateQueueItem {
+  reason: 'no_active_template' | 'quota_exceeded'
+}
+
+export interface CertificateVersionEntry {
+  version: number
+  templateName: string
+  templateUrl: string
+  participantName: string
+  eventTitle: string
+  organizationLogoUrl: string | null
+  issuedAt: string
+  note: string | null
 }
 
 export interface FeedbackSummary {

@@ -94,3 +94,13 @@ export interface AdminSubscription {
   status: 'ACTIVE' | 'CANCELLED'
   currentPeriodEnd: string | null
 }
+
+export interface CertificateTemplate {
+  id: string
+  name: string
+  fileUrl: string
+  isActive: boolean
+  uploadedByName: string
+  usageCount: number
+  createdAt: string
+}

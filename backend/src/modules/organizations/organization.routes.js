@@ -2,12 +2,16 @@ import { Router } from 'express'
 import {
   list,
   getOne,
+  getMine,
+  postMyLogo,
   register,
   getSetPasswordInfo,
   requestSetPasswordOtp,
   setPassword,
 } from './organization.controller.js'
 import { requireAuth } from '../../middlewares/requireAuth.js'
+import { requireRole } from '../../middlewares/requireRole.js'
+import { handleOrgLogoUpload } from './organizationLogoUpload.js'
 
 const router = Router()
 
@@ -27,6 +31,11 @@ router.post('/register', register)
 router.get('/set-password/info', getSetPasswordInfo)
 router.post('/set-password/request-otp', requestSetPasswordOtp)
 router.post('/set-password', setPassword)
+
+// "Organisasi milik saya sendiri" (BrandingView.tsx, dst) — didaftarkan
+// sebelum '/:id' supaya 'me' tidak ketangkep sbg param id.
+router.get('/me', requireAuth, requireRole('ORGANIZER'), getMine)
+router.post('/me/logo', requireAuth, requireRole('ORGANIZER'), handleOrgLogoUpload, postMyLogo)
 
 router.get('/:id', requireAuth, getOne)
 

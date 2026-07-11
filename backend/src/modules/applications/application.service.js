@@ -128,6 +128,15 @@ export async function getMyApplications(userId) {
       // menunggu resend. null selama belum ACCEPTED (lihat updateApplicationStatus).
       ticketCode: true,
       feedback: { select: { id: true } },
+      // null selama organizer belum generate sertifikat (lihat
+      // backend/src/modules/certificates/certificate.service.js) — "Unduh
+      // Sertifikat" di ApplicationHistoryPage.tsx cuma muncul kalau ini ada.
+      certificate: {
+        select: {
+          currentVersion: true,
+          versions: { orderBy: { version: 'desc' }, take: 1, select: { participantNameSnapshot: true, organizationLogoUrlSnapshot: true, template: { select: { fileUrl: true } } } },
+        },
+      },
       event: {
         select: {
           id: true,
@@ -148,6 +157,14 @@ export async function getMyApplications(userId) {
     appliedAt: app.appliedAt,
     hasFeedback: app.feedback !== null,
     ticketCode: app.ticketCode,
+    certificate: app.certificate
+      ? {
+          version: app.certificate.currentVersion,
+          templateUrl: app.certificate.versions[0]?.template.fileUrl ?? null,
+          participantName: app.certificate.versions[0]?.participantNameSnapshot ?? null,
+          organizationLogoUrl: app.certificate.versions[0]?.organizationLogoUrlSnapshot ?? null,
+        }
+      : null,
     event: {
       id: app.event.id,
       title: app.event.title,

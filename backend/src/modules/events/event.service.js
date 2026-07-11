@@ -772,68 +772,17 @@ export async function listMyBookmarkedEventIds(userId) {
 }
 
 // ============================================
-// Sertifikat — diterbitkan organizer per volunteer yang menyelesaikan event
-// (Application.status COMPLETED), lewat aksi eksplisit "Generate" (bukan
-// otomatis saat close event, supaya organizer bisa cek data dulu).
+// Sertifikat — badge status "certificateProvider" event (NONE/ACTIVIBE/
+// EXTERNAL, dipakai CertificateBadge.tsx di listing volunteer-facing).
+// Penerbitan sertifikat sungguhan (generate/regenerate + versioning) sudah
+// dipindah ke modul terpisah backend/src/modules/certificates/ karena hub-nya
+// lintas-event (bukan cuma satu event), lihat certificate.service.js.
 // ============================================
-
-// ActiVibe Plus — gating fitur sertifikat: FREE tidak bisa aktifkan sama
-// sekali, PLUS_STARTER dibatasi 2 event/bulan (dihitung dari event DISTINCT
-// yang sudah pernah generate sertifikat bulan ini — generate ulang di event
-// yang sama tidak menghitung dua kali), PLUS_PRO unlimited.
-async function assertCertificateQuota(organizerId, eventId) {
-  const tier = await getUserTier(organizerId)
-  const limit = LIMITS[tier].certificateEventsPerMonth
-
-  if (limit === 0) {
-    throw new AppError(403, 'Fitur sertifikat khusus pengguna ActiVibe Plus. Upgrade paket untuk mengaktifkan sertifikat peserta.')
-  }
-  if (limit === Infinity) return
-
-  const distinctEvents = await prisma.certificate.findMany({
-    where: { event: { organizerId }, issuedAt: { gte: startOfCurrentMonth() } },
-    distinct: ['eventId'],
-    select: { eventId: true },
-  })
-  const eventIds = new Set(distinctEvents.map((c) => c.eventId))
-  if (!eventIds.has(eventId) && eventIds.size >= limit) {
-    throw new AppError(
-      403,
-      `Kuota sertifikat paket ActiVibe Plus Starter (${limit} event/bulan) sudah habis. Upgrade ke ActiVibe Plus Pro untuk sertifikat tanpa batas.`,
-    )
-  }
-}
-
-export async function generateEventCertificates(organizerId, eventId) {
-  const event = await findOwnedEventOrThrow(organizerId, eventId)
-  if (event.status !== 'COMPLETED') {
-    throw new AppError(400, 'Sertifikat cuma bisa diterbitkan utk event yang sudah selesai (COMPLETED)')
-  }
-
-  await assertCertificateQuota(organizerId, eventId)
-
-  const completedApplications = await prisma.application.findMany({
-    where: { eventId, status: 'COMPLETED' },
-    select: { id: true, certificate: { select: { id: true } } },
-  })
-  const toIssue = completedApplications.filter((a) => !a.certificate)
-
-  if (toIssue.length > 0) {
-    await prisma.certificate.createMany({
-      data: toIssue.map((a) => ({ applicationId: a.id, eventId })),
-      skipDuplicates: true,
-    })
-  }
-
-  await prisma.event.update({ where: { id: eventId }, data: { certificateProvider: 'ACTIVIBE' } })
-
-  const total = await prisma.certificate.count({ where: { eventId } })
-  return { issued: toIssue.length, total }
-}
 
 // Organizer menandai manual kalau sertifikat disediakan dari luar ActiVibe
 // (atau mengembalikan ke "tidak ada") — TIDAK bisa set ACTIVIBE lewat sini,
-// nilai itu cuma diset otomatis oleh generateEventCertificates() di atas.
+// nilai itu cuma diset otomatis oleh certificates/certificate.service.js
+// generateCertificate() saat penerbitan pertama utk event tsb.
 export async function setCertificateProvider(organizerId, eventId, certificateProvider) {
   if (!['NONE', 'EXTERNAL'].includes(certificateProvider)) {
     throw new AppError(400, 'Status sertifikat tidak valid')
@@ -845,22 +794,6 @@ export async function setCertificateProvider(organizerId, eventId, certificatePr
     include: EVENT_INCLUDE,
   })
   return serializeEvent(updated)
-}
-
-export async function listEventCertificates(organizerId, eventId) {
-  await findOwnedEventOrThrow(organizerId, eventId)
-  const certificates = await prisma.certificate.findMany({
-    where: { eventId },
-    include: { application: { include: { user: { select: { name: true } } } } },
-    orderBy: { issuedAt: 'desc' },
-  })
-  return certificates.map((c) => ({
-    id: c.id,
-    applicationId: c.applicationId,
-    eventId: c.eventId,
-    volunteerName: c.application.user.name,
-    issuedAt: c.issuedAt.toISOString(),
-  }))
 }
 
 // ============================================

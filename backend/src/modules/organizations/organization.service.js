@@ -1,4 +1,6 @@
 import crypto from 'crypto'
+import path from 'path'
+import { rm } from 'fs/promises'
 import bcrypt from 'bcryptjs'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma.js'
@@ -7,6 +9,7 @@ import { hashToken } from '../../utils/hash.js'
 import { generateOtpCode } from '../../utils/otp.js'
 import { sendOrganizationSetPasswordEmail, sendOrganizationActivationOtpEmail } from '../../utils/mailer.js'
 import { env } from '../../config/env.js'
+import { ORG_LOGO_UPLOAD_DIR } from './organizationLogoUpload.js'
 
 const ACTIVATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 const OTP_MAX_VERIFY_ATTEMPTS = 5
@@ -94,6 +97,37 @@ export async function ensureOrganizationForOwner(ownerId, defaults) {
       status: 'ACTIVE',
     },
   })
+}
+
+// Dipakai BrandingView.tsx (organizer) — logo dipakai jadi watermark kecil di
+// tiap sertifikat yang diterbitkan (lihat certificate.service.js). Organizer
+// yang belum pernah bikin event (belum ada Organization sama sekali) tetap
+// dapat baris via ensureOrganizationForOwner (sama persis titik masuk lazy-
+// provision yang dipakai createEvent()), supaya halaman Branding tidak buntu.
+export async function getMyOrganization(ownerId) {
+  const user = await prisma.user.findUnique({ where: { id: ownerId } })
+  const organization = await ensureOrganizationForOwner(ownerId, { name: user.name })
+  const [serialized] = await attachEventsCount([organization])
+  return serialized
+}
+
+async function deleteLogoFileIfExists(logoUrl) {
+  if (!logoUrl) return
+  await rm(path.join(ORG_LOGO_UPLOAD_DIR, path.basename(logoUrl)), { force: true }).catch(() => {})
+}
+
+export async function updateMyOrganizationLogo(ownerId, file) {
+  if (!file) throw new AppError(400, 'Pilih file logo terlebih dahulu')
+  const user = await prisma.user.findUnique({ where: { id: ownerId } })
+  const organization = await ensureOrganizationForOwner(ownerId, { name: user.name })
+
+  await deleteLogoFileIfExists(organization.logoUrl)
+  const updated = await prisma.organization.update({
+    where: { id: organization.id },
+    data: { logoUrl: `/uploads/org-logos/${file.filename}` },
+  })
+  const [serialized] = await attachEventsCount([updated])
+  return serialized
 }
 
 // Dipanggil dari registerOrganization() — SATU alur untuk semua pendaftar,

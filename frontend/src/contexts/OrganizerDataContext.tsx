@@ -27,8 +27,8 @@ import {
   checkInRequest,
   checkInByTicketRequest,
   markNoShowRequest,
-  generateCertificatesRequest,
-  listCertificatesRequest,
+  generateCertificatesBulkRequest,
+  listGeneratedCertificatesRequest,
   getFeedbackSummaryRequest,
   getTrafficSummaryRequest,
   archiveEventRequest,
@@ -106,10 +106,10 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         setEvents(myEvents)
 
-        const [applicantLists, attendanceLists, certificateLists, feedbackList, traffic, subOrgs] = await Promise.all([
+        const [applicantLists, attendanceLists, certificateList, feedbackList, traffic, subOrgs] = await Promise.all([
           Promise.all(myEvents.map((event) => listApplicantsRequest(event.id).catch(() => []))),
           Promise.all(myEvents.map((event) => getEventAttendanceRequest(event.id).catch(() => []))),
-          Promise.all(myEvents.map((event) => listCertificatesRequest(event.id).catch(() => []))),
+          listGeneratedCertificatesRequest().catch(() => []),
           Promise.all(
             myEvents.map(async (event) => [event.id, await getFeedbackSummaryRequest(event.id).catch(() => null)] as const),
           ),
@@ -119,7 +119,7 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         setApplicants(applicantLists.flat())
         setAttendanceRecords(attendanceLists.flat())
-        setCertificates(certificateLists.flat())
+        setCertificates(certificateList)
         setFeedbackSummaries(
           Object.fromEntries(feedbackList.filter((entry): entry is [string, FeedbackSummary] => entry[1] !== null)),
         )
@@ -244,14 +244,21 @@ export function OrganizerDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Dipakai CompletedEventsView utk generate massal semua volunteer yg
+  // eligible (checked_in/completed) di SATU event — sengaja TIDAK
+  // menelan error (beda dari aksi lain di context ini) supaya
+  // CompletedEventsView bisa menampilkan alasan gagal (mis. kuota ActiVibe
+  // Plus habis) di banner-nya sendiri, bukan cuma window.alert generik.
   const generateCertificates = async (eventId: string) => {
-    try {
-      await generateCertificatesRequest(eventId)
-      const updated = await listCertificatesRequest(eventId)
-      setCertificates((prev) => [...prev.filter((c) => !updated.some((u) => u.id === c.id)), ...updated])
-    } catch (err) {
-      reportError(err)
+    const applicationIds = applicants
+      .filter((a) => a.eventId === eventId && (a.status === 'checked_in' || a.status === 'completed'))
+      .map((a) => a.id)
+    const result = await generateCertificatesBulkRequest(applicationIds)
+    if (result.failed.length > 0) {
+      throw new Error(result.failed[0].reason)
     }
+    const updated = await listGeneratedCertificatesRequest()
+    setCertificates(updated)
   }
 
   const archiveEvent = async (eventId: string) => {

@@ -32,6 +32,13 @@ export interface ApplicationEventSummary {
   endDate: string
 }
 
+export interface ApplicationCertificate {
+  version: number
+  templateUrl: string | null
+  participantName: string | null
+  organizationLogoUrl: string | null
+}
+
 export interface ApplicationRecord {
   eventId: string
   status: ApplicationStatus
@@ -41,6 +48,10 @@ export interface ApplicationRecord {
   // application.service.js) — null sebelum itu. Dipakai kartu presensi di
   // ApplicationHistoryPage supaya volunteer tidak cuma bergantung pada email.
   ticketCode: string | null
+  // null selama organizer belum generate sertifikat (lihat
+  // certificate.service.js) — TIDAK sama dengan status COMPLETED, volunteer
+  // yang sudah selesai tapi organizer belum generate tetap null di sini.
+  certificate: ApplicationCertificate | null
   event: ApplicationEventSummary
 }
 

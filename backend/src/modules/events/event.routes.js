@@ -7,8 +7,6 @@ import {
   addRequirementToEvent,
   close,
   getAttendance,
-  generateCertificates,
-  getCertificates,
   patchCertificateProvider,
   submitFeedback,
   getFeedbackSummary,
@@ -66,8 +64,6 @@ router.post('/:id/roles', validateRequest(validateAddRole), addRoleToEvent)
 router.post('/:id/requirements', validateRequest(validateAddRequirement), addRequirementToEvent)
 router.post('/:id/close', validateRequest(validateCloseEvent), close)
 router.get('/:id/attendance', getAttendance)
-router.post('/:id/certificates/generate', generateCertificates)
-router.get('/:id/certificates', getCertificates)
 router.patch('/:id/certificate-provider', patchCertificateProvider)
 router.get('/:id/feedback-summary', getFeedbackSummary)
 router.post('/:id/archive', archive)

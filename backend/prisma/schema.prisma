@@ -47,6 +47,12 @@ model User {
   attendanceChecksMade AttendanceLog[]       @relation("AttendanceCheckedBy")
   eventFeedbacks       EventFeedback[]
 
+  // Certificate Templates & versioning (lihat model CertificateTemplate/
+  // CertificateVersion) — admin yang upload template, organizer yang men-
+  // generate/regenerate tiap versi sertifikat.
+  uploadedCertificateTemplates CertificateTemplate[] @relation("CertificateTemplateUploadedBy")
+  certificateVersionsIssued    CertificateVersion[]  @relation("CertificateVersionIssuedBy")
+
   // Penutupan dini event (closedBeforeSchedule) — organizer bisa menerima
   // banyak peringatan, admin bisa mengirim banyak peringatan (lintas organizer).
   organizerWarningsReceived OrganizerWarning[] @relation("OrganizerWarningsReceived")
@@ -299,7 +305,7 @@ model Event {
   // manual oleh organizer (PATCH /events/:id/certificate-provider) kalau
   // sertifikat disediakan dari luar ActiVibe. Ditampilkan sbg badge di semua
   // permukaan event volunteer-facing supaya jelas dari awal.
-  certificateProvider          CertificateProvider    @default(NONE)
+  certificateProvider          CertificateProvider @default(NONE)
   // Opsional — hanya kalau event bekerja sama dgn pihak lain.
   cooperationLetterUrl         String?
   cooperationLetterFileName    String?
@@ -341,7 +347,7 @@ model Event {
   // listPrematureClosures). participationRatePercentAtClose selalu diisi saat
   // close (bukan cuma saat closedBeforeSchedule) sbg konteks angka.
   closedAt                        DateTime?
-  closedBeforeSchedule            Boolean    @default(false)
+  closedBeforeSchedule            Boolean   @default(false)
   participationRatePercentAtClose Int?
 
   organizer       User          @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
@@ -633,20 +639,68 @@ model ImpactLog {
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }
 
-// Sertifikat keikutsertaan — diterbitkan organizer per volunteer yang
-// menyelesaikan event (Application.status COMPLETED), lewat aksi eksplisit
-// "Generate Certificates" di CompletedEventsView (bukan otomatis saat close
-// event, supaya organizer bisa cek data dulu sebelum menerbitkan).
+// Sertifikat keikutsertaan — diterbitkan organizer per volunteer begitu
+// kehadirannya ditandai (Application.status CHECKED_IN atau COMPLETED),
+// lewat aksi eksplisit "Generate" di Certificates hub (bukan otomatis saat
+// check-in, supaya organizer tetap bisa memilih mana yang layak dulu — lihat
+// backend/src/modules/certificates/certificate.service.js). Baris ini
+// merepresentasikan STATE TERKINI (versi terbaru); histori tiap generate/
+// regenerate ada di CertificateVersion.
 model Certificate {
-  id            String   @id @default(uuid())
-  applicationId String   @unique
-  eventId       String
-  issuedAt      DateTime @default(now())
+  id             String   @id @default(uuid())
+  applicationId  String   @unique
+  eventId        String
+  currentVersion Int      @default(1)
+  issuedAt       DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  application Application          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  event       Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  versions    CertificateVersion[]
 
   @@index([eventId])
+}
+
+// Library template sertifikat yang dikelola admin (upload + preview + set
+// aktif). Cuma SATU baris yang boleh isActive true di satu waktu — itu yang
+// dipakai generate() organizer manapun (lihat setActiveCertificateTemplate
+// di admin.service.js). Tidak menyimpan render PDF apa pun, cuma file
+// template mentah (`fileUrl`, `/uploads/certificate-templates/...`).
+model CertificateTemplate {
+  id           String   @id @default(uuid())
+  name         String
+  fileUrl      String
+  isActive     Boolean  @default(false)
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  uploadedBy User                 @relation("CertificateTemplateUploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
+  versions   CertificateVersion[]
+}
+
+// Histori versi tiap Certificate — satu baris per aksi generate/regenerate.
+// Tidak menyimpan file PDF hasil render (client-side, pdf-lib, deterministik
+// dari data yang sama) — cuma snapshot data teks yang dipakai saat itu,
+// supaya sertifikat lama tetap akurat historis walau nama profil/logo
+// organizer/template aktif berubah belakangan.
+model CertificateVersion {
+  id                          String   @id @default(uuid())
+  certificateId               String
+  version                     Int
+  templateId                  String
+  participantNameSnapshot     String
+  eventTitleSnapshot          String
+  organizationLogoUrlSnapshot String?
+  issuedAt                    DateTime @default(now())
+  issuedById                  String
+  note                        String?
+
+  certificate Certificate         @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  template    CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  issuedBy    User                @relation("CertificateVersionIssuedBy", fields: [issuedById], references: [id], onDelete: Cascade)
+
+  @@unique([certificateId, version])
+  @@index([certificateId])
 }
 
 // Rating & komentar volunteer terhadap event yang sudah diikuti — hanya bisa
@@ -712,9 +766,9 @@ model OrganizerWarning {
   acknowledgedAt           DateTime?
   createdAt                DateTime  @default(now())
 
-  event      Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  organizer  User  @relation("OrganizerWarningsReceived", fields: [organizerId], references: [id])
-  admin      User  @relation("OrganizerWarningsSent", fields: [adminId], references: [id])
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organizer User  @relation("OrganizerWarningsReceived", fields: [organizerId], references: [id])
+  admin     User  @relation("OrganizerWarningsSent", fields: [adminId], references: [id])
 
   @@index([eventId])
   @@index([organizerId])

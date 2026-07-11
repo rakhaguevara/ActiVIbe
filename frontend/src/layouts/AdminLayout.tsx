@@ -12,6 +12,7 @@ import {
   FiChevronDown,
   FiAlertTriangle,
   FiDollarSign,
+  FiAward,
 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import logo from '../assets/svg/Admin-logo.svg'
@@ -43,6 +44,10 @@ const NAV_SECTIONS = [
       // ActiVibe Plus — freemium/premium (akun organizer & volunteer),
       // lihat admin.service.js getRevenueSummary/listSubscriptions.
       { to: '/admin/revenue', label: 'Revenue', icon: FiDollarSign, end: false },
+      // Library template sertifikat global (lihat admin.service.js
+      // listCertificateTemplates/setActiveCertificateTemplate) — dipakai
+      // certificate.service.js generate() organizer manapun.
+      { to: '/admin/certificate-templates', label: 'Certificate Templates', icon: FiAward, end: false },
     ],
   },
   {

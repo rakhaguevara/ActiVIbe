@@ -31,6 +31,26 @@ export async function getOrganization(id: string): Promise<Organization> {
   return resolveOrganization(data.organization)
 }
 
+// "Organisasi milik saya sendiri" (BrandingView.tsx) — auto-provision di
+// backend kalau organizer belum pernah bikin event/organisasi sama sekali.
+export async function getMyOrganization(): Promise<Organization> {
+  const res = await apiFetch(`${API_URL}/organizations/me`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return resolveOrganization(data.organization)
+}
+
+export async function uploadMyOrganizationLogo(file: File): Promise<Organization> {
+  const formData = new FormData()
+  formData.append('logo', file)
+  const res = await apiFetch(`${API_URL}/organizations/me/logo`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  })
+  const data = await parseResponse(res)
+  return resolveOrganization(data.organization)
+}
+
 export interface OrganizationRegistrationPayload {
   name: string
   shortProfile: string

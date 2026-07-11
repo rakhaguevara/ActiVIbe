@@ -6,8 +6,6 @@ import {
   addRequirement,
   closeEvent,
   getEventAttendance,
-  generateEventCertificates,
-  listEventCertificates,
   setCertificateProvider,
   submitEventFeedback,
   getEventFeedbackSummary,
@@ -81,24 +79,6 @@ export async function getAttendance(req, res, next) {
   try {
     const records = await getEventAttendance(req.user.id, req.params.id)
     return res.json({ records })
-  } catch (err) {
-    next(err)
-  }
-}
-
-export async function generateCertificates(req, res, next) {
-  try {
-    const result = await generateEventCertificates(req.user.id, req.params.id)
-    return res.json(result)
-  } catch (err) {
-    next(err)
-  }
-}
-
-export async function getCertificates(req, res, next) {
-  try {
-    const certificates = await listEventCertificates(req.user.id, req.params.id)
-    return res.json({ certificates })
   } catch (err) {
     next(err)
   }

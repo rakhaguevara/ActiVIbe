@@ -7,10 +7,12 @@ import SectionState from '../../components/SectionState'
 import RatingModal from '../../components/RatingModal'
 import TicketModal from '../../components/TicketModal'
 import MobileSearchHeader from '../../components/MobileSearchHeader'
+import { useAuth } from '../../contexts/AuthContext'
 import { getMyApplications, type ApplicationRecord, type ApplicationStatus } from '../../lib/applicationApi'
 import { submitEventFeedbackRequest } from '../../lib/eventApi'
 import { getCategoryStyle } from '../../utils/categoryStyle'
 import { formatDateShort } from '../../utils/formatDate'
+import { generateCertificatePdf, downloadCertificatePdf } from '../../utils/certificateGenerator'
 import fallbackImage from '../../assets/png/pic1 1.png'
 import './ApplicationHistoryPage.css'
 
@@ -43,11 +45,33 @@ const STATUS_VARIANT: Record<ApplicationStatus, 'success' | 'warning' | 'danger'
 }
 
 export default function ApplicationHistoryPage() {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [applications, setApplications] = useState<ApplicationRecord[]>([])
   const [error, setError] = useState<string | null>(null)
   const [ratingTarget, setRatingTarget] = useState<ApplicationRecord | null>(null)
   const [ticketTarget, setTicketTarget] = useState<ApplicationRecord | null>(null)
+  const [certificateLoadingId, setCertificateLoadingId] = useState<string | null>(null)
+  const [certificateErrorId, setCertificateErrorId] = useState<string | null>(null)
+
+  const handleDownloadCertificate = async (application: ApplicationRecord) => {
+    if (!application.certificate?.templateUrl) return
+    setCertificateErrorId(null)
+    setCertificateLoadingId(application.eventId)
+    try {
+      const bytes = await generateCertificatePdf({
+        participantName: application.certificate.participantName ?? user?.name ?? '',
+        eventTitle: application.event.title,
+        templateUrl: application.certificate.templateUrl,
+        organizationLogoUrl: application.certificate.organizationLogoUrl,
+      })
+      downloadCertificatePdf(bytes, `Sertifikat - ${application.event.title}.pdf`)
+    } catch {
+      setCertificateErrorId(application.eventId)
+    } finally {
+      setCertificateLoadingId(null)
+    }
+  }
 
   // Event sekarang di-embed langsung oleh GET /applications/me (lihat
   // application.service.js getMyApplications) — tidak ada lagi join ke
@@ -119,9 +143,24 @@ export default function ApplicationHistoryPage() {
                     <p className="application-history-page__applied-at">
                       Mendaftar pada {formatDateShort(application.appliedAt)}
                     </p>
+                    {certificateErrorId === event.id && (
+                      <p className="application-history-page__applied-at" style={{ color: 'var(--color-danger)' }}>
+                        Gagal membuat sertifikat, coba lagi.
+                      </p>
+                    )}
                   </div>
 
                   <div className="application-history-page__actions">
+                    {application.certificate && (
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--sm"
+                        disabled={certificateLoadingId === event.id}
+                        onClick={() => handleDownloadCertificate(application)}
+                      >
+                        {certificateLoadingId === event.id ? 'Membuat...' : 'Unduh Sertifikat'}
+                      </button>
+                    )}
                     {application.status === 'COMPLETED' && !application.hasFeedback && (
                       <button
                         type="button"

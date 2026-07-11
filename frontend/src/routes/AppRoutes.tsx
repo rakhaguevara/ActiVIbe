@@ -28,6 +28,7 @@ import ActivityLogPage from '../pages/admin/ActivityLogPage'
 import PrematureClosuresPage from '../pages/admin/PrematureClosuresPage'
 import OrganizersPage from '../pages/admin/OrganizersPage'
 import RevenuePage from '../pages/admin/RevenuePage'
+import CertificateTemplatesPage from '../pages/admin/CertificateTemplatesPage'
 import OrganizerOverviewPage from '../pages/organizer/OverviewPage'
 import VolunteersPage from '../pages/organizer/VolunteersPage'
 import OrganizerEventsPage from '../pages/organizer/EventsPage'
@@ -72,6 +73,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
           <Route path="/admin/premature-closures" element={<PrematureClosuresPage />} />
           <Route path="/admin/organizers" element={<OrganizersPage />} />
           <Route path="/admin/revenue" element={<RevenuePage />} />
+          <Route path="/admin/certificate-templates" element={<CertificateTemplatesPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

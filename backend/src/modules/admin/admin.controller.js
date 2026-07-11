@@ -17,6 +17,10 @@ import {
   getRevenueSummary,
   listSubscriptions,
   adminSetSubscriptionTier,
+  listCertificateTemplates,
+  createCertificateTemplate,
+  setActiveCertificateTemplate,
+  deleteCertificateTemplate,
 } from './admin.service.js'
 import { chat as chatWithAdminAi, generateCampaignIdeas } from './adminAi.service.js'
 
@@ -188,6 +192,42 @@ export async function patchSubscriptionTier(req, res, next) {
   try {
     const subscription = await adminSetSubscriptionTier(req.user.id, req.params.userId, req.body.tier)
     return res.json({ subscription })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getCertificateTemplates(req, res, next) {
+  try {
+    const templates = await listCertificateTemplates()
+    return res.json({ templates })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postCertificateTemplate(req, res, next) {
+  try {
+    const template = await createCertificateTemplate(req.user.id, { name: req.body.name, file: req.file })
+    return res.status(201).json({ template })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function patchCertificateTemplateActive(req, res, next) {
+  try {
+    await setActiveCertificateTemplate(req.user.id, req.params.id)
+    return res.status(204).send()
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function deleteCertificateTemplateRoute(req, res, next) {
+  try {
+    await deleteCertificateTemplate(req.user.id, req.params.id)
+    return res.status(204).send()
   } catch (err) {
     next(err)
   }

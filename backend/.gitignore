@@ -9,3 +9,11 @@ uploads/*
 !uploads/cv/
 uploads/cv/*
 !uploads/cv/.gitkeep
+
+# Template sertifikat default (seed.js) ikut di-commit supaya fresh clone
+# tetap punya minimal 1 CertificateTemplate aktif — beda dari template lain
+# yang admin upload belakangan lewat halaman Certificate Templates (itu tetap
+# gitignored spt upload lainnya).
+!uploads/certificate-templates/
+uploads/certificate-templates/*
+!uploads/certificate-templates/default-template.pdf

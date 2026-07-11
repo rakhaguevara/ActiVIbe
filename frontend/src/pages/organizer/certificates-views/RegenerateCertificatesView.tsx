@@ -1,149 +1,151 @@
-import React from 'react'
-import { 
-  FiRefreshCcw, FiFileText, FiClock, FiCheckCircle, FiArrowRight, FiEye, FiMoreVertical
-} from 'react-icons/fi'
+import { useEffect, useState } from 'react'
+import { FiRefreshCcw, FiClock } from 'react-icons/fi'
+import {
+  listGeneratedCertificatesRequest,
+  listCertificateVersionsRequest,
+  regenerateCertificateRequest,
+} from '../../../lib/organizerApi'
+import type { Certificate, CertificateVersionEntry } from '../../../types/organizer'
 import '../CertificatesPage.css'
 
 export default function RegenerateCertificatesView() {
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [versions, setVersions] = useState<CertificateVersionEntry[]>([])
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false)
+  const [note, setNote] = useState('')
+  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setIsLoading(true)
+    listGeneratedCertificatesRequest()
+      .then(setCertificates)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Gagal memuat sertifikat.'))
+      .finally(() => setIsLoading(false))
+  }, [])
+
+  const loadVersions = (certificateId: string) => {
+    setSelectedId(certificateId)
+    setIsLoadingVersions(true)
+    listCertificateVersionsRequest(certificateId)
+      .then(setVersions)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Gagal memuat riwayat versi.'))
+      .finally(() => setIsLoadingVersions(false))
+  }
+
+  const handleRegenerate = async () => {
+    if (!selectedId) return
+    setIsRegenerating(true)
+    setError(null)
+    try {
+      await regenerateCertificateRequest(selectedId, note.trim() || undefined)
+      setNote('')
+      const [updatedCertificates, updatedVersions] = await Promise.all([
+        listGeneratedCertificatesRequest(),
+        listCertificateVersionsRequest(selectedId),
+      ])
+      setCertificates(updatedCertificates)
+      setVersions(updatedVersions)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gagal regenerate sertifikat.')
+    } finally {
+      setIsRegenerating(false)
+    }
+  }
+
+  const selected = certificates.find((c) => c.id === selectedId) ?? null
+
   return (
     <>
-      {/* KPI Cards */}
-      <div className="events-stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <div className="events-stats-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="stat-card">
           <div className="stat-card__icon"><FiRefreshCcw /></div>
-          <div className="stat-card__value">12</div>
-          <div className="stat-card__label">Eligible for Regeneration</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card__icon" style={{ color: 'var(--color-warning)', background: '#fffbeb' }}><FiClock /></div>
-          <div className="stat-card__value">4</div>
-          <div className="stat-card__label">Queued</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card__icon" style={{ color: 'var(--color-success)', background: '#f0fdf4' }}><FiCheckCircle /></div>
-          <div className="stat-card__value">8</div>
-          <div className="stat-card__label">Completed Today</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card__icon" style={{ color: 'var(--color-primary)', background: 'var(--color-primary-soft)' }}><FiClock /></div>
-          <div className="stat-card__value">10s</div>
-          <div className="stat-card__label">Average Time</div>
+          <div className="stat-card__value">{certificates.length}</div>
+          <div className="stat-card__label">Sertifikat Bisa Di-regenerate</div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 'var(--space-xl)', alignItems: 'start' }}>
-        {/* Main Content */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
-          <section className="card" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Re-generation Queue & History</h2>
-            
+      {error && (
+        <div className="card" style={{ padding: '12px 16px', margin: '16px 0', borderColor: 'var(--color-danger)', fontSize: '13px' }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 'var(--space-xl)', alignItems: 'start', marginTop: 'var(--space-md)' }}>
+        <section className="card" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Sertifikat Terbit</h2>
+          {!isLoading && certificates.length === 0 ? (
+            <p style={{ color: 'var(--color-text-muted)' }}>Belum ada sertifikat yang diterbitkan.</p>
+          ) : (
             <div className="v-table-wrapper">
               <table className="v-table">
                 <thead>
                   <tr>
                     <th>Volunteer</th>
-                    <th>Reason</th>
-                    <th>Version Update</th>
-                    <th>Requested By</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th>Event</th>
+                    <th>Versi Saat Ini</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)' }}>AF</div>
-                        <span style={{ fontWeight: 600 }}>Ahmad Fauzan</span>
-                      </div>
-                    </td>
-                    <td>Volunteer Hours Updated</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                        <span style={{ color: 'var(--color-text-muted)' }}>v1</span>
-                        <FiArrowRight size={12} color="var(--color-text-muted)" />
-                        <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>v2</span>
-                      </div>
-                    </td>
-                    <td>System</td>
-                    <td><span className="badge badge--warning">Queued</span></td>
-                    <td><button className="btn btn--sm btn--primary">Process</button></td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: '#8b5cf6' }}>SW</div>
-                        <span style={{ fontWeight: 600 }}>Sarah Wijaya</span>
-                      </div>
-                    </td>
-                    <td>Certificate Template Updated</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                        <span style={{ color: 'var(--color-text-muted)' }}>v2</span>
-                        <FiArrowRight size={12} color="var(--color-text-muted)" />
-                        <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>v3</span>
-                      </div>
-                    </td>
-                    <td>Emma</td>
-                    <td><span className="badge badge--success">Completed</span></td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button className="btn btn--sm btn--outline" style={{ padding: '0 8px' }} title="Preview Comparison"><FiEye /></button>
-                        <button className="btn btn--sm btn--outline" style={{ padding: '0 8px' }}><FiMoreVertical /></button>
-                      </div>
-                    </td>
-                  </tr>
+                  {certificates.map((c) => (
+                    <tr key={c.id} style={{ background: selectedId === c.id ? 'var(--color-primary-soft)' : undefined }}>
+                      <td style={{ fontWeight: 600 }}>{c.volunteerName}</td>
+                      <td>{c.eventTitle}</td>
+                      <td>v{c.currentVersion}</td>
+                      <td>
+                        <button type="button" className="btn btn--sm btn--outline" onClick={() => loadVersions(c.id)}>
+                          Lihat Riwayat
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </section>
+          )}
+        </section>
 
-          <section className="card" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px' }}>Preview Comparison (Sarah Wijaya)</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div style={{ border: '1px solid var(--color-danger)', borderRadius: '8px', overflow: 'hidden' }}>
-                <div style={{ background: '#fef2f2', padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--color-danger)', borderBottom: '1px solid #fecaca' }}>Previous (v2)</div>
-                <div style={{ height: '150px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px' }}>
-                  <FiFileText size={32} color="var(--color-text-muted)" opacity={0.5} />
-                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Old Signature</span>
-                </div>
-              </div>
-              <div style={{ border: '1px solid var(--color-success)', borderRadius: '8px', overflow: 'hidden' }}>
-                <div style={{ background: '#f0fdf4', padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--color-success)', borderBottom: '1px solid #bbf7d0' }}>New (v3)</div>
-                <div style={{ height: '150px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px' }}>
-                  <FiFileText size={32} color="var(--color-primary)" />
-                  <span style={{ fontSize: '11px', color: 'var(--color-primary)' }}>Updated Signature</span>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+        <section className="card" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>
+            {selected ? `Riwayat Versi — ${selected.volunteerName}` : 'Pilih sertifikat untuk lihat riwayat'}
+          </h2>
 
-        {/* Side Widgets */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-          <div className="card" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px' }}>Version History (Sarah Wijaya)</h3>
-            <div className="version-timeline">
-              <div className="version-item version-item--current">
-                <div className="version-item__title">Version 3 (Current)</div>
-                <div className="version-item__meta">Generated: Today, 11:30 AM</div>
-                <div style={{ fontSize: '13px', marginTop: '4px', background: '#f0fdf4', color: 'var(--color-success)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Updated Signature</div>
+          {selected && (
+            <>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                <input
+                  type="text"
+                  placeholder="Catatan regenerate (opsional, mis. koreksi nama)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border-light)' }}
+                />
+                <button type="button" className="btn btn--primary btn--sm" disabled={isRegenerating} onClick={handleRegenerate}>
+                  <FiRefreshCcw /> {isRegenerating ? 'Memproses...' : 'Regenerate'}
+                </button>
               </div>
-              
-              <div className="version-item">
-                <div className="version-item__title">Version 2</div>
-                <div className="version-item__meta">Generated: Yesterday, 14:20 PM</div>
-                <div style={{ fontSize: '13px', marginTop: '4px', background: '#eff6ff', color: 'var(--color-primary)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>Updated Volunteer Hours</div>
-              </div>
-              
-              <div className="version-item">
-                <div className="version-item__title">Version 1</div>
-                <div className="version-item__meta">Generated: Monday, 09:00 AM</div>
-                <div style={{ fontSize: '13px', marginTop: '4px', color: 'var(--color-text-muted)' }}>Initial Generation</div>
-              </div>
-            </div>
-          </div>
-        </div>
+
+              {!isLoadingVersions && (
+                <div className="version-timeline">
+                  {versions.map((v, idx) => (
+                    <div key={v.version} className={`version-item ${idx === 0 ? 'version-item--current' : ''}`}>
+                      <div className="version-item__title">
+                        v{v.version} {idx === 0 && '(Saat Ini)'} — {v.participantName}
+                      </div>
+                      <div className="version-item__meta">
+                        <FiClock /> {new Date(v.issuedAt).toLocaleString('id-ID')} · Template: {v.templateName}
+                        {v.note && <> · Catatan: {v.note}</>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </section>
       </div>
     </>
   )

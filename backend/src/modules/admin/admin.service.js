@@ -734,3 +734,70 @@ export async function adminSetSubscriptionTier(adminId, userId, tier) {
   })
   return result
 }
+
+// ============================================
+// Certificate Templates — library global yg dikelola admin, dipakai
+// backend/src/modules/certificates/certificate.service.js. Cuma SATU baris
+// isActive true di satu waktu (dipakai generate() organizer manapun).
+// ============================================
+export async function listCertificateTemplates() {
+  const templates = await prisma.certificateTemplate.findMany({
+    include: { uploadedBy: { select: { name: true } }, _count: { select: { versions: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
+  return templates.map((t) => ({
+    id: t.id,
+    name: t.name,
+    fileUrl: t.fileUrl,
+    isActive: t.isActive,
+    uploadedByName: t.uploadedBy.name,
+    usageCount: t._count.versions,
+    createdAt: t.createdAt.toISOString(),
+  }))
+}
+
+export async function createCertificateTemplate(adminId, { name, file }) {
+  if (!name || !name.trim()) throw new AppError(400, 'Nama template wajib diisi')
+  if (!file) throw new AppError(400, 'Pilih file template terlebih dahulu')
+  const template = await prisma.certificateTemplate.create({
+    data: {
+      name,
+      fileUrl: `/uploads/certificate-templates/${file.filename}`,
+      uploadedById: adminId,
+    },
+  })
+  await prisma.auditLog.create({
+    data: { actorId: adminId, action: 'Menambahkan template sertifikat', targetType: 'CertificateTemplate', targetId: template.id, targetLabel: name },
+  })
+  return template
+}
+
+export async function setActiveCertificateTemplate(adminId, templateId) {
+  const template = await prisma.certificateTemplate.findUnique({ where: { id: templateId } })
+  if (!template) throw new AppError(404, 'Template tidak ditemukan')
+
+  await prisma.$transaction([
+    prisma.certificateTemplate.updateMany({ where: { isActive: true }, data: { isActive: false } }),
+    prisma.certificateTemplate.update({ where: { id: templateId }, data: { isActive: true } }),
+  ])
+
+  await prisma.auditLog.create({
+    data: { actorId: adminId, action: 'Mengaktifkan template sertifikat', targetType: 'CertificateTemplate', targetId: templateId, targetLabel: template.name },
+  })
+}
+
+export async function deleteCertificateTemplate(adminId, templateId) {
+  const template = await prisma.certificateTemplate.findUnique({
+    where: { id: templateId },
+    include: { _count: { select: { versions: true } } },
+  })
+  if (!template) throw new AppError(404, 'Template tidak ditemukan')
+  if (template._count.versions > 0) {
+    throw new AppError(409, 'Template ini sudah pernah dipakai menerbitkan sertifikat, tidak bisa dihapus')
+  }
+
+  await prisma.certificateTemplate.delete({ where: { id: templateId } })
+  await prisma.auditLog.create({
+    data: { actorId: adminId, action: 'Menghapus template sertifikat', targetType: 'CertificateTemplate', targetId: templateId, targetLabel: template.name },
+  })
+}

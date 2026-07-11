@@ -1,11 +1,31 @@
 import {
   listOrganizations,
   getOrganizationById,
+  getMyOrganization,
+  updateMyOrganizationLogo,
   registerOrganization,
   getOrganizationActivationInfo,
   requestOrganizationActivationOtp,
   verifyOrganizationActivationOtp,
 } from './organization.service.js'
+
+export async function getMine(req, res, next) {
+  try {
+    const organization = await getMyOrganization(req.user.id)
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMyLogo(req, res, next) {
+  try {
+    const organization = await updateMyOrganizationLogo(req.user.id, req.file)
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
 
 export async function list(req, res, next) {
   try {
