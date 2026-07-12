@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { IconType } from 'react-icons'
 import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   FiGrid,
@@ -19,7 +20,26 @@ import { OrganizerDataProvider } from '../contexts/OrganizerDataContext'
 import logo from '../assets/svg/logo.svg'
 import './OrganizerLayout.css'
 
-const NAV_SECTIONS = [
+interface NavSubItem {
+  to: string
+  label: string
+  end?: boolean
+}
+
+interface NavItem {
+  to: string
+  label: string
+  icon: IconType
+  end: boolean
+  subItems?: NavSubItem[]
+}
+
+interface NavSection {
+  label: string
+  items: NavItem[]
+}
+
+const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Overview',
     items: [
@@ -226,7 +246,7 @@ export default function OrganizerLayout() {
                     </NavLink>
                     {hasSub && isExpanded && (
                       <div className="organizer-layout__subnav" style={{ paddingLeft: '44px', marginTop: '4px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {subItems.map((sub) => {
+                        {(subItems ?? []).map((sub: NavSubItem) => {
                           const subUrl = new URL(sub.to, 'http://localhost')
                           const subStatus = subUrl.searchParams.get('status')
                           const subTab = subUrl.searchParams.get('tab')

@@ -160,7 +160,7 @@ export default function CreateEventPage() {
   // event baru selalu skor netral di rekomendasi volunteer.
   const [category, setCategory] = useState(() => draft?.category ?? '')
   const [dayType, setDayType] = useState<'' | 'WEEKDAY' | 'WEEKEND' | 'BOTH'>(() => draft?.dayType ?? '')
-  const [motivationTags, setMotivationTags] = useState<Set<'CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH'>>(
+  const [motivationTags, setMotivationTags] = useState<Set<string>>(
     () => new Set(draft?.motivationTags ?? []),
   )
   const [interestsAll, setInterestsAll] = useState<TaxonomyItem[]>([])
@@ -249,7 +249,7 @@ export default function CreateEventPage() {
       roles,
       category,
       dayType,
-      motivationTags: Array.from(motivationTags),
+      motivationTags: Array.from(motivationTags) as ('CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH')[],
       selectedInterestIds: Array.from(selectedInterestIds),
       selectedSkillIds: Array.from(selectedSkillIds),
       eventMode,
@@ -337,7 +337,7 @@ export default function CreateEventPage() {
       })
   }, [])
 
-  const toggleMotivationTag = (value: 'CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH') => {
+  const toggleMotivationTag = (value: string) => {
     setMotivationTags((prev) => {
       const next = new Set(prev)
       if (next.has(value)) next.delete(value)
@@ -436,7 +436,7 @@ export default function CreateEventPage() {
       category: category || undefined,
       skillIds: Array.from(selectedSkillIds),
       interestIds: Array.from(selectedInterestIds),
-      motivationTags: Array.from(motivationTags),
+      motivationTags: Array.from(motivationTags) as ('CAREER' | 'SOCIAL' | 'VALUES' | 'SKILL_GROWTH')[],
       dayType: dayType || undefined,
       eventMode,
       mapLink: mapLink || undefined,

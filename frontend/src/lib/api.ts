@@ -7,6 +7,8 @@ export interface AuthUser {
   name: string
   email: string | null
   role: 'VOLUNTEER' | 'ORGANIZER' | 'ADMIN'
+  firstName?: string
+  lastName?: string
 }
 
 export interface RegisterPayload {
