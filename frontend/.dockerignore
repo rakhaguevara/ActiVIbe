@@ -1,0 +1,15 @@
+node_modules
+.env
+.env.*
+!.env.volunteer
+!.env.organizer
+!.env.admin
+dist
+dist-volunteer
+dist-organizer
+dist-admin
+.git
+.gitignore
+*.md
+.shots3
+.verify3.cjs

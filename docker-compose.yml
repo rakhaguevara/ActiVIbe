@@ -1,0 +1,112 @@
+# ============================================================
+# docker-compose.yml — ActiVibe Production Stack
+# Services: postgres, backend (Express+Prisma), frontend (Nginx)
+# ============================================================
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: activibe_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: activivibe_db
+      POSTGRES_USER: activivibe_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U activivibe_user -d activivibe_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - activibe_net
+
+  # ── Backend (Express + Prisma) ──────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: activibe_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database — pakai container name sebagai host
+      DATABASE_URL: postgresql://activivibe_user:${POSTGRES_PASSWORD}@postgres:5432/activivibe_db
+
+      # JWT
+      JWT_ACCESS_SECRET:  ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN:  ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+
+      # Server
+      PORT:     4000
+      NODE_ENV: production
+
+      # CORS — whitelist semua port frontend yang dibuka
+      FRONTEND_URL: ${FRONTEND_URL}
+
+      # Email (Resend)
+      RESEND_API_KEY:    ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-ActiVibe <no-reply@activibe.id>}
+      VOLUNTEER_PORTAL_URL: ${VOLUNTEER_PORTAL_URL:-}
+
+      # AI providers (semua opsional)
+      AI_PROVIDER:       ${AI_PROVIDER:-auto}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL:      ${CLAUDE_MODEL:-}
+      OPENAI_API_KEY:    ${OPENAI_API_KEY:-}
+      OPENAI_MODEL:      ${OPENAI_MODEL:-}
+      GEMINI_API_KEY:    ${GEMINI_API_KEY:-}
+      GEMINI_MODEL:      ${GEMINI_MODEL:-}
+
+      # OTP settings
+      OTP_EXPIRY_MINUTES:    ${OTP_EXPIRY_MINUTES:-5}
+      OTP_MAX_RESEND_ATTEMPTS: ${OTP_MAX_RESEND_ATTEMPTS:-3}
+
+    volumes:
+      # Persistensi file yang diupload user
+      - uploads_data:/app/uploads
+    ports:
+      - "4000:4000"
+    networks:
+      - activibe_net
+
+  # ── Frontend (Nginx serving 3 portals) ──────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # VITE_API_URL di-resolve saat build time
+        # Karena semua API di-proxy lewat Nginx, cukup "/" relatif
+        # Tapi untuk external access, masukkan domain/IP server
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+    container_name: activibe_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"   # Volunteer portal
+      - "5175:5175"   # Admin portal
+      - "5176:5176"   # Organizer portal
+    networks:
+      - activibe_net
+
+# ── Volumes ─────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────
+networks:
+  activibe_net:
+    driver: bridge

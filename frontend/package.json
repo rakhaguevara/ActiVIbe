@@ -9,6 +9,9 @@
     "dev:organizer": "vite --mode organizer",
     "dev:admin": "vite --mode admin",
     "build": "tsc -b && vite build",
+    "build:volunteer": "tsc -b && vite build --mode volunteer",
+    "build:organizer": "tsc -b && vite build --mode organizer",
+    "build:admin": "tsc -b && vite build --mode admin",
     "lint": "eslint .",
     "preview": "vite preview"
   },
