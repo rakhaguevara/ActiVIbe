@@ -63,7 +63,7 @@
 }
 
 .auth-page__switch:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .auth-page__form {
@@ -177,7 +177,7 @@
 }
 
 .auth-page__terms a:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {

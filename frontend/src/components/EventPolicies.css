@@ -38,5 +38,5 @@
   font-size: var(--text-body-xs);
   font-weight: 600;
   color: var(--color-primary);
-  text-decoration: underline;
+  text-decoration: none;
 }

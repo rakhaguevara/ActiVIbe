@@ -16,6 +16,7 @@ export default function BroadcastView() {
   const [targetSegment, setTargetSegment] = useState('Semua Volunteer Diterima')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const loadData = async () => {
     const [broadcastList, broadcastQuota] = await Promise.all([listBroadcasts(), getBroadcastQuota()])
@@ -31,15 +32,17 @@ export default function BroadcastView() {
 
   const handleSend = async () => {
     setError(null)
+    setSuccessMessage(null)
     if (!eventId) {
       setError('Pilih event tujuan broadcast terlebih dahulu.')
       return
     }
     setSending(true)
     try {
-      await sendBroadcast({ eventId, title, message, targetSegment })
+      const result = await sendBroadcast({ eventId, title, message, targetSegment })
       setTitle('')
       setMessage('')
+      setSuccessMessage(`Broadcast terkirim ke ${result.recipientCount} volunteer.`)
       await loadData()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal mengirim broadcast.')
@@ -129,6 +132,7 @@ export default function BroadcastView() {
             </div>
 
             {error && <div style={{ color: 'var(--color-danger)', fontSize: '13px' }}>{error}</div>}
+            {successMessage && <div style={{ color: 'var(--color-success)', fontSize: '13px' }}>{successMessage}</div>}
           </div>
           <div className="comm-composer__footer">
             <button
@@ -164,19 +168,21 @@ export default function BroadcastView() {
                 <th>Judul</th>
                 <th>Target Event</th>
                 <th>Target Peserta</th>
+                <th>Penerima</th>
                 <th>Dikirim Oleh</th>
                 <th>Waktu Kirim</th>
               </tr>
             </thead>
             <tbody>
               {broadcasts.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>Belum ada broadcast terkirim.</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>Belum ada broadcast terkirim.</td></tr>
               )}
               {broadcasts.map((b) => (
                 <tr key={b.id}>
                   <td style={{ fontWeight: 600 }}>{b.title}</td>
                   <td>{b.eventTitle ?? '—'}</td>
                   <td>{b.targetSegment}</td>
+                  <td>{b.recipientCount}</td>
                   <td>{b.sentByName ?? '—'}</td>
                   <td>{new Date(b.sentAt).toLocaleString('id-ID')}</td>
                 </tr>

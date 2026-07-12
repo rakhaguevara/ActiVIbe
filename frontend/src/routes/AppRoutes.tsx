@@ -11,6 +11,8 @@ import ActivibePlusPage from '../pages/ActivibePlusPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import FindActivityPage from '../pages/volunteer/FindActivityPage'
 import FindOrganizationPage from '../pages/volunteer/FindOrganizationPage'
+import PublicFindActivityPage from '../pages/public/PublicFindActivityPage'
+import PublicFindOrganizationPage from '../pages/public/PublicFindOrganizationPage'
 import OrganizationRegisterPage from '../pages/volunteer/OrganizationRegisterPage'
 import SetOrganizationPasswordPage from '../pages/volunteer/SetOrganizationPasswordPage'
 import PassportPage from '../pages/volunteer/PassportPage'
@@ -122,6 +124,8 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
         <Route path="/" element={<HomePage />} />
         <Route path="/tentang-kami" element={<AboutPage onSignupClick={onSignupClick} />} />
         <Route path="/cara-kerja" element={<CaraKerjaPage onSignupClick={onSignupClick} />} />
+        <Route path="/cari-aktivitas" element={<PublicFindActivityPage onLoginClick={onLoginClick} />} />
+        <Route path="/cari-organisasi" element={<PublicFindOrganizationPage onLoginClick={onLoginClick} />} />
         <Route path="/donasi" element={<DonatePage />} />
         <Route path="/activibe-plus" element={<ActivibePlusPage />} />
         <Route path="*" element={<NotFoundPage />} />

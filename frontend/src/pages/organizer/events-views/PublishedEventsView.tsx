@@ -119,8 +119,7 @@ export default function PublishedEventsView() {
                       </td>
                       <td>
                         <div className="v-table-actions">
-                          <Link to={`/organizer/events/${event.id}/applicants`} className="btn btn--sm btn--outline">Review</Link>
-                          <button className="btn btn--sm btn--outline" style={{ padding: '0 8px' }}><FiMoreVertical /></button>
+                          <Link to={`/organizer/events/${event.id}/applicants`} className="btn btn--sm btn--outline" style={{ textDecoration: 'none', borderRadius: '4px' }}>Review</Link>
                         </div>
                       </td>
                     </tr>

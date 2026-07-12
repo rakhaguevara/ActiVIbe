@@ -108,5 +108,5 @@
 }
 
 .otp-verify-form__resend:hover:not(:disabled) {
-  text-decoration: underline;
+  text-decoration: none;
 }

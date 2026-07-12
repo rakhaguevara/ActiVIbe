@@ -233,7 +233,7 @@
 .events-table-wrapper {
   background: #fff;
   border: 1px solid var(--color-border-light);
-  border-radius: 16px;
+  border-radius: 4px;
   overflow-x: auto;
 }
 
@@ -249,18 +249,12 @@
   padding: 12px 16px;
   font-weight: 600;
   color: var(--color-text-muted);
-  border-bottom: 1px solid var(--color-border-light);
   white-space: nowrap;
 }
 
 .events-table td {
   padding: 16px;
-  border-bottom: 1px solid var(--color-border-light);
   vertical-align: middle;
-}
-
-.events-table tr:last-child td {
-  border-bottom: none;
 }
 
 .events-table tr:hover {
@@ -284,7 +278,7 @@
 
 .events-table__name:hover {
   color: var(--color-primary);
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .events-table__subtext {

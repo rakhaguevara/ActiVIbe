@@ -39,8 +39,8 @@ const router = Router()
 // Volunteer-facing (publik, login biasa) — HARUS didaftarkan sebelum
 // router.use(requireRole('ORGANIZER')) di bawah, karena middleware level-router
 // cuma berlaku utk route yang didaftarkan SETELAHNYA di router yang sama.
-router.get('/public', requireAuth, listPublic)
-router.get('/public/:id', requireAuth, getPublic)
+router.get('/public', listPublic)
+router.get('/public/:id', getPublic)
 router.get('/bookmarks/me', requireAuth, listBookmarks)
 router.post('/:id/view', requireAuth, trackView)
 router.post('/:id/bookmark', requireAuth, addBookmark)

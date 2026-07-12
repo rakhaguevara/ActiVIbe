@@ -10,6 +10,7 @@ export interface Broadcast {
   message: string
   targetSegment: string
   deliveryChannel: string
+  recipientCount: number
   sentAt: string
   sentByName: string | null
 }

@@ -33,7 +33,7 @@
 }
 
 .organization-detail-panel__back-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .organization-detail-panel__pagination {
@@ -155,7 +155,7 @@
 }
 
 .organization-detail-panel__admin-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .organization-detail-panel__eyebrow {

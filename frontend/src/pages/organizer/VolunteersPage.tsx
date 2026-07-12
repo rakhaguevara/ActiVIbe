@@ -10,6 +10,7 @@ import SectionState from '../../components/SectionState'
 import { getOrganizerVolunteersRequest } from '../../lib/organizerApi'
 import type { OrganizerVolunteersResponse } from '../../types/organizer'
 import './VolunteersPage.css'
+import '../admin/OverviewPage.css'
 
 export default function VolunteersPage() {
   const location = useLocation()
@@ -97,17 +98,26 @@ export default function VolunteersPage() {
   return (
     <div className="volunteers-crm" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {/* Universal Page Header that updates based on context */}
-      <header className="v-header">
-        <div className="v-header__title">
-          <h1>{getTitle()}</h1>
-          <p className="v-header__subtitle">{getSubtitle()}</p>
+      <div className="admin-dashboard-header">
+        <div className="admin-dashboard-header__top">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <h1 className="admin-dashboard-header__title">{getTitle()}</h1>
+            <p className="events-header__subtitle" style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-body)' }}>{getSubtitle()}</p>
+          </div>
+          <div className="admin-dashboard-header__top-actions">
+          </div>
         </div>
-        <div className="v-header__actions">
-          <button type="button" className="btn btn--outline btn--sm"><FiDownload /> Download Report</button>
-          <button type="button" className="btn btn--outline btn--sm"><FiDownload /> Export Data</button>
-          <button type="button" className="btn btn--primary btn--sm"><FiUserPlus /> Invite Volunteer</button>
+        
+        <div className="admin-dashboard-header__bottom">
+          <div className="admin-dashboard-header__updated">
+          </div>
+          <div className="admin-dashboard-header__bottom-right">
+            <button type="button" className="admin-dashboard-btn"><FiDownload /> Download Report</button>
+            <button type="button" className="admin-dashboard-btn"><FiDownload /> Export Data</button>
+            <button type="button" className="admin-dashboard-btn admin-dashboard-btn--dark"><FiUserPlus /> Invite Volunteer</button>
+          </div>
         </div>
-      </header>
+      </div>
 
       {/* Render the contextual content area below the header */}
       {renderView()}

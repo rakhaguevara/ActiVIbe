@@ -17,7 +17,7 @@ const router = Router()
 
 // Publik untuk volunteer (butuh login, tapi bukan role-restricted) — dipakai
 // FindOrganizationPage.
-router.get('/', requireAuth, list)
+router.get('/', list)
 
 // Form self-service "Daftarkan Organisasimu" — TANPA requireAuth, siapapun
 // boleh submit (login state tidak lagi relevan, lihat organization.service.js

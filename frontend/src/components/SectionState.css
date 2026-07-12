@@ -53,5 +53,5 @@
 }
 
 .section-state__retry:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }

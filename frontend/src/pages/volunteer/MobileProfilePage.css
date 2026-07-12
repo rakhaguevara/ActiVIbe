@@ -123,7 +123,7 @@
 .mobile-profile-page__logout {
   background: none;
   border: none;
-  text-decoration: underline;
+  text-decoration: none;
   color: var(--color-text-heading);
   font-size: 1rem;
   font-weight: 600;

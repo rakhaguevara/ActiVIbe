@@ -306,3 +306,55 @@ Kamu tetap bisa mendaftar ke kegiatan lain yang jadwalnya tidak bentrok.`,
   })
   logSendResult(`pembatalan otomatis "${cancelledEventTitle}" -> ${to}`, result)
 }
+
+// broadcastTitle/message datang dari input bebas organizer (Compose Broadcast
+// di BroadcastView.tsx) dan dikirim ke banyak volunteer sekaligus — beda dari
+// field admin/organizer lain di file ini yang cuma dilihat 1 penerima, jadi
+// di-escape sebelum masuk HTML supaya organizer tidak bisa menyisipkan markup
+// (link palsu, dst.) ke email volunteer lain.
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+// Communication Center broadcast (FR-041) — komunikasi.service.js sendBroadcast()
+// memanggil ini sekali per penerima (bukan 1 panggilan `to: [...]` ke Resend)
+// supaya penerima tidak saling melihat alamat email satu sama lain.
+export async function sendBroadcastEmail(
+  to,
+  { volunteerName, eventTitle, organizerName, broadcastTitle, message },
+) {
+  const safeTitle = escapeHtml(broadcastTitle)
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br/>')
+
+  if (!resendClient) {
+    console.log(`[mailer] RESEND_API_KEY kosong — broadcast "${broadcastTitle}" (event "${eventTitle}") utk ${to}`)
+    return
+  }
+
+  const result = await resendClient.emails.send({
+    from: env.RESEND_FROM_EMAIL,
+    to,
+    subject: `[${eventTitle}] ${broadcastTitle}`,
+    html: `
+      <p>Halo ${volunteerName},</p>
+      <p>Pesan dari penyelenggara <strong>${organizerName}</strong> soal kegiatan <strong>${eventTitle}</strong>:</p>
+      <p style="padding:12px 16px;background:#F3F0FF;border-radius:8px;">
+        <strong>${safeTitle}</strong><br/><br/>
+        ${safeMessage}
+      </p>
+    `,
+    text: `Halo ${volunteerName},
+
+Pesan dari penyelenggara ${organizerName} soal kegiatan ${eventTitle}:
+
+${broadcastTitle}
+
+${message}`,
+  })
+  logSendResult(`broadcast "${broadcastTitle}" -> ${to}`, result)
+}

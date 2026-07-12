@@ -525,7 +525,7 @@
 
 .admin-overview__ai-action:hover {
   color: var(--color-primary-dark);
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 @media (max-width: 900px) {

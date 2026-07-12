@@ -222,8 +222,8 @@ export default function AllEventsView() {
                         <td style={{ fontWeight: 600 }}>{impactFor(event)}</td>
                         <td>{event.startDate}</td>
                         <td>
-                          <Link to={`/organizer/events/${event.id}`} className="btn btn--sm" style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)' }}>
-                            <FiMoreVertical />
+                          <Link to={`/organizer/events/${event.id}`} className="btn btn--outline btn--sm" style={{ textDecoration: 'none', borderRadius: '4px' }}>
+                            Detail
                           </Link>
                         </td>
                       </tr>

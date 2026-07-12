@@ -129,7 +129,7 @@
 
 .event-apply-form__discard:hover {
   color: var(--color-text-body);
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .event-apply-form__discard:disabled {

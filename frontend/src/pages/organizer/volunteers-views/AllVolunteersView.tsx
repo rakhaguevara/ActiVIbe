@@ -19,6 +19,9 @@ export default function AllVolunteersView({ data }: { data: OrganizerVolunteersR
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'' | VolunteerDisplayStatus>('')
   const [selectedProfile, setSelectedProfile] = useState<OrganizerVolunteer | null>(null)
+  
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
   const volunteers = data.volunteers
 
@@ -34,6 +37,14 @@ export default function AllVolunteersView({ data }: { data: OrganizerVolunteersR
       )
     })
   }, [volunteers, search, statusFilter])
+
+  // Reset pagination if search or filter changes
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [search, statusFilter])
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
+  const paginatedVolunteers = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   const skillChartOption = {
     tooltip: { trigger: 'item' },
@@ -167,7 +178,7 @@ export default function AllVolunteersView({ data }: { data: OrganizerVolunteersR
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(vol => {
+                  {paginatedVolunteers.map(vol => {
                     const status = volunteerDisplayStatus(vol)
                     const rating = vol.ratingProxy ?? 0
                     return (
@@ -211,6 +222,30 @@ export default function AllVolunteersView({ data }: { data: OrganizerVolunteersR
                 </tbody>
               </table>
             </div>
+            
+            {filtered.length > 0 && totalPages > 1 && (
+              <div className="v-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                  Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} dari {filtered.length} volunteer
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    className="btn btn--outline btn--sm" 
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </button>
+                  <button 
+                    className="btn btn--outline btn--sm" 
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
 
             {filtered.length === 0 && (
               <p style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)' }}>No volunteers match your filters.</p>

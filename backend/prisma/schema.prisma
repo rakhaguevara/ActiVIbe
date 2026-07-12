@@ -921,6 +921,11 @@ model CommunicationLog {
   targetSegment   String
   // Tidak dibuat enum — PRD tidak mendaftar nilai channel yang baku
   deliveryChannel String
+  // Jumlah penerima yang benar2 dikirimi email saat broadcast ini dibuat
+  // (hasil resolveRecipients() di communication.service.js) — snapshot, bukan
+  // dihitung ulang on-read, supaya riwayat tetap akurat walau applicant baru
+  // mendaftar/keluar sesudahnya.
+  recipientCount  Int      @default(0)
   sentAt          DateTime @default(now())
   sentById        String
 

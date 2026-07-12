@@ -17,6 +17,31 @@ interface CloseEventReportFieldsProps {
   onChange: (patch: Partial<CloseEventReportDraft>) => void
 }
 
+// Gate step "Laporan Penutupan Kegiatan" di CloseEventWizard — semua field di
+// sini WAJIB kecuali yang berlabel "(opsional)" (impactSummary/constraintsNotes).
+// Field categoryMetrics wajib cuma yang relevan dgn Event.category (mirror
+// kondisional render di bawah).
+export function validateCloseEventReport(category: string | undefined, value: CloseEventReportDraft): string[] {
+  const errors: string[] = []
+
+  if (!value.narrativeSummary.trim()) errors.push('Ringkasan naratif hasil kegiatan wajib diisi')
+  if (value.volunteersPresentCount <= 0) errors.push('Jumlah relawan hadir wajib diisi')
+  if (value.totalContributionHours <= 0) errors.push('Total jam kontribusi wajib diisi')
+  if (value.photos.length < 1) errors.push('Minimal satu foto/dokumentasi kegiatan wajib diunggah')
+
+  if (category === 'Lingkungan') {
+    if (!value.categoryMetrics.treesPlanted) errors.push('Jumlah pohon ditanam wajib diisi')
+    if (!value.categoryMetrics.hectaresImpacted) errors.push('Luas lingkungan terdampak wajib diisi')
+    if (!value.categoryMetrics.peopleImpacted) errors.push('Jumlah orang terdampak wajib diisi')
+  } else if (['Pendidikan', 'Kesehatan', 'Sosial'].includes(category ?? '')) {
+    if (!value.categoryMetrics.peopleImpacted) errors.push('Jumlah anak/orang tua/warga terdampak wajib diisi')
+  } else if (category === 'Seni & Budaya') {
+    if (!value.categoryMetrics.successRatePercent) errors.push('Dampak keberhasilan acara wajib diisi')
+  }
+
+  return errors
+}
+
 // Field impact tambahan per kategori (lihat CATEGORY_OPTIONS di
 // CreateEventPage.tsx & komentar categoryMetrics di EventCloseReport model,
 // schema.prisma) — Teknologi/Umum sengaja tidak punya field tambahan, cukup

@@ -116,18 +116,6 @@ const NAV_SECTIONS = [
           { to: '/organizer/organization?tab=subscription', label: 'Subscription' },
           { to: '/organizer/organization?tab=branding', label: 'Branding' },
         ]
-      },
-      { 
-        to: '/organizer/settings', 
-        label: 'Settings', 
-        icon: FiSettings, 
-        end: false,
-        subItems: [
-          { to: '/organizer/settings', label: 'General', end: true },
-          { to: '/organizer/settings?tab=notifications', label: 'Notifications' },
-          { to: '/organizer/settings?tab=security', label: 'Security' },
-          { to: '/organizer/settings?tab=api', label: 'API (future)' },
-        ]
       }
     ]
   }

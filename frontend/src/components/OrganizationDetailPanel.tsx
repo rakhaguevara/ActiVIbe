@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { FiBookmark, FiShare2, FiChevronLeft, FiChevronRight, FiMapPin, FiPhone, FiMail, FiGlobe, FiImage, FiArrowRight } from 'react-icons/fi'
+import { FiHeart, FiShare2, FiChevronLeft, FiChevronRight, FiMapPin, FiPhone, FiMail, FiGlobe, FiImage, FiArrowRight } from 'react-icons/fi'
 import { useFollowedOrganizations } from '../hooks/useFollowedOrganizations'
 import type { Organization } from '../types/organization'
 import './OrganizationDetailPanel.css'
@@ -32,10 +32,7 @@ export default function OrganizationDetailPanel({
   }
 
   const paginationBar = (
-    <div className="organization-detail-panel__topbar">
-      <button type="button" className="organization-detail-panel__back-link" onClick={onBackToResults}>
-        <FiChevronLeft /> Kembali ke hasil
-      </button>
+    <div className="organization-detail-panel__topbar" style={{ justifyContent: 'flex-end' }}>
       <div className="organization-detail-panel__pagination">
         <button type="button" onClick={onPrev} disabled={currentIndex <= 0}>
           <FiChevronLeft /> Sebelumnya
@@ -105,7 +102,7 @@ export default function OrganizationDetailPanel({
               className={`organization-detail-panel__action-button${followed ? ' organization-detail-panel__action-button--active' : ''}`}
               onClick={() => toggle(organization.id)}
             >
-              <FiBookmark fill={followed ? 'currentColor' : 'none'} /> {followed ? 'Tersimpan' : 'Simpan'}
+              <FiHeart fill={followed ? 'currentColor' : 'none'} /> {followed ? 'Mengikuti' : 'Ikuti'}
             </button>
             <button type="button" className="organization-detail-panel__action-button" onClick={handleShare}>
               <FiShare2 /> Bagikan

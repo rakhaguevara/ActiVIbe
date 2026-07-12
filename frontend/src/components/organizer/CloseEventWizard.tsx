@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { FiCheck } from 'react-icons/fi'
 import { useAuth } from '../../contexts/AuthContext'
 import { loadDraft, saveDraft, clearDraft } from '../../lib/formDraft'
-import CloseEventReportFields, { type CloseEventReportDraft } from './CloseEventReportFields'
+import CloseEventReportFields, { validateCloseEventReport, type CloseEventReportDraft } from './CloseEventReportFields'
 import type { Applicant, EventCloseReport, OrganizerEvent } from '../../types/organizer'
 import './CloseEventWizard.css'
 
@@ -107,6 +107,9 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
 
   const sampleApplicant = applicants.find((a) => finalStatuses[a.id] === 'completed') ?? applicants[0]
 
+  const reportErrors = useMemo(() => validateCloseEventReport(event.category, report), [event.category, report])
+  const canProceed = step !== 3 || reportErrors.length === 0
+
   const handleCancel = () => {
     clearDraft(draftKey)
     onClose()
@@ -183,7 +186,19 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
           )}
 
           {step === 3 && (
-            <CloseEventReportFields category={event.category} value={report} onChange={updateReport} />
+            <>
+              <CloseEventReportFields category={event.category} value={report} onChange={updateReport} />
+              {reportErrors.length > 0 && (
+                <div className="close-wizard__validation-summary">
+                  <p>Lengkapi hal berikut sebelum lanjut:</p>
+                  <ul>
+                    {reportErrors.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
           )}
 
           {step === 4 && (
@@ -226,7 +241,12 @@ export default function CloseEventWizard({ event, applicants, onClose, onConfirm
             {step === 1 ? 'Batal' : 'Kembali'}
           </button>
           {step < STEP_TITLES.length ? (
-            <button type="button" className="btn btn--primary btn--sm" onClick={() => setStep((s) => s + 1)}>
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              onClick={() => setStep((s) => s + 1)}
+              disabled={!canProceed}
+            >
               Lanjut
             </button>
           ) : (

@@ -270,7 +270,7 @@
 
 .onboarding-modal__discard:hover {
   color: var(--color-text-body);
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .onboarding-modal__dot {
