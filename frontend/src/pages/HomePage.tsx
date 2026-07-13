@@ -79,6 +79,15 @@ const JOIN_SLIDES = [
   },
 ]
 
+/* ── How It Works steps (versi singkat homepage — detail lengkap ada di /cara-kerja) ── */
+const HOW_IT_WORKS_STEPS = [
+  { label: 'Conversational Onboarding', image: pic1 },
+  { label: 'Smart AI Matching', image: pic2 },
+  { label: 'Pilih Kegiatan Personalmu', image: pic1 },
+  { label: 'Beraksi & Beri Dampak', image: pic2 },
+  { label: 'Track Your Impact', image: pic1 },
+]
+
 /* ── Symbols carousel (titles = real symbols inside logo-utama.svg; desc still placeholder) ── */
 const LOGO_SYMBOLS = [
   { title: 'Matahari', icon: iconMatahari, desc: 'Energi yang menyalakan semangat volunteer untuk terus kembali berkontribusi — hari demi hari, kegiatan demi kegiatan, bukan sekadar sekali ikut lalu berhenti. Konsistensi inilah yang kami rayakan lewat tracking partisipasi dan badge pencapaian, supaya setiap volunteer punya alasan untuk terus menyala dan kembali memberi dampak.' },
@@ -285,6 +294,8 @@ export default function HomePage() {
   const featuresReveal = useRevealOnScroll(0.1)
   const joinReveal     = useRevealOnScroll(0.08)
   const aboutReveal    = useRevealOnScroll(0.1)
+  const howReveal      = useRevealOnScroll(0.1)
+  const [activeStep, setActiveStep] = useState(0)
 
   /* Symbols carousel */
   const symbolsTrackRef = useRef<HTMLDivElement>(null)
@@ -560,6 +571,66 @@ export default function HomePage() {
                 Kami percaya setiap orang punya kapasitas untuk membuat perubahan nyata. Bersama ActiVibe, kontribusimu tidak hanya berdampak — tapi juga tercatat, diakui, dan dibagikan melalui Impact Passport digital yang unik milikmu.
               </p>
               <Link to="/tentang-kami" className="about__cta">More About Us..</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ How It Works (versi singkat, detail lengkap di /cara-kerja) ═══ */}
+      <section
+        id="cara-kerja"
+        ref={howReveal.ref as React.RefObject<HTMLElement>}
+        className={`how${howReveal.visible ? ' how--visible' : ''}`}
+      >
+        <img src={flowerDeco} alt="" className="how__deco how__deco--flower" aria-hidden="true" />
+
+        <div className="how__inner">
+          <div className="how__eyebrow-row">
+            <span className="how__eyebrow">Cara Kerja ActiVibe</span>
+            <span className="how__eyebrow-line" aria-hidden="true" />
+          </div>
+
+          <div className="how__heading-row">
+            <h2 className="how__title">
+              Perjalanan volunteering yang terpersonalisasi,<br />
+              dari pendaftaran hingga sertifikasi.
+            </h2>
+            <Link to="/cara-kerja" className="how__cta">Lihat Selengkapnya →</Link>
+          </div>
+
+          <div className="how__grid">
+            <div className="how__nav-wrap">
+              <span className="how__counter" aria-hidden="true">
+                {String(activeStep + 1).padStart(2, '0')}/{String(HOW_IT_WORKS_STEPS.length).padStart(2, '0')}
+              </span>
+              <span
+                className="how__rail"
+                aria-hidden="true"
+                style={{ '--progress': `${Math.round(((activeStep + 1) / HOW_IT_WORKS_STEPS.length) * 100)}%` } as React.CSSProperties}
+              />
+
+              <ul className="how__nav">
+                {HOW_IT_WORKS_STEPS.map(({ label }, i) => (
+                  <li key={label}>
+                    <button
+                      type="button"
+                      className={`how__nav-item${i === activeStep ? ' how__nav-item--active' : ''}`}
+                      onClick={() => setActiveStep(i)}
+                    >
+                      {label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="how__image-wrap">
+              <img
+                key={activeStep}
+                src={HOW_IT_WORKS_STEPS[activeStep].image}
+                alt={HOW_IT_WORKS_STEPS[activeStep].label}
+                className="how__image"
+              />
             </div>
           </div>
         </div>

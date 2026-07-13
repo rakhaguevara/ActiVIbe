@@ -1,103 +1,502 @@
-.public-activity-page {
-  padding: 120px 24px 64px;
+/* ════════════════════════════════════════════════════════
+   PUBLIC FIND ACTIVITY PAGE  — pac-*
+   (shared with PublicFindOrganizationPage)
+   ════════════════════════════════════════════════════════ */
+
+/* ── Page shell ── */
+.pac-page {
   min-height: 100vh;
-  background-color: var(--color-bg-true);
+  background: var(--color-bg-true, #f8f9fb);
+  display: flex;
+  flex-direction: column;
 }
 
-.public-activity-container {
+/* ── Hero banner ── */
+.pac-hero {
+  padding: 120px 40px 48px;
+  background: linear-gradient(135deg, #f0edff 0%, #e8f3ff 100%);
+  border-bottom: 1px solid rgba(99, 62, 218, 0.08);
+}
+.pac-hero--org {
+  background: linear-gradient(135deg, #edfff6 0%, #e6f0ff 100%);
+}
+.pac-hero-inner {
   max-width: 1200px;
   margin: 0 auto;
 }
-
-.public-activity-page h1 {
-  font-size: 2.5rem;
-  margin-bottom: 8px;
-  color: var(--color-text-title);
+.pac-hero-title {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 800;
+  color: var(--color-text-title, #1a1a2e);
+  margin: 0 0 12px;
+  line-height: 1.2;
+}
+.pac-hero-sub {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  color: var(--color-text-body, #555);
+  max-width: 560px;
+  margin: 0;
+  line-height: 1.6;
 }
 
-.public-activity-subtitle {
-  font-size: 1.1rem;
-  color: var(--color-text-body);
-  margin-bottom: 40px;
-  max-width: 600px;
-}
-
-.public-loading,
-.public-empty {
-  text-align: center;
-  padding: 64px 0;
-  color: var(--color-text-muted);
-  font-size: 1.1rem;
-}
-
-.public-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.public-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: flex;
-  flex-direction: column;
-}
-
-.public-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-}
-
-.public-card-image {
-  height: 200px;
-  background-size: cover;
-  background-position: center;
-  background-color: #f3f4f6;
-}
-
-.public-card-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
+/* ── Content wrapper ── */
+.pac-content {
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 40px 64px;
   flex: 1;
 }
 
-.public-card-title {
-  font-size: 1.25rem;
+/* ── Loading ── */
+.pac-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 0;
+  color: var(--color-text-muted, #888);
+}
+.pac-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #633eda;
+  border-radius: 50%;
+  animation: pac-spin 0.7s linear infinite;
+}
+@keyframes pac-spin { to { transform: rotate(360deg); } }
+
+.pac-empty-state {
+  text-align: center;
+  padding: 80px 0;
+  color: var(--color-text-muted, #888);
+  font-size: 1.1rem;
+}
+
+/* ══════════════════════════════════════════════
+   SECTION
+   ══════════════════════════════════════════════ */
+.pac-section {
+  margin-bottom: 52px;
+}
+
+.pac-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.pac-section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #633eda, #9b6dff);
+  color: #fff;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+  box-shadow: 0 4px 12px rgba(99, 62, 218, 0.3);
+}
+
+.pac-section-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-text-title, #1a1a2e);
+  margin: 0 0 4px;
+}
+
+.pac-section-sub {
+  font-size: 0.88rem;
+  color: var(--color-text-muted, #888);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── Row (scroll container) ── */
+.pac-row-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 62, 218, 0.2) transparent;
+  /* Negative margin trick to allow full-bleed peek on mobile */
+  margin-left: -4px;
+  padding-left: 4px;
+  padding-bottom: 12px;
+}
+.pac-row-wrapper::-webkit-scrollbar { height: 4px; }
+.pac-row-wrapper::-webkit-scrollbar-track { background: transparent; }
+.pac-row-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(99, 62, 218, 0.2);
+  border-radius: 4px;
+}
+
+.pac-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 16px;
+  /* snap */
+  scroll-snap-type: x mandatory;
+  /* right padding so last card isn't cut */
+  padding-right: 8px;
+}
+
+/* ══════════════════════════════════════════════
+   EVENT CARD  — pac-card
+   ══════════════════════════════════════════════ */
+.pac-card {
+  flex: 0 0 260px;
+  width: 260px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+.pac-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(99, 62, 218, 0.15);
+}
+
+/* Image */
+.pac-card-img {
+  height: 160px;
+  background-size: cover;
+  background-position: center;
+  background-color: #f0edff;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Badge (Hampir Penuh / Segera Tutup) */
+.pac-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.pac-badge--hot {
+  background: linear-gradient(90deg, #ff6b35, #ff3d71);
+  color: #fff;
+}
+.pac-badge--closing {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  color: #fff;
+}
+
+/* Category chip */
+.pac-card-category {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 0.68rem;
   font-weight: 600;
-  margin: 0 0 4px 0;
-  color: var(--color-text-title);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* Body */
+.pac-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 4px;
+}
+.pac-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-title, #1a1a2e);
+  margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-height: 1.3;
 }
-
-.public-card-org {
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  margin: 0 0 16px 0;
+.pac-card-org {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #888);
+  margin: 2px 0 6px;
 }
-
-.public-card-meta {
+.pac-card-meta {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 0.9rem;
-  color: var(--color-text-body);
-  margin-bottom: 24px;
-  flex: 1;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.75rem;
+  color: var(--color-text-body, #555);
+  margin-bottom: 4px;
 }
-
-.public-card-meta span {
+.pac-card-meta span {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
-.public-card-btn {
-  width: 100%;
+/* Fill bar */
+.pac-fill-bar {
+  margin: 6px 0;
 }
+.pac-fill-bar-track {
+  height: 5px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+.pac-fill-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #633eda, #9b6dff);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+.pac-fill-label {
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #888);
+}
+
+/* Rating */
+.pac-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-body, #555);
+  margin: 2px 0;
+}
+.pac-star { color: #f59e0b; }
+.pac-review-count { color: var(--color-text-muted, #888); }
+
+/* CTA button */
+.pac-btn {
+  margin-top: auto;
+  padding-top: 10px;
+  background: linear-gradient(135deg, #633eda, #9b6dff);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  width: 100%;
+  text-align: center;
+}
+.pac-btn:hover { opacity: 0.88; transform: scale(1.01); }
+
+/* ══════════════════════════════════════════════
+   ORG CARD  — poc-card (from PublicFindOrganizationPage)
+   ══════════════════════════════════════════════ */
+.poc-card {
+  flex: 0 0 220px;
+  width: 220px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  scroll-snap-align: start;
+}
+.poc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.15);
+}
+
+.poc-card-logo {
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0fdf4, #e0f2fe);
+  border-bottom: 1px solid #e8f5e9;
+  padding: 16px;
+}
+.poc-logo-img {
+  max-height: 90px;
+  max-width: 90%;
+  object-fit: contain;
+}
+.poc-logo-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poc-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 4px;
+}
+.poc-card-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text-title, #1a1a2e);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+.poc-card-category {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 8px;
+  border-radius: 20px;
+  width: fit-content;
+  margin: 4px 0;
+}
+.poc-card-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #888);
+  margin: 2px 0;
+}
+.poc-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 0.72rem;
+  color: var(--color-text-body, #555);
+  margin: 4px 0 8px;
+}
+.poc-card-stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.poc-star { color: #f59e0b; }
+
+.poc-btn {
+  margin-top: auto;
+  background: transparent;
+  color: #10b981;
+  border: 2px solid #10b981;
+  border-radius: 10px;
+  padding: 8px 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  width: 100%;
+  text-align: center;
+}
+.poc-btn:hover {
+  background: #10b981;
+  color: #fff;
+  transform: scale(1.01);
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — mobile ≤ 640px
+   ══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .pac-hero {
+    padding: 100px 20px 36px;
+  }
+
+  .pac-content {
+    padding: 28px 0 64px;
+  }
+
+  .pac-section {
+    margin-bottom: 40px;
+  }
+
+  .pac-section-header {
+    padding: 0 20px;
+    gap: 12px;
+  }
+
+  .pac-section-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+
+  .pac-section-title {
+    font-size: 1.1rem;
+  }
+
+  /* Make the row start from the very left edge with peek */
+  .pac-row-wrapper {
+    margin-left: 0;
+    padding-left: 20px;
+    padding-right: 0;
+    scrollbar-width: none;
+  }
+  .pac-row-wrapper::-webkit-scrollbar { display: none; }
+
+  .pac-row {
+    padding-right: 20px;
+  }
+
+  /* Event cards on mobile: slightly wider for comfortable reading */
+  .pac-card {
+    flex: 0 0 75vw;
+    width: 75vw;
+    max-width: 280px;
+  }
+
+  /* Org cards */
+  .poc-card {
+    flex: 0 0 65vw;
+    width: 65vw;
+    max-width: 220px;
+  }
+
+  .pac-loading,
+  .pac-empty-state {
+    padding: 0 20px 60px;
+  }
+}
+
+/* ── Keep old class names working (fallback) ── */
+.public-activity-page,
+.public-activity-container,
+.public-grid,
+.public-grid-wrapper,
+.public-card,
+.public-card-image,
+.public-card-content,
+.public-card-title,
+.public-card-org,
+.public-card-meta,
+.public-card-btn,
+.public-loading,
+.public-empty,
+.public-activity-subtitle { /* intentionally empty — new classes replace these */ }
