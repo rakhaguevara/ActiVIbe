@@ -1,104 +1,153 @@
-import React from 'react'
-import { 
-  FiFileText, FiDownloadCloud, FiCalendar, FiShare2, FiFile, FiPieChart, FiUsers, FiActivity, FiSettings
+import { useState } from 'react'
+import {
+  FiDownloadCloud, FiFileText, FiActivity, FiSettings, FiCheckCircle,
 } from 'react-icons/fi'
+import { getMyOrganization } from '../../../lib/organizationApi'
+import { getReportsOverview, getEventBreakdown } from '../../../lib/reportsApi'
+import {
+  buildOverviewCsv, buildEventBreakdownCsv, buildOverviewReportPdf, buildEventBreakdownPdf, downloadCsv, downloadPdf,
+} from '../../../utils/reportExport'
 import '../ReportsPage.css'
 
-export default function ExportReportsView() {
+// Kategori kegiatan bebas teks (lihat CATEGORY_OPTIONS di CreateEventPage.tsx)
+// — daftar ini cuma preset umum utk filter, bukan taksonomi tetap.
+const CATEGORY_FILTER_OPTIONS = ['Lingkungan', 'Pendidikan', 'Kesehatan', 'Sosial', 'Teknologi', 'Seni & Budaya', 'Umum']
+
+type ReportType = 'overview' | 'event-breakdown'
+type ExportFormat = 'csv' | 'pdf'
+
+interface SessionExport {
+  id: string
+  label: string
+  format: ExportFormat
+  generatedAt: string
+}
+
+interface ExportReportsViewProps {
+  // Date range dikontrol dari header ReportsPage ("Select Date Range") supaya
+  // satu rentang tanggal yang sama dipakai baik lewat header maupun form di
+  // sini — lihat ReportsPage.tsx.
+  dateFrom: string
+  dateTo: string
+  onDateFromChange: (value: string) => void
+  onDateToChange: (value: string) => void
+}
+
+export default function ExportReportsView({ dateFrom, dateTo, onDateFromChange, onDateToChange }: ExportReportsViewProps) {
+  const [reportType, setReportType] = useState<ReportType>('overview')
+  const [format, setFormat] = useState<ExportFormat>('pdf')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  // "Recent Exports" tidak punya sumber data histori nyata (AuditLog dibaca
+  // organizer-side belum ada endpoint-nya) — daripada memalsukan tabel,
+  // ini murni daftar sesi berjalan (hilang saat refresh), jujur soal
+  // keterbatasannya lewat teks di bawah tabel.
+  const [sessionExports, setSessionExports] = useState<SessionExport[]>([])
+
+  const handleGenerate = async () => {
+    setIsGenerating(true)
+    try {
+      const filter = { from: dateFrom || undefined, to: dateTo || undefined }
+
+      if (reportType === 'overview') {
+        const overview = await getReportsOverview(filter)
+        const label = 'Laporan Ringkasan (Overview)'
+        if (format === 'csv') {
+          downloadCsv(buildOverviewCsv(overview), `laporan-overview-${Date.now()}.csv`)
+        } else {
+          const organization = await getMyOrganization().catch(() => null)
+          const bytes = await buildOverviewReportPdf(overview, organization?.name ?? 'Organisasi')
+          downloadPdf(bytes, `laporan-overview-${Date.now()}.pdf`)
+        }
+        setSessionExports((prev) => [{ id: crypto.randomUUID(), label, format, generatedAt: new Date().toISOString() }, ...prev])
+      } else {
+        let rows = await getEventBreakdown(filter)
+        if (categoryFilter) {
+          rows = rows.filter((r) => (r.category ?? 'Umum') === categoryFilter)
+        }
+        const label = 'Laporan Rincian per Event (Event Breakdown)'
+        if (format === 'csv') {
+          downloadCsv(buildEventBreakdownCsv(rows), `laporan-event-breakdown-${Date.now()}.csv`)
+        } else {
+          const organization = await getMyOrganization().catch(() => null)
+          const bytes = await buildEventBreakdownPdf(rows, organization?.name ?? 'Organisasi')
+          downloadPdf(bytes, `laporan-event-breakdown-${Date.now()}.pdf`)
+        }
+        setSessionExports((prev) => [{ id: crypto.randomUUID(), label, format, generatedAt: new Date().toISOString() }, ...prev])
+      }
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal membuat laporan, coba lagi.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   return (
     <>
-      {/* KPI Cards */}
-      <div className="events-stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-        <div className="stat-card">
-          <div className="stat-card__icon"><FiFileText /></div>
-          <div className="stat-card__value">1,452</div>
-          <div className="stat-card__label">Reports Generated</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card__icon" style={{ color: 'var(--color-primary)', background: 'var(--color-primary-soft)' }}><FiDownloadCloud /></div>
-          <div className="stat-card__value">45</div>
-          <div className="stat-card__label">Monthly Exports</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card__icon" style={{ color: 'var(--color-warning)', background: '#fffbeb' }}><FiCalendar /></div>
-          <div className="stat-card__value">3</div>
-          <div className="stat-card__label">Scheduled Reports</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card__icon" style={{ color: 'var(--color-success)', background: '#f0fdf4' }}><FiShare2 /></div>
-          <div className="stat-card__value">12</div>
-          <div className="stat-card__label">Shared Reports</div>
-        </div>
-      </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-xl)', alignItems: 'start' }}>
         {/* Main Content */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
           <section className="card" style={{ padding: '24px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Select Report Type</h2>
-            
+
+            {/* Cuma 2 tipe laporan yang punya sumber data nyata (buildOrganizerSummary
+                utk Overview, Application+EventCloseReport per event utk Event
+                Breakdown) — "Volunteer Report"/"Certificates Log" sengaja tidak
+                dibangun, tidak ada agregat backend khusus utk itu di luar yang
+                sudah ada di halaman Volunteers/Certificates sendiri. */}
             <div className="export-options-grid">
-              <div className="export-card active">
-                <FiUsers className="export-card__icon" />
-                <div className="export-card__title">Volunteer Report</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Demographics & activity</div>
+              <div
+                className={reportType === 'overview' ? 'export-card active' : 'export-card'}
+                onClick={() => setReportType('overview')}
+                role="button"
+                tabIndex={0}
+              >
+                <FiFileText className="export-card__icon" />
+                <div className="export-card__title">Overview Report</div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>KPI dashboard & aktivitas terbaru</div>
               </div>
-              <div className="export-card">
+              <div
+                className={reportType === 'event-breakdown' ? 'export-card active' : 'export-card'}
+                onClick={() => setReportType('event-breakdown')}
+                role="button"
+                tabIndex={0}
+              >
                 <FiActivity className="export-card__icon" style={{ color: 'var(--color-success)' }} />
-                <div className="export-card__title">Event Performance</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Attendance & metrics</div>
-              </div>
-              <div className="export-card">
-                <FiPieChart className="export-card__icon" style={{ color: '#f59e0b' }} />
-                <div className="export-card__title">Impact Summary</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Social/Environment score</div>
-              </div>
-              <div className="export-card">
-                <FiFile className="export-card__icon" style={{ color: '#8b5cf6' }} />
-                <div className="export-card__title">Certificates Log</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Generated certificates</div>
+                <div className="export-card__title">Event Breakdown</div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Pendaftar, diterima, hadir, jam per event</div>
               </div>
             </div>
           </section>
 
           <section className="card" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Recent Exports</h2>
-            <div className="v-table-wrapper">
-              <table className="v-table">
-                <thead>
-                  <tr>
-                    <th>Report Type</th>
-                    <th>Generated By</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style={{ fontWeight: 600 }}><FiUsers style={{ marginRight: '8px', color: 'var(--color-text-muted)' }} /> Volunteer Summary</td>
-                    <td>Emma</td>
-                    <td>Today, 10:00 AM</td>
-                    <td><span className="badge badge--success">Completed</span></td>
-                    <td><button className="btn btn--sm btn--primary"><FiDownloadCloud /> Download</button></td>
-                  </tr>
-                  <tr>
-                    <td style={{ fontWeight: 600 }}><FiActivity style={{ marginRight: '8px', color: 'var(--color-text-muted)' }} /> Attendance Report</td>
-                    <td>Sophia</td>
-                    <td>Yesterday</td>
-                    <td><span className="badge badge--success">Completed</span></td>
-                    <td><button className="btn btn--sm btn--primary"><FiDownloadCloud /> Download</button></td>
-                  </tr>
-                  <tr>
-                    <td style={{ fontWeight: 600 }}><FiPieChart style={{ marginRight: '8px', color: 'var(--color-text-muted)' }} /> Q2 Impact Report</td>
-                    <td>Noah</td>
-                    <td>Monday</td>
-                    <td><span className="badge badge--success">Completed</span></td>
-                    <td><button className="btn btn--sm btn--primary"><FiDownloadCloud /> Download</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Recent Exports (Sesi Ini)</h2>
+            {sessionExports.length === 0 ? (
+              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                Belum ada laporan yang dibuat pada sesi ini. Daftar ini hanya menampilkan unduhan sesi berjalan
+                (bukan riwayat permanen) — belum ada endpoint utk membaca riwayat ekspor tersimpan.
+              </p>
+            ) : (
+              <div className="v-table-wrapper">
+                <table className="v-table">
+                  <thead>
+                    <tr>
+                      <th>Laporan</th>
+                      <th>Format</th>
+                      <th>Waktu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessionExports.map((exp) => (
+                      <tr key={exp.id}>
+                        <td style={{ fontWeight: 600 }}><FiCheckCircle style={{ marginRight: '8px', color: 'var(--color-success)' }} /> {exp.label}</td>
+                        <td>{exp.format.toUpperCase()}</td>
+                        <td>{new Date(exp.generatedAt).toLocaleTimeString('id-ID')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </div>
 
@@ -107,47 +156,49 @@ export default function ExportReportsView() {
           <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FiSettings /> Report Settings
           </h2>
-          
+
           <div className="export-settings-group">
             <label>Date Range</label>
-            <select>
-              <option>Last 30 Days</option>
-              <option>This Quarter</option>
-              <option>This Year</option>
-              <option>Custom Range</option>
-            </select>
-          </div>
-
-          <div className="export-settings-group">
-            <label>Event Category Filter</label>
-            <select>
-              <option>All Categories</option>
-              <option>Environment</option>
-              <option>Education</option>
-              <option>Health</option>
-            </select>
-          </div>
-
-          <div className="export-settings-group">
-            <label>Format</label>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 400 }}><input type="radio" name="fmt" defaultChecked /> PDF</label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 400 }}><input type="radio" name="fmt" /> Excel</label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 400 }}><input type="radio" name="fmt" /> CSV</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => onDateFromChange(e.target.value)} />
+              <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => onDateToChange(e.target.value)} />
             </div>
           </div>
 
+          {reportType === 'event-breakdown' && (
+            <div className="export-settings-group">
+              <label>Event Category Filter</label>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                <option value="">Semua Kategori</option>
+                {CATEGORY_FILTER_OPTIONS.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="export-settings-group">
-            <label>Schedule Delivery (Optional)</label>
-            <select>
-              <option>Generate Once (Now)</option>
-              <option>Weekly (Every Monday)</option>
-              <option>Monthly (1st of Month)</option>
-            </select>
+            <label>Format</label>
+            {/* Excel dihapus — tidak ada library Excel di codebase ini
+                (backend murni JSON, semua export client-side pdf-lib/CSV
+                polos), lihat CLAUDE.md & plan Phase 6. */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 400 }}>
+                <input type="radio" name="fmt" checked={format === 'pdf'} onChange={() => setFormat('pdf')} /> PDF
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 400 }}>
+                <input type="radio" name="fmt" checked={format === 'csv'} onChange={() => setFormat('csv')} /> CSV
+              </label>
+            </div>
           </div>
 
-          <button className="btn btn--primary" style={{ width: '100%', marginTop: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-            <FiDownloadCloud /> Generate Report
+          <button
+            className="btn btn--primary"
+            style={{ width: '100%', marginTop: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+            onClick={handleGenerate}
+            disabled={isGenerating}
+          >
+            <FiDownloadCloud /> {isGenerating ? 'Membuat laporan...' : 'Generate Report'}
           </button>
         </section>
       </div>

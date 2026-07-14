@@ -210,3 +210,51 @@ export async function setOrganizationPassword(payload: {
   })
   return parseResponse(res)
 }
+
+// --- Danger Zone (SecuritySettingsView) — semua password-gated ---
+
+export async function deactivateOrganization(password: string): Promise<Organization> {
+  const res = await apiFetch(`${API_URL}/organizations/me/deactivate`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  })
+  const data = await parseResponse(res)
+  return resolveOrganization(data.organization)
+}
+
+export async function reactivateOrganization(password: string): Promise<Organization> {
+  const res = await apiFetch(`${API_URL}/organizations/me/reactivate`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  })
+  const data = await parseResponse(res)
+  return resolveOrganization(data.organization)
+}
+
+export async function transferOrganizationOwnership(payload: {
+  newOwnerEmail: string
+  password: string
+}): Promise<Organization> {
+  const res = await apiFetch(`${API_URL}/organizations/me/transfer`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await parseResponse(res)
+  return resolveOrganization(data.organization)
+}
+
+export async function deleteOrganization(password: string): Promise<{ success: true }> {
+  const res = await apiFetch(`${API_URL}/organizations/me/delete`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  })
+  return parseResponse(res)
+}

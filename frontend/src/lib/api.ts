@@ -9,6 +9,9 @@ export interface AuthUser {
   role: 'VOLUNTEER' | 'ORGANIZER' | 'ADMIN'
   firstName?: string
   lastName?: string
+  // Dipakai SecuritySettingsView utk tahu status 2FA akun ini tanpa endpoint
+  // terpisah — diturunkan dari User.twoFactorEnabledAt di backend.
+  twoFactorEnabled?: boolean
 }
 
 export interface RegisterPayload {
@@ -124,7 +127,13 @@ export async function resetPasswordRequest(payload: ResetPasswordPayload): Promi
   return parseResponse(res)
 }
 
-export async function loginRequest(payload: LoginPayload): Promise<{ user: AuthUser }> {
+// Kalau akun tujuan punya 2FA aktif, backend TIDAK menerbitkan sesi di sini —
+// balas { requiresTwoFactor: true, userId } dan pemanggil harus lanjut ke
+// verifyTwoFactorLoginRequest() sebelum benar-benar login. Akun tanpa 2FA
+// (mayoritas) tetap dapat { user } langsung seperti sebelumnya.
+export type LoginResult = { user: AuthUser } | { requiresTwoFactor: true; userId: string }
+
+export async function loginRequest(payload: LoginPayload): Promise<LoginResult> {
   const res = await apiFetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -147,4 +156,90 @@ export async function logoutRequest(): Promise<void> {
     credentials: 'include',
   })
   await parseResponse(res)
+}
+
+// --- Security settings (SecuritySettingsView, organizer) ---
+
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+}
+
+export async function changePasswordRequest(payload: ChangePasswordPayload): Promise<{ success: true }> {
+  const res = await apiFetch(`${API_URL}/auth/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+export interface AuthSession {
+  id: string
+  userAgent?: string
+  ipAddress?: string
+  createdAt: string
+  lastUsedAt: string
+  isCurrent: boolean
+}
+
+export async function listSessionsRequest(): Promise<{ sessions: AuthSession[] }> {
+  const res = await apiFetch(`${API_URL}/auth/sessions`, { credentials: 'include' })
+  return parseResponse(res)
+}
+
+export async function revokeSessionRequest(id: string): Promise<{ success: true }> {
+  const res = await apiFetch(`${API_URL}/auth/sessions/${id}`, { method: 'DELETE', credentials: 'include' })
+  return parseResponse(res)
+}
+
+export async function revokeOtherSessionsRequest(): Promise<{ success: true }> {
+  const res = await apiFetch(`${API_URL}/auth/sessions/revoke-others`, { method: 'POST', credentials: 'include' })
+  return parseResponse(res)
+}
+
+// --- 2FA (TOTP) ---
+
+export interface TwoFactorEnrollResult {
+  secret: string
+  otpauthUrl: string
+  qrDataUrl: string
+}
+
+export async function beginTwoFactorEnrollRequest(): Promise<TwoFactorEnrollResult> {
+  const res = await apiFetch(`${API_URL}/auth/2fa/enroll`, { method: 'POST', credentials: 'include' })
+  return parseResponse(res)
+}
+
+export async function confirmTwoFactorEnrollRequest(payload: { secret: string; code: string }): Promise<{ success: true }> {
+  const res = await apiFetch(`${API_URL}/auth/2fa/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+export async function disableTwoFactorRequest(payload: { code: string }): Promise<{ success: true }> {
+  const res = await apiFetch(`${API_URL}/auth/2fa/disable`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+// Langkah 2 login kalau backend membalas { requiresTwoFactor: true, userId }
+// dari loginRequest() di bawah — TIDAK requireAuth (belum ada sesi).
+export async function verifyTwoFactorLoginRequest(payload: { userId: string; code: string }): Promise<{ user: AuthUser }> {
+  const res = await apiFetch(`${API_URL}/auth/2fa/verify-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
 }

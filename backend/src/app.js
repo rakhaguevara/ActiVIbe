@@ -19,6 +19,11 @@ import organizerVolunteersRoutes from './modules/organizerVolunteers/organizerVo
 import subscriptionRoutes from './modules/subscriptions/subscription.routes.js'
 import communicationRoutes from './modules/communication/communication.routes.js'
 import certificateRoutes from './modules/certificates/certificate.routes.js'
+import messageTemplatesRoutes from './modules/messageTemplates/messageTemplates.routes.js'
+import scheduledMessagesRoutes from './modules/scheduledMessages/scheduledMessages.routes.js'
+import organizationSettingsRoutes from './modules/organizationSettings/organizationSettings.routes.js'
+import apiKeysRoutes from './modules/apiKeys/apiKeys.routes.js'
+import reportsRoutes from './modules/reports/reports.routes.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { sessionSlot } from './middlewares/sessionSlot.js'
 
@@ -67,5 +72,10 @@ app.use('/organizer', organizerVolunteersRoutes)
 app.use('/subscriptions', subscriptionRoutes)
 app.use('/communication', communicationRoutes)
 app.use('/certificates', certificateRoutes)
+app.use('/message-templates', messageTemplatesRoutes)
+app.use('/scheduled-messages', scheduledMessagesRoutes)
+app.use('/organization-settings', organizationSettingsRoutes)
+app.use('/api-keys', apiKeysRoutes)
+app.use('/reports', reportsRoutes)
 
 app.use(errorHandler)

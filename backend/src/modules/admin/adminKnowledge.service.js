@@ -19,6 +19,12 @@ export async function buildAdminKnowledgeContext(messages) {
 
   const [organizations, events, feedbacks, closeReports] = await Promise.all([
     prisma.organization.findMany({
+      // deletedAt: null — organisasi yang sudah di-soft-delete pemiliknya
+      // sendiri (Settings > Security) tidak boleh dianggap entitas nyata yang
+      // masih relevan buat dijawab "Ask AI" admin (beda dari PENDING_VERIFICATION/
+      // DEACTIVATED yang memang sengaja tetap ikut, itu masih pertanyaan valid
+      // spt "organisasi mana yang belum terverifikasi").
+      where: { deletedAt: null },
       select: {
         name: true,
         location: true,

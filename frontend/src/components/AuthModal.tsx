@@ -91,10 +91,24 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
 
     try {
       if (isLogin) {
-        const user = await login({
+        const result = await login({
           email: String(formData.get('email')),
           password: String(formData.get('password')),
         })
+
+        // 2FA cuma bisa diaktifkan lewat Settings > Security portal Organizer
+        // (lihat SecuritySettingsView) — akun VOLUNTEER (satu-satunya role yang
+        // self-signup lewat modal ini) tidak pernah punya 2FA aktif, jadi
+        // cabang ini di portal volunteer berarti akun ORGANIZER/ADMIN nyasar
+        // masuk lewat portal yang salah. Arahkan ke portal yang benar daripada
+        // membangun UI kode 2FA di modal volunteer.
+        if ('requiresTwoFactor' in result) {
+          setStatus('idle')
+          setError('Akun ini mengaktifkan verifikasi 2 langkah. Silakan masuk lewat portal Organizer/Admin.')
+          return
+        }
+
+        const { user } = result
 
         if (user.role !== 'VOLUNTEER') {
           await logout()

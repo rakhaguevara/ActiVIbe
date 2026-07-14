@@ -1,6 +1,5 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
-import { FiSave } from 'react-icons/fi'
 
 import GeneralSettingsView from './settings-views/GeneralSettingsView'
 import NotificationSettingsView from './settings-views/NotificationSettingsView'
@@ -55,13 +54,6 @@ export default function SettingsPage() {
         <div className="settings-header__title">
           <h1>{getTitle()}</h1>
           <p className="settings-header__subtitle">{getSubtitle()}</p>
-        </div>
-        <div className="settings-header__actions">
-          {(tabParam === 'general' || !tabParam) && (
-            <button type="button" className="btn btn--primary btn--sm" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FiSave /> Save Settings
-            </button>
-          )}
         </div>
       </header>
 

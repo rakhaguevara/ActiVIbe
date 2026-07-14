@@ -16,6 +16,10 @@ import {
   getSetPasswordInfo,
   requestSetPasswordOtp,
   setPassword,
+  postMyDeactivate,
+  postMyReactivate,
+  postMyTransfer,
+  postMyDelete,
 } from './organization.controller.js'
 import { requireAuth } from '../../middlewares/requireAuth.js'
 import { requireRole } from '../../middlewares/requireRole.js'
@@ -61,6 +65,13 @@ router.post('/me/email-header', requireAuth, requireRole('ORGANIZER'), handleOrg
 router.patch('/me/visual-identity', requireAuth, requireRole('ORGANIZER'), patchMyVisualIdentity)
 router.patch('/me/email-identity', requireAuth, requireRole('ORGANIZER'), patchMyEmailIdentity)
 router.post('/me/branding/test-email', requireAuth, requireRole('ORGANIZER'), postMyBrandingTestEmail)
+
+// Danger Zone (Settings > Security) — nonaktifkan/aktifkan/transfer/hapus
+// (soft-delete) organisasi milik sendiri, semua password-gated di service layer.
+router.post('/me/deactivate', requireAuth, requireRole('ORGANIZER'), postMyDeactivate)
+router.post('/me/reactivate', requireAuth, requireRole('ORGANIZER'), postMyReactivate)
+router.post('/me/transfer', requireAuth, requireRole('ORGANIZER'), postMyTransfer)
+router.post('/me/delete', requireAuth, requireRole('ORGANIZER'), postMyDelete)
 
 router.get('/:id', requireAuth, getOne)
 

@@ -89,6 +89,7 @@ export default function BroadcastView() {
           <div className="comm-composer__body">
             <div className="v-filter-input" style={{ width: '100%' }}>
               <input
+                id="broadcast-composer-title"
                 type="text"
                 placeholder="Judul Broadcast (mis. Update Jadwal)"
                 value={title}

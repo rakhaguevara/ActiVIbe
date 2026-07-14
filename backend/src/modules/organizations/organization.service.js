@@ -29,6 +29,10 @@ function serializeOrganization(org, eventsCount) {
   return {
     id: org.id,
     name: org.name,
+    // Dipakai SecuritySettingsView (Danger Zone) utk tahu tombol mana yang
+    // relevan (Deactivate vs Reactivate) — sebelumnya tidak pernah diserialize
+    // krn tidak ada UI yang butuh tahu status organisasinya sendiri.
+    status: org.status,
     logoUrl: org.logoUrl ?? undefined,
     shortProfile: org.shortProfile,
     location: org.location,
@@ -72,6 +76,11 @@ async function attachEventsCount(orgs) {
 export async function listOrganizations({ name, location, causeArea } = {}) {
   const where = {
     status: 'ACTIVE',
+    // Defense-in-depth: status ACTIVE seharusnya sudah cukup (deactivate/
+    // soft-delete keduanya mengubah status), tapi filter eksplisit di sini
+    // supaya direktori publik tidak pernah bergantung diam-diam pada asumsi
+    // itu tetap benar di masa depan (lihat sweep deletedAt di CLAUDE.md).
+    deletedAt: null,
     ...(name ? { name: { contains: name, mode: 'insensitive' } } : {}),
     ...(location ? { location: { contains: location, mode: 'insensitive' } } : {}),
     ...(causeArea ? { causeAreas: { has: causeArea } } : {}),
@@ -82,7 +91,7 @@ export async function listOrganizations({ name, location, causeArea } = {}) {
 
 export async function getOrganizationById(id) {
   const org = await prisma.organization.findUnique({ where: { id } })
-  if (!org || org.status !== 'ACTIVE') {
+  if (!org || org.status !== 'ACTIVE' || org.deletedAt) {
     throw new AppError(404, 'Organisasi tidak ditemukan')
   }
   const [serialized] = await attachEventsCount([org])
@@ -97,7 +106,12 @@ export async function getOrganizationById(id) {
 // tidak terhalang. ownerId TIDAK unique lagi (satu owner bisa >1 organisasi
 // lewat registerOrganization), jadi ambil yang pertama dibuat kalau ada.
 export async function ensureOrganizationForOwner(ownerId, defaults) {
-  const existing = await prisma.organization.findFirst({ where: { ownerId }, orderBy: { createdAt: 'asc' } })
+  // deletedAt: null — organisasi yang sudah di-soft-delete (Settings > Security
+  // "Hapus Organisasi") tidak boleh "dihidupkan lagi" diam-diam jadi "organisasi
+  // aktif" organizer ini hanya krn baris lamanya masih ada di DB. Kalau tidak
+  // ketemu baris yang masih hidup, jatuh ke create baru di bawah — itu memang
+  // behavior yang benar utk organizer yang mau reprovision.
+  const existing = await prisma.organization.findFirst({ where: { ownerId, deletedAt: null }, orderBy: { createdAt: 'asc' } })
   if (existing) return existing
 
   return prisma.organization.create({
@@ -390,6 +404,11 @@ export async function getOrganizationActivationInfo(token) {
   return { organizationName: organization.name, existingAccount: owner.isVerified }
 }
 
+// Sengaja TIDAK difilter deletedAt: null — organisasi yang masih PENDING_
+// VERIFICATION (belum pernah diaktifkan sama sekali) tidak mungkin sudah
+// di-soft-delete (softDeleteMyOrganization cuma bisa dipanggil pemilik
+// organisasi yang sudah ACTIVE, lewat Settings > Security). assertActivationTokenValid
+// di bawah sudah menolak token yang organisasinya bukan PENDING_VERIFICATION.
 function findPendingOrganizationByToken(token) {
   return prisma.organization.findUnique({ where: { activationTokenHash: hashToken(token) } })
 }
@@ -481,4 +500,111 @@ export async function verifyOrganizationActivationOtp(token, password, code) {
   ])
 
   return { organizationName: organization.name, email: owner.email }
+}
+
+// 4 aksi lifecycle di Settings > Security "Danger Zone" — semua gated password
+// (bcrypt.compare thd User.password si owner, bukan cuma requireAuth) krn
+// dampaknya besar (nonaktifkan/pindah tangan/hapus organisasi), pola sama
+// persis alur reset password (compare dulu baru boleh lanjut), semua AuditLog'd.
+async function assertOwnerPassword(ownerId, password) {
+  const owner = await prisma.user.findUnique({ where: { id: ownerId } })
+  if (!owner) throw new AppError(404, 'User tidak ditemukan')
+
+  const matches = await bcrypt.compare(password ?? '', owner.password)
+  if (!matches) throw new AppError(400, 'Password salah')
+  return owner
+}
+
+async function findMyActiveOrganizationOrThrow(ownerId) {
+  const organization = await prisma.organization.findFirst({
+    where: { ownerId, deletedAt: null },
+    orderBy: { createdAt: 'asc' },
+  })
+  if (!organization) throw new AppError(404, 'Organisasi tidak ditemukan')
+  return organization
+}
+
+export async function deactivateMyOrganization(ownerId, { password }) {
+  await assertOwnerPassword(ownerId, password)
+  const organization = await findMyActiveOrganizationOrThrow(ownerId)
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const org = await tx.organization.update({ where: { id: organization.id }, data: { status: 'DEACTIVATED' } })
+    await tx.auditLog.create({
+      data: { actorId: ownerId, action: 'Menonaktifkan organisasi', targetType: 'Organization', targetId: org.id, targetLabel: org.name },
+    })
+    return org
+  })
+  const [serialized] = await attachEventsCount([updated])
+  return serialized
+}
+
+export async function reactivateMyOrganization(ownerId, { password }) {
+  await assertOwnerPassword(ownerId, password)
+  const organization = await findMyActiveOrganizationOrThrow(ownerId)
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const org = await tx.organization.update({ where: { id: organization.id }, data: { status: 'ACTIVE' } })
+    await tx.auditLog.create({
+      data: { actorId: ownerId, action: 'Mengaktifkan kembali organisasi', targetType: 'Organization', targetId: org.id, targetLabel: org.name },
+    })
+    return org
+  })
+  const [serialized] = await attachEventsCount([updated])
+  return serialized
+}
+
+// Target pemilik baru HARUS sudah role ORGANIZER — sengaja tidak auto-upgrade
+// role volunteer manapun lewat jalur ini (beda dari registerOrganization yang
+// memang boleh membuat User baru/mengangkat siapapun jadi organizer, krn di
+// sana pembuktian pemiliknya lewat OTP ke email organisasi baru, bukan asumsi
+// "siapapun yang emailnya dimasukkan di sini pasti mau jadi organizer").
+export async function transferMyOrganizationOwnership(ownerId, { newOwnerEmail, password }) {
+  await assertOwnerPassword(ownerId, password)
+
+  const email = newOwnerEmail?.trim()
+  if (!email) throw new AppError(400, 'Email pemilik baru wajib diisi')
+
+  const target = await prisma.user.findUnique({ where: { email } })
+  if (!target || target.role !== 'ORGANIZER') {
+    throw new AppError(400, 'Pemilik baru harus akun organizer yang sudah terdaftar di ActiVibe')
+  }
+
+  const organization = await findMyActiveOrganizationOrThrow(ownerId)
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const org = await tx.organization.update({ where: { id: organization.id }, data: { ownerId: target.id } })
+    await tx.auditLog.create({
+      data: {
+        actorId: ownerId,
+        action: 'Mentransfer kepemilikan organisasi',
+        targetType: 'Organization',
+        targetId: org.id,
+        targetLabel: org.name,
+        metadata: { newOwnerId: target.id, newOwnerEmail: email },
+      },
+    })
+    return org
+  })
+  const [serialized] = await attachEventsCount([updated])
+  return serialized
+}
+
+// Soft-delete: cuma deletedAt yang diisi, status TIDAK diubah jadi DEACTIVATED
+// (keputusan sengaja — deletedAt adalah sinyal "dihapus permanen oleh
+// pemiliknya", DEACTIVATED adalah sinyal terpisah "nonaktif sementara, bisa
+// diaktifkan lagi sendiri"; kalau soft-delete ikut menulis DEACTIVATED, dua
+// konsep itu jadi tidak bisa dibedakan lagi begitu deletedAt suatu saat perlu
+// di-undo/di-restore manual). Event.organizationId & SubOrganizer tetap utuh
+// (Cascade TIDAK dipakai di sini) — histori event tidak boleh rusak.
+export async function softDeleteMyOrganization(ownerId, { password }) {
+  await assertOwnerPassword(ownerId, password)
+  const organization = await findMyActiveOrganizationOrThrow(ownerId)
+
+  await prisma.$transaction([
+    prisma.organization.update({ where: { id: organization.id }, data: { deletedAt: new Date() } }),
+    prisma.auditLog.create({
+      data: { actorId: ownerId, action: 'Menghapus organisasi (soft-delete)', targetType: 'Organization', targetId: organization.id, targetLabel: organization.name },
+    }),
+  ])
 }

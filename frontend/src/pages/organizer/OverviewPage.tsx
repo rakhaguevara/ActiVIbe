@@ -16,6 +16,9 @@ import {
   type OrganizerAiChatMessage,
   type OrganizerAiIdea,
 } from '../../lib/organizerOverviewApi'
+import { getReportsOverview, searchReports, type GlobalSearchResult } from '../../lib/reportsApi'
+import { buildOverviewReportPdf, downloadPdf } from '../../utils/reportExport'
+import { getMyOrganization } from '../../lib/organizationApi'
 import type { OrganizerEvent } from '../../types/organizer'
 import { formatDateShort } from '../../utils/formatDate'
 import './OverviewPage.css'
@@ -108,24 +111,35 @@ export default function OverviewPage() {
   const [stats, setStats] = useState<OrganizerOverviewStats>(EMPTY_STATS)
   const [isStatsLoaded, setIsStatsLoaded] = useState(false)
 
-  // GET /reports/search (Phase 6) belum dibangun — utk fase ini pencarian
-  // difilter langsung dari daftar event organizer yang sudah di-load
-  // useOrganizerData() (tidak ada query baru ke backend). Debounce ringan
-  // supaya tidak filter di tiap keystroke pada daftar event yang besar.
+  // GET /reports/search (Phase 6) — cari event + volunteer milik organizer
+  // ini lewat backend (bukan lagi filter lokal atas events yang sudah
+  // di-load useOrganizerData()). Debounce ringan supaya tidak query tiap
+  // keystroke; searchReports() sendiri juga butuh minimal 2 karakter.
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [searchResults, setSearchResults] = useState<GlobalSearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearchQuery(searchQuery), 250)
     return () => clearTimeout(timeout)
   }, [searchQuery])
 
-  const searchResults = useMemo(() => {
-    const query = debouncedSearchQuery.trim().toLowerCase()
-    if (!query) return []
-    return events.filter((e) => e.title.toLowerCase().includes(query)).slice(0, 8)
-  }, [events, debouncedSearchQuery])
+  useEffect(() => {
+    const query = debouncedSearchQuery.trim()
+    if (query.length < 2) {
+      setSearchResults([])
+      return
+    }
+    let cancelled = false
+    setIsSearching(true)
+    searchReports(query)
+      .then((results) => { if (!cancelled) setSearchResults(results) })
+      .catch(() => { if (!cancelled) setSearchResults([]) })
+      .finally(() => { if (!cancelled) setIsSearching(false) })
+    return () => { cancelled = true }
+  }, [debouncedSearchQuery])
 
   useEffect(() => {
     let cancelled = false
@@ -139,8 +153,26 @@ export default function OverviewPage() {
     return () => { cancelled = true }
   }, [])
 
-  const handleMockClick = (feature: string) => {
-    alert(`Fitur "${feature}" belum tersedia — belum ada fitur generate laporan di backend.`)
+  /* ── "Unduh Laporan" — export client-side dari GET /reports/overview,
+     default PDF (sama data dgn Dashboard Home ini sendiri, lihat
+     reports.service.js getReportsOverview yang reuse buildOrganizerSummary) ── */
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false)
+
+  const handleDownloadReport = async () => {
+    if (isDownloadingReport) return
+    setIsDownloadingReport(true)
+    try {
+      const [overview, organization] = await Promise.all([
+        getReportsOverview(),
+        getMyOrganization().catch(() => null),
+      ])
+      const bytes = await buildOverviewReportPdf(overview, organization?.name ?? 'Organisasi')
+      downloadPdf(bytes, `laporan-overview-${Date.now()}.pdf`)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal membuat laporan, coba lagi.')
+    } finally {
+      setIsDownloadingReport(false)
+    }
   }
 
   const handleDismissWarning = async (id: string) => {
@@ -312,18 +344,24 @@ export default function OverviewPage() {
                     zIndex: 60,
                   }}
                 >
-                  {searchResults.length === 0 ? (
+                  {isSearching ? (
                     <p style={{ margin: 0, padding: '8px 10px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                      Tidak ada event yang cocok dengan &quot;{searchQuery}&quot;.
+                      Mencari...
+                    </p>
+                  ) : searchResults.length === 0 ? (
+                    <p style={{ margin: 0, padding: '8px 10px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                      {searchQuery.trim().length < 2
+                        ? 'Ketik minimal 2 karakter untuk mencari.'
+                        : `Tidak ada event atau volunteer yang cocok dengan "${searchQuery}".`}
                     </p>
                   ) : (
-                    searchResults.map((event) => (
+                    searchResults.map((result) => (
                       <button
-                        key={event.id}
+                        key={`${result.type}-${result.id}`}
                         type="button"
                         onClick={() => {
                           setSearchQuery('')
-                          navigate(`/organizer/events/${event.id}`)
+                          navigate(result.navigateTo)
                         }}
                         style={{
                           display: 'block',
@@ -338,8 +376,10 @@ export default function OverviewPage() {
                           color: 'var(--color-text-body)',
                         }}
                       >
-                        <strong>{event.title}</strong>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{STATUS_LABEL[event.status]}</div>
+                        <strong>{result.label}</strong>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                          {result.type === 'event' ? 'Event' : 'Volunteer'}
+                        </div>
                       </button>
                     ))
                   )}
@@ -359,7 +399,9 @@ export default function OverviewPage() {
             <span className="admin-dashboard-header__updated">
               {isStatsLoaded ? <><FiCheckCircle className="icon-success" /> Last updated now</> : 'Memuat data...'}
             </span>
-            <button className="admin-dashboard-btn" onClick={() => handleMockClick('Unduh Laporan')}><FiDownload /> Unduh Laporan</button>
+            <button className="admin-dashboard-btn" onClick={handleDownloadReport} disabled={isDownloadingReport}>
+              <FiDownload /> {isDownloadingReport ? 'Membuat laporan...' : 'Unduh Laporan'}
+            </button>
             <Link to="/organizer/events/new" className="admin-dashboard-btn admin-dashboard-btn--dark" style={{ textDecoration: 'none' }}>
               <FiPlus /> Buat Event
             </Link>

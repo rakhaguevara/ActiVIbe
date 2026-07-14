@@ -520,7 +520,11 @@ export async function getRegionDistribution() {
       where: { location: { not: null } },
       select: { location: true, user: { select: { role: true, createdAt: true } } },
     }),
-    prisma.organization.findMany({ where: { status: 'ACTIVE' }, select: { location: true, createdAt: true } }),
+    // deletedAt: null — defense-in-depth, organisasi yang sudah di-soft-delete
+    // (Settings > Security) tidak boleh ikut kehitung di statistik region admin
+    // walau status-nya somehow masih ACTIVE (softDeleteMyOrganization sengaja
+    // tidak mengubah status, lihat organization.service.js).
+    prisma.organization.findMany({ where: { status: 'ACTIVE', deletedAt: null }, select: { location: true, createdAt: true } }),
     prisma.event.findMany({ where: { status: { in: REAL_EVENT_STATUSES } }, select: { location: true } }),
     prisma.application.findMany({
       where: { attended: true },
@@ -607,7 +611,8 @@ async function getPendingEventsAgingCount() {
 async function getUnverifiedOrganizationCount() {
   // status: ACTIVE saja — organisasi PENDING_VERIFICATION belum diaktivasi
   // pemiliknya (belum klik link email), jadi belum relevan utk admin verifikasi.
-  return prisma.organization.count({ where: { isVerified: false, status: 'ACTIVE' } })
+  // deletedAt: null — defense-in-depth, sama alasan dgn getRegionDistribution di atas.
+  return prisma.organization.count({ where: { isVerified: false, status: 'ACTIVE', deletedAt: null } })
 }
 
 // Ringkasan angka nyata dipakai admin.service.js sendiri (getOverviewStats)

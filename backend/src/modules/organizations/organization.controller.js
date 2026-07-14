@@ -12,6 +12,10 @@ import {
   getOrganizationActivationInfo,
   requestOrganizationActivationOtp,
   verifyOrganizationActivationOtp,
+  deactivateMyOrganization,
+  reactivateMyOrganization,
+  transferMyOrganizationOwnership,
+  softDeleteMyOrganization,
 } from './organization.service.js'
 
 export async function getMine(req, res, next) {
@@ -112,6 +116,46 @@ export async function postMyBrandingTestEmail(req, res, next) {
   try {
     const result = await sendMyOrganizationTestEmail(req.user.id)
     return res.json(result)
+  } catch (err) {
+    next(err)
+  }
+}
+
+// Danger Zone (SecuritySettingsView) — password re-entry, bukan cuma requireAuth.
+export async function postMyDeactivate(req, res, next) {
+  try {
+    const organization = await deactivateMyOrganization(req.user.id, { password: req.body?.password })
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMyReactivate(req, res, next) {
+  try {
+    const organization = await reactivateMyOrganization(req.user.id, { password: req.body?.password })
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMyTransfer(req, res, next) {
+  try {
+    const organization = await transferMyOrganizationOwnership(req.user.id, {
+      newOwnerEmail: req.body?.newOwnerEmail,
+      password: req.body?.password,
+    })
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMyDelete(req, res, next) {
+  try {
+    await softDeleteMyOrganization(req.user.id, { password: req.body?.password })
+    return res.status(200).json({ success: true })
   } catch (err) {
     next(err)
   }

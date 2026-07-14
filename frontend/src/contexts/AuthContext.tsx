@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import {
   registerRequest,
   loginRequest,
+  verifyTwoFactorLoginRequest,
   verifyOtpRequest,
   resendOtpRequest,
   bypassOtpRequest,
@@ -12,6 +13,7 @@ import {
   type AuthUser,
   type RegisterPayload,
   type LoginPayload,
+  type LoginResult,
 } from '../lib/api'
 
 interface AuthContextValue {
@@ -23,8 +25,15 @@ interface AuthContextValue {
   bypassOtp: (email: string) => Promise<AuthUser>
   requestPasswordReset: (email: string) => Promise<void>
   resetPassword: (email: string, code: string, newPassword: string) => Promise<AuthUser>
-  login: (payload: LoginPayload) => Promise<AuthUser>
+  // Bisa mengembalikan sinyal 2FA ({requiresTwoFactor, userId}) alih-alih user
+  // langsung — lihat verifyTwoFactorLogin di bawah utk langkah lanjutannya.
+  // Akun tanpa 2FA aktif (mayoritas) tidak pernah kena cabang ini.
+  login: (payload: LoginPayload) => Promise<LoginResult>
+  verifyTwoFactorLogin: (userId: string, code: string) => Promise<AuthUser>
   logout: () => Promise<void>
+  // Dipanggil SecuritySettingsView setelah 2FA berhasil di-enroll/dinonaktifkan
+  // supaya `user.twoFactorEnabled` di context ikut ter-update tanpa reload halaman.
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -72,7 +81,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const login = async (payload: LoginPayload) => {
-    const { user } = await loginRequest(payload)
+    const result = await loginRequest(payload)
+    if ('requiresTwoFactor' in result) {
+      return result
+    }
+    setUser(result.user)
+    return result
+  }
+
+  const verifyTwoFactorLogin = async (userId: string, code: string) => {
+    const { user } = await verifyTwoFactorLoginRequest({ userId, code })
     setUser(user)
     return user
   }
@@ -82,9 +100,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const refreshUser = async () => {
+    try {
+      const { user } = await meRequest()
+      setUser(user)
+    } catch {
+      setUser(null)
+    }
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, register, verifyOtp, resendOtp, bypassOtp, requestPasswordReset, resetPassword, login, logout }}
+      value={{
+        user,
+        isLoading,
+        register,
+        verifyOtp,
+        resendOtp,
+        bypassOtp,
+        requestPasswordReset,
+        resetPassword,
+        login,
+        verifyTwoFactorLogin,
+        logout,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

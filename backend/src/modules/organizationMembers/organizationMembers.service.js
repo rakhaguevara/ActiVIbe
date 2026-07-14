@@ -33,7 +33,9 @@ function serializeMember(member) {
 // organisasi saya" utk multi-org). Lazy-create org kalau organizer belum
 // pernah bikin event/organisasi sama sekali.
 async function resolveOrganizationId(organizerId) {
-  const existing = await prisma.organization.findFirst({ where: { ownerId: organizerId }, orderBy: { createdAt: 'asc' } })
+  // deletedAt: null — organisasi yang sudah di-soft-delete tidak boleh
+  // dianggap "organisasi aktif" organizer ini (lihat sweep di CLAUDE.md).
+  const existing = await prisma.organization.findFirst({ where: { ownerId: organizerId, deletedAt: null }, orderBy: { createdAt: 'asc' } })
   if (existing) return existing.id
 
   const owner = await prisma.user.findUniqueOrThrow({ where: { id: organizerId } })

@@ -36,6 +36,12 @@ export async function getActiveTemplateInfo() {
   return { id: template.id, name: template.name }
 }
 
+// Sengaja TIDAK difilter deletedAt: null — ini cuma mengambil logoUrl utk
+// snapshot CertificateVersion dari event yang SUDAH ada & sudah tervalidasi
+// milik organizer ini (findOwnedApplicationOrThrow di atas), jadi tidak ada
+// risiko "menghidupkan kembali" organisasi yang dihapus sbg entitas aktif —
+// kalaupun organizer sempat soft-delete organisasinya, histori sertifikat
+// generate ulang di event lama tetap boleh memakai logo asli yang dulu dipakai.
 async function getMyOrganizationLogoUrl(organizerId) {
   const organization = await prisma.organization.findFirst({
     where: { ownerId: organizerId },

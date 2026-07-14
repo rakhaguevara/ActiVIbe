@@ -1,5 +1,5 @@
-import React from 'react'
-import { useLocation } from 'react-router-dom'
+import React, { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { FiDownloadCloud, FiShare2, FiCalendar } from 'react-icons/fi'
 
 import DashboardView from './reports-views/DashboardView'
@@ -12,8 +12,27 @@ import './ReportsPage.css'
 
 export default function ReportsPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const searchParams = new URLSearchParams(location.search)
   const tabParam = searchParams.get('tab')
+
+  // Date range milik header ("Select Date Range") — cuma ExportReportsView
+  // (tipe laporan Overview/Event Breakdown, lihat reports.service.js) yang
+  // benar2 memakai rentang tanggal ini utk query; 4 view analitik lain masih
+  // mock murni (di luar scope Phase 6), jadi sengaja tidak diikutkan.
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  const handleShareDashboard = async () => {
+    // Tidak ada infrastruktur dashboard publik yang bisa dibagikan (halaman
+    // ini butuh login organizer) — substitusi jujur: salin URL halaman ini
+    // apa adanya, bukan link publik baru yang pura-pura ada.
+    await navigator.clipboard.writeText(window.location.href)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
 
   const renderView = () => {
     switch (tabParam) {
@@ -24,7 +43,14 @@ export default function ReportsPage() {
       case 'impact':
         return <ImpactAnalyticsView />
       case 'export':
-        return <ExportReportsView />
+        return (
+          <ExportReportsView
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+          />
+        )
       case 'dashboard':
       default:
         return <DashboardView />
@@ -64,9 +90,42 @@ export default function ReportsPage() {
         <div className="reports-header__actions">
           {tabParam !== 'export' && (
             <>
-              <button type="button" className="btn btn--outline btn--sm"><FiCalendar /> Select Date Range</button>
-              <button type="button" className="btn btn--outline btn--sm"><FiShare2 /> Share Dashboard</button>
-              <button type="button" className="btn btn--primary btn--sm"><FiDownloadCloud /> Export Report</button>
+              <div style={{ position: 'relative' }}>
+                <button type="button" className="btn btn--outline btn--sm" onClick={() => setIsDatePickerOpen((v) => !v)}>
+                  <FiCalendar /> {dateFrom || dateTo ? `${dateFrom || '…'} – ${dateTo || '…'}` : 'Select Date Range'}
+                </button>
+                {isDatePickerOpen && (
+                  <div
+                    style={{
+                      position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 60,
+                      background: 'var(--color-bg-true)', border: '1px solid var(--color-border-light)',
+                      borderRadius: '12px', boxShadow: '0 12px 32px rgba(26, 26, 46, 0.18)',
+                      padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '220px',
+                    }}
+                  >
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>
+                      Dari
+                      <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} style={{ display: 'block', width: '100%', marginTop: '4px' }} />
+                    </label>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>
+                      Sampai
+                      <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} style={{ display: 'block', width: '100%', marginTop: '4px' }} />
+                    </label>
+                    <button type="button" className="btn btn--outline btn--sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>
+                      Reset
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button type="button" className="btn btn--outline btn--sm" onClick={handleShareDashboard}>
+                <FiShare2 /> {linkCopied ? 'Link disalin!' : 'Share Dashboard'}
+              </button>
+              {/* "Export Report" tidak menduplikasi logic generate ExportReportsView
+                  (report-type/format selector, PDF/CSV builder) — cukup arahkan
+                  ke tab Export yang sudah membawa rentang tanggal ini. */}
+              <button type="button" className="btn btn--primary btn--sm" onClick={() => navigate('/organizer/reports?tab=export')}>
+                <FiDownloadCloud /> Export Report
+              </button>
             </>
           )}
         </div>

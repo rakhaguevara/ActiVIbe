@@ -12,7 +12,8 @@ export async function postBroadcast(req, res, next) {
 
 export async function getBroadcasts(req, res, next) {
   try {
-    const broadcasts = await listBroadcasts(req.user.id)
+    const { eventId, from, to } = req.query
+    const broadcasts = await listBroadcasts(req.user.id, { eventId, from, to })
     return res.json({ broadcasts })
   } catch (err) {
     next(err)

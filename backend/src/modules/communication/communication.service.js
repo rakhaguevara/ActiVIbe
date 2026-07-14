@@ -8,10 +8,12 @@ import { LIMITS, startOfCurrentMonth } from '../subscriptions/plans.js'
 // BroadcastView.tsx sebelumnya 100% mocked (tidak ada fetch/API sama sekali),
 // lalu sempat dibangun minimal (kirim = cuma menulis baris CommunicationLog,
 // tidak ada email beneran terkirim). Sekarang benar2 mengirim email ke
-// volunteer yang cocok dgn target segment lewat sendBroadcastEmail() —
-// Scheduled/Templates/Log view lain TETAP mock, di luar scope perubahan ini
-// (PRD Section O2.5 sendiri bilang mulai dari versi dasar dulu; role/shift/
-// requirement-belum-lengkap sbg target segment tambahan juga di luar scope).
+// volunteer yang cocok dgn target segment lewat sendBroadcastEmail(). Sejak
+// modul messageTemplates/scheduledMessages ditambahkan, dispatchMessage() di
+// bawah jadi inti pengiriman bersama utk broadcast manual (sendBroadcast) MAUPUN
+// broadcast terjadwal (scheduledMessages.service.js dispatchScheduledMessage) —
+// role/shift/requirement-belum-lengkap sbg target segment tambahan tetap di
+// luar scope (PRD Section O2.5).
 function serializeBroadcast(log) {
   return {
     id: log.id,
@@ -74,33 +76,17 @@ async function assertOwnsEvent(organizerId, eventId) {
   return event
 }
 
-export async function sendBroadcast(organizerId, { eventId, title, message, targetSegment }) {
-  if (!eventId || typeof eventId !== 'string') {
-    throw new AppError(400, 'Target event wajib dipilih')
-  }
-  if (!title || typeof title !== 'string' || !title.trim()) {
-    throw new AppError(400, 'Judul broadcast wajib diisi')
-  }
-  if (!message || typeof message !== 'string' || !message.trim()) {
-    throw new AppError(400, 'Isi pesan wajib diisi')
-  }
-
-  const event = await assertOwnsEvent(organizerId, eventId)
-
-  const tier = await getUserTier(organizerId)
-  const limit = LIMITS[tier].broadcastPerMonth
-  if (limit !== Infinity) {
-    const used = await countBroadcastsThisMonth(organizerId)
-    if (used >= limit) {
-      throw new AppError(
-        403,
-        `Kuota broadcast paket Free bulan ini sudah habis (maks ${limit}x/bulan) — sisanya kirim manual lewat WhatsApp, atau upgrade ke ActiVibe Plus Pro untuk broadcast tanpa batas.`,
-      )
-    }
-  }
-
-  const trimmedTitle = title.trim()
-  const trimmedMessage = message.trim()
+// Inti pengiriman (resolve recipients -> kirim email -> tulis CommunicationLog
+// -> tulis AuditLog), diekstrak supaya bisa dipakai ULANG oleh dua jalur:
+// sendBroadcast() (manual, di bawah) dan scheduledMessages.service.js
+// dispatchScheduledMessage() (otomatis lewat poller). Sengaja tetap melakukan
+// assertOwnsEvent-nya sendiri (bukan menerima `event` yang sudah di-fetch
+// caller) — meski sendBroadcast() sudah panggil assertOwnsEvent lebih dulu utk
+// urutan error yang sama seperti sebelum refactor (cek event dulu baru kuota),
+// dispatchMessage() tetap harus valid berdiri sendiri krn dipanggil scheduler
+// tanpa validasi apa pun sebelumnya.
+export async function dispatchMessage({ eventId, title, message, targetSegment, sentById }) {
+  const event = await assertOwnsEvent(sentById, eventId)
   const resolvedSegment = targetSegment?.trim() || 'Semua Volunteer Diterima'
 
   const recipients = await resolveRecipients(eventId, resolvedSegment)
@@ -118,8 +104,8 @@ export async function sendBroadcast(organizerId, { eventId, title, message, targ
         volunteerName: recipient.name,
         eventTitle: event.title,
         organizerName,
-        broadcastTitle: trimmedTitle,
-        message: trimmedMessage,
+        broadcastTitle: title,
+        message,
       }),
     ),
   )
@@ -127,19 +113,19 @@ export async function sendBroadcast(organizerId, { eventId, title, message, targ
   const log = await prisma.communicationLog.create({
     data: {
       eventId,
-      title: trimmedTitle,
-      message: trimmedMessage,
+      title,
+      message,
       targetSegment: resolvedSegment,
       deliveryChannel: 'EMAIL',
       recipientCount: recipients.length,
-      sentById: organizerId,
+      sentById,
     },
     include: { event: { select: { title: true } }, sentBy: { select: { name: true } } },
   })
 
   await prisma.auditLog.create({
     data: {
-      actorId: organizerId,
+      actorId: sentById,
       action: 'Mengirim broadcast',
       targetType: 'Event',
       targetId: eventId,
@@ -148,12 +134,73 @@ export async function sendBroadcast(organizerId, { eventId, title, message, targ
     },
   })
 
+  return log
+}
+
+export async function sendBroadcast(organizerId, { eventId, title, message, targetSegment }) {
+  if (!eventId || typeof eventId !== 'string') {
+    throw new AppError(400, 'Target event wajib dipilih')
+  }
+  if (!title || typeof title !== 'string' || !title.trim()) {
+    throw new AppError(400, 'Judul broadcast wajib diisi')
+  }
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    throw new AppError(400, 'Isi pesan wajib diisi')
+  }
+
+  // Cek kepemilikan event dulu (sebelum kuota) — dipertahankan persis urutan
+  // sebelum refactor supaya pesan error yang muncul ke user tidak berubah.
+  await assertOwnsEvent(organizerId, eventId)
+
+  const tier = await getUserTier(organizerId)
+  const limit = LIMITS[tier].broadcastPerMonth
+  if (limit !== Infinity) {
+    const used = await countBroadcastsThisMonth(organizerId)
+    if (used >= limit) {
+      throw new AppError(
+        403,
+        `Kuota broadcast paket Free bulan ini sudah habis (maks ${limit}x/bulan) — sisanya kirim manual lewat WhatsApp, atau upgrade ke ActiVibe Plus Pro untuk broadcast tanpa batas.`,
+      )
+    }
+  }
+
+  const trimmedTitle = title.trim()
+  const trimmedMessage = message.trim()
+
+  const log = await dispatchMessage({
+    eventId,
+    title: trimmedTitle,
+    message: trimmedMessage,
+    targetSegment,
+    sentById: organizerId,
+  })
+
   return serializeBroadcast(log)
 }
 
-export async function listBroadcasts(organizerId) {
+// {eventId, from, to} opsional (dipakai CommunicationLogView utk filter tanpa
+// mengubah perilaku default saat dipanggil tanpa argumen kedua sama sekali).
+export async function listBroadcasts(organizerId, { eventId, from, to } = {}) {
+  const where = { sentById: organizerId }
+  if (eventId) {
+    where.eventId = eventId
+  }
+  if (from || to) {
+    where.sentAt = {}
+    if (from) where.sentAt.gte = new Date(from)
+    if (to) {
+      // `to` biasanya cuma tanggal (YYYY-MM-DD) dari <input type="date">,
+      // jadi digeser ke akhir hari itu supaya inklusif.
+      const toDate = new Date(to)
+      if (!Number.isNaN(toDate.getTime())) {
+        toDate.setHours(23, 59, 59, 999)
+        where.sentAt.lte = toDate
+      }
+    }
+  }
+
   const logs = await prisma.communicationLog.findMany({
-    where: { sentById: organizerId },
+    where,
     include: { event: { select: { title: true } }, sentBy: { select: { name: true } } },
     orderBy: { sentAt: 'desc' },
     take: 50,

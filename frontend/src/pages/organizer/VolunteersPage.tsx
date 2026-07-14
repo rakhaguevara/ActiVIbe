@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { FiDownload, FiUserPlus } from 'react-icons/fi'
 import AllVolunteersView from './volunteers-views/AllVolunteersView'
 import AcceptedVolunteersView from './volunteers-views/AcceptedVolunteersView'
@@ -8,18 +8,22 @@ import CompletedVolunteersView from './volunteers-views/CompletedVolunteersView'
 import NoShowVolunteersView from './volunteers-views/NoShowVolunteersView'
 import SectionState from '../../components/SectionState'
 import { getOrganizerVolunteersRequest } from '../../lib/organizerApi'
+import { getMyOrganization } from '../../lib/organizationApi'
+import { buildVolunteersCsv, buildVolunteersListPdf, downloadCsv, downloadPdf } from '../../utils/reportExport'
 import type { OrganizerVolunteersResponse } from '../../types/organizer'
 import './VolunteersPage.css'
 import '../admin/OverviewPage.css'
 
 export default function VolunteersPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const searchParams = new URLSearchParams(location.search)
   const statusParam = searchParams.get('status')
 
   const [data, setData] = useState<OrganizerVolunteersResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState<'report' | 'data' | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -37,6 +41,35 @@ export default function VolunteersPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  // "Download Report" (PDF) & "Export Data" (CSV) — dua format berbeda utk
+  // daftar volunteer yang sama (OrganizerVolunteer[] yang sudah di-load di
+  // atas), bukan dua fitur beda. "Invite Volunteer" belum punya sistem
+  // undangan volunteer tersendiri — deep-link ke composer broadcast yang
+  // sudah nyata, pola sama dgn kebab menu "Kirim Pesan" di volunteers-views/*.
+  const handleDownloadReport = async () => {
+    if (!data || isExporting) return
+    setIsExporting('report')
+    try {
+      const organization = await getMyOrganization().catch(() => null)
+      const bytes = await buildVolunteersListPdf(data.volunteers, organization?.name ?? 'Organisasi')
+      downloadPdf(bytes, `laporan-volunteer-${Date.now()}.pdf`)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal membuat laporan volunteer.')
+    } finally {
+      setIsExporting(null)
+    }
+  }
+
+  const handleExportData = () => {
+    if (!data || isExporting) return
+    setIsExporting('data')
+    try {
+      downloadCsv(buildVolunteersCsv(data.volunteers), `daftar-volunteer-${Date.now()}.csv`)
+    } finally {
+      setIsExporting(null)
+    }
+  }
 
   const renderView = () => {
     if (loading) {
@@ -112,9 +145,15 @@ export default function VolunteersPage() {
           <div className="admin-dashboard-header__updated">
           </div>
           <div className="admin-dashboard-header__bottom-right">
-            <button type="button" className="admin-dashboard-btn"><FiDownload /> Download Report</button>
-            <button type="button" className="admin-dashboard-btn"><FiDownload /> Export Data</button>
-            <button type="button" className="admin-dashboard-btn admin-dashboard-btn--dark"><FiUserPlus /> Invite Volunteer</button>
+            <button type="button" className="admin-dashboard-btn" onClick={handleDownloadReport} disabled={!data || isExporting !== null}>
+              <FiDownload /> {isExporting === 'report' ? 'Membuat laporan...' : 'Download Report'}
+            </button>
+            <button type="button" className="admin-dashboard-btn" onClick={handleExportData} disabled={!data || isExporting !== null}>
+              <FiDownload /> Export Data
+            </button>
+            <button type="button" className="admin-dashboard-btn admin-dashboard-btn--dark" onClick={() => navigate('/organizer/communication?tab=broadcast')}>
+              <FiUserPlus /> Invite Volunteer
+            </button>
           </div>
         </div>
       </div>

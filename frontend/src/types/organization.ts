@@ -1,6 +1,8 @@
 export interface Organization {
   id: string
   name: string
+  // Dipakai SecuritySettingsView Danger Zone (Deactivate vs Reactivate).
+  status?: 'PENDING_VERIFICATION' | 'ACTIVE' | 'DEACTIVATED'
   /** URL logo organisasi — kalau kosong, UI menampilkan placeholder */
   logoUrl?: string
   shortProfile: string
