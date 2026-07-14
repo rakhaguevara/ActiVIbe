@@ -1,8 +1,16 @@
 import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
-import { PLANS, LIMITS, TIERS, isPaidTier, startOfCurrentMonth } from './plans.js'
-
-const SUBSCRIPTION_PERIOD_DAYS = 30
+import {
+  PLAN_META,
+  LIMITS,
+  TIERS,
+  AUDIENCES,
+  BILLING_CYCLES,
+  isPaidTier,
+  getMonthlyPrice,
+  getBillingAmount,
+  startOfCurrentMonth,
+} from './plans.js'
 
 function serializeLimits(tier) {
   const limits = LIMITS[tier]
@@ -13,8 +21,24 @@ function serializeLimits(tier) {
   return serialized
 }
 
-export function serializePlans() {
-  return TIERS.map((tier) => ({ ...PLANS[tier], limits: serializeLimits(tier) }))
+function serializePlan(tier, audience, cycle) {
+  return {
+    tier,
+    name: PLAN_META[tier].name,
+    tagline: PLAN_META[tier].tagline,
+    audience,
+    billingCycle: cycle,
+    priceMonthly: getMonthlyPrice(tier, audience, cycle),
+    priceTotal: getBillingAmount(tier, audience, cycle),
+    limits: serializeLimits(tier),
+  }
+}
+
+// Katalog publik halaman pricing — audience/cycle dipilih eksplisit di UI
+// (section Organizer/Volunteer x toggle Monthly/Yearly), bukan dari
+// User.role, supaya konsisten dgn checkout() di bawah.
+export function serializePlans(audience, cycle) {
+  return TIERS.map((tier) => serializePlan(tier, audience, cycle))
 }
 
 function isExpired(subscription) {
@@ -78,16 +102,27 @@ export async function getMySubscription(userId, role) {
   const tier = !subscription || subscription.status === 'CANCELLED' || isExpired(subscription) ? 'FREE' : subscription.tier
   const usage = role === 'ORGANIZER' ? await getOrganizerUsage(userId) : null
 
+  // Audience/cycle dari baris Subscription (dipilih saat checkout) kalau ada
+  // langganan berbayar; kalau FREE (belum pernah checkout), tebak audience
+  // dari role akun saat ini murni utk keperluan tampilan (harga FREE = 0 di
+  // audience manapun, jadi tidak memengaruhi angka).
+  const audience = subscription?.audience ?? (role === 'ORGANIZER' ? 'ORGANIZER' : 'VOLUNTEER')
+  const billingCycle = subscription?.billingCycle ?? 'MONTHLY'
+
   return {
     tier,
+    audience,
+    billingCycle,
     status: subscription?.status ?? 'ACTIVE',
     currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
     cancelledAt: subscription?.cancelledAt ?? null,
-    plan: { ...PLANS[tier], limits: serializeLimits(tier) },
+    plan: serializePlan(tier, audience, billingCycle),
     usage,
     transactions: (subscription?.transactions ?? []).map((t) => ({
       id: t.id,
       tier: t.tier,
+      audience: t.audience,
+      billingCycle: t.billingCycle,
       amount: t.amount,
       status: t.status,
       method: t.method,
@@ -96,13 +131,17 @@ export async function getMySubscription(userId, role) {
   }
 }
 
-async function activateSubscription(userId, tier, method) {
-  const currentPeriodEnd = new Date(Date.now() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000)
+const BILLING_PERIOD_DAYS = { MONTHLY: 30, YEARLY: 365 }
+
+async function activateSubscription(userId, tier, audience, cycle, method) {
+  const periodDays = BILLING_PERIOD_DAYS[cycle]
+  const currentPeriodEnd = new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000)
+  const amount = method === 'admin-manual' ? 0 : getBillingAmount(tier, audience, cycle)
 
   const subscription = await prisma.subscription.upsert({
     where: { userId },
-    update: { tier, status: 'ACTIVE', currentPeriodEnd, cancelledAt: null },
-    create: { userId, tier, status: 'ACTIVE', currentPeriodEnd },
+    update: { tier, audience, billingCycle: cycle, status: 'ACTIVE', currentPeriodEnd, cancelledAt: null },
+    create: { userId, tier, audience, billingCycle: cycle, status: 'ACTIVE', currentPeriodEnd },
   })
 
   await prisma.transaction.create({
@@ -110,7 +149,9 @@ async function activateSubscription(userId, tier, method) {
       subscriptionId: subscription.id,
       userId,
       tier,
-      amount: method === 'admin-manual' ? 0 : PLANS[tier].priceMonthly,
+      audience,
+      billingCycle: cycle,
+      amount,
       status: 'SUCCESS',
       method,
     },
@@ -120,13 +161,21 @@ async function activateSubscription(userId, tier, method) {
 }
 
 // Mock checkout — TIDAK ADA payment gateway asli, tier langsung aktif
-// (simulasi) begitu dipanggil. Dicatat sbg Transaction method 'simulasi'
-// supaya tetap muncul di halaman Admin Revenue.
-export async function checkout(userId, tier) {
+// (simulasi) begitu dipanggil. audience = "dibeli sebagai" role apa (dipilih
+// eksplisit di halaman pricing, lihat plans.js) — ikut menentukan harga.
+// Dicatat sbg Transaction method 'simulasi' supaya tetap muncul di halaman
+// Admin Revenue.
+export async function checkout(userId, tier, audience, cycle) {
   if (!isPaidTier(tier)) {
     throw new AppError(400, 'Paket tidak valid untuk checkout')
   }
-  return activateSubscription(userId, tier, 'simulasi')
+  if (!AUDIENCES.includes(audience)) {
+    throw new AppError(400, 'Audience tidak valid untuk checkout')
+  }
+  if (!BILLING_CYCLES.includes(cycle)) {
+    throw new AppError(400, 'Siklus penagihan tidak valid untuk checkout')
+  }
+  return activateSubscription(userId, tier, audience, cycle, 'simulasi')
 }
 
 export async function cancel(userId) {
@@ -143,7 +192,8 @@ export async function cancel(userId) {
 
 // Dipakai halaman Admin Revenue sbg jalur "approve manual" (fallback dari
 // mock checkout self-serve) — method 'admin-manual', amount 0 (bukan
-// transaksi uang beneran, cuma pencatatan aksi admin).
+// transaksi uang beneran, cuma pencatatan aksi admin). Audience diambil dari
+// role akun target (bukan pilihan admin) krn tidak ada UI utk itu di sana.
 export async function adminSetTier(userId, tier) {
   if (!TIERS.includes(tier)) {
     throw new AppError(400, 'Tier tidak valid')
@@ -156,5 +206,7 @@ export async function adminSetTier(userId, tier) {
     })
     return getMySubscription(userId)
   }
-  return activateSubscription(userId, tier, 'admin-manual')
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+  const audience = user?.role === 'ORGANIZER' ? 'ORGANIZER' : 'VOLUNTEER'
+  return activateSubscription(userId, tier, audience, 'MONTHLY', 'admin-manual')
 }

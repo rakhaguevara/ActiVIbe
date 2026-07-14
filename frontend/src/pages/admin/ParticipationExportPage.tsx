@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FiDownload, FiSearch, FiFilter, FiMoreVertical } from 'react-icons/fi'
-import { listParticipation } from '../../lib/adminApi'
-import type { ParticipationRecord } from '../../types/admin'
+import { listParticipation, listParticipationCategories } from '../../lib/adminApi'
+import type { ParticipationRecord, ParticipationCategoryStat } from '../../types/admin'
 import './ParticipationExportPage.css'
 
 function toCsvValue(value: string | number) {
@@ -9,18 +9,39 @@ function toCsvValue(value: string | number) {
   return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str
 }
 
+// Emoji + warna pastel per kategori event (sesuai CATEGORY_OPTIONS di
+// CreateEventPage.tsx). Kategori di luar daftar ini (kalau ada data lama)
+// jatuh ke fallback generik, bukan disembunyikan.
+const CATEGORY_META: Record<string, { emoji: string; bg: string; color: string }> = {
+  'Lingkungan': { emoji: '🌍', bg: '#e6f0ff', color: '#0066ff' },
+  'Pendidikan': { emoji: '📚', bg: '#fff4e6', color: '#ff9900' },
+  'Kesehatan': { emoji: '❤️', bg: '#e6ffe6', color: '#00cc00' },
+  'Sosial': { emoji: '🤝', bg: '#f5e6ff', color: '#9900ff' },
+  'Teknologi': { emoji: '💻', bg: '#fff0e6', color: '#cc6600' },
+  'Seni & Budaya': { emoji: '🎨', bg: '#ffe6f0', color: '#cc0066' },
+  'Umum': { emoji: '🌐', bg: '#ffe6e6', color: '#ff0000' },
+}
+const DEFAULT_CATEGORY_META = { emoji: '✨', bg: '#f0f0f0', color: '#666666' }
+
+function getCategoryMeta(category: string) {
+  return CATEGORY_META[category] ?? DEFAULT_CATEGORY_META
+}
+
 export default function ParticipationExportPage() {
   const [records, setRecords] = useState<ParticipationRecord[]>([])
+  const [categoryStats, setCategoryStats] = useState<ParticipationCategoryStat[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     let cancelled = false
-    listParticipation()
-      .then((data) => {
+    Promise.all([listParticipation(), listParticipationCategories()])
+      .then(([data, categories]) => {
         if (cancelled) return
         setRecords(data)
+        setCategoryStats(categories)
         if (data.length > 0) {
           const dates = data.map((r) => r.date)
           setFromDate(dates.reduce((min, d) => (d < min ? d : min), dates[0]))
@@ -32,10 +53,16 @@ export default function ParticipationExportPage() {
     return () => { cancelled = true }
   }, [])
 
-  const filteredRecords = useMemo(
-    () => records.filter((r) => (!fromDate || r.date >= fromDate) && (!toDate || r.date <= toDate)),
-    [records, fromDate, toDate],
-  )
+  const filteredRecords = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase()
+    return records.filter((r) => {
+      const inDateRange = (!fromDate || r.date >= fromDate) && (!toDate || r.date <= toDate)
+      const matchesKeyword = !keyword
+        || r.userName.toLowerCase().includes(keyword)
+        || r.eventTitle.toLowerCase().includes(keyword)
+      return inDateRange && matchesKeyword
+    })
+  }, [records, fromDate, toDate, searchTerm])
 
   const handleExport = () => {
     const header = ['Nama Volunteer', 'Kegiatan', 'Tanggal', 'Hadir', 'Metrik Dampak', 'Nilai', 'Satuan']
@@ -74,98 +101,48 @@ export default function ParticipationExportPage() {
         </div>
         <div className="admin-participation__header-search">
           <FiSearch />
-          <input type="text" placeholder="Cari volunteer atau kegiatan..." />
+          <input
+            type="text"
+            placeholder="Cari volunteer atau kegiatan..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </header>
 
       {/* KPI Cards (Scrollable) */}
       <div className="admin-participation__kpi-scroll">
         <div className="admin-participation__kpi-track">
-          
-          <div className="admin-participation__kpi-card">
-            <div className="kpi-card__top">
-              <div className="kpi-card__icon" style={{ background: '#e6f0ff', color: '#0066ff' }}>🌍</div>
-              <span className="kpi-card__title">Lingkungan</span>
-              <button className="kpi-card__more"><FiMoreVertical /></button>
-            </div>
-            <div className="kpi-card__bottom">
-              <h2>5,420</h2>
-              <span className="kpi-card__trend positive">📈 +12.5% dari bulan lalu</span>
-            </div>
-          </div>
-
-          <div className="admin-participation__kpi-card">
-            <div className="kpi-card__top">
-              <div className="kpi-card__icon" style={{ background: '#fff4e6', color: '#ff9900' }}>📚</div>
-              <span className="kpi-card__title">Pendidikan</span>
-              <button className="kpi-card__more"><FiMoreVertical /></button>
-            </div>
-            <div className="kpi-card__bottom">
-              <h2>3,150</h2>
-              <span className="kpi-card__trend negative">📉 -2.1% dari bulan lalu</span>
-            </div>
-          </div>
-
-          <div className="admin-participation__kpi-card">
-            <div className="kpi-card__top">
-              <div className="kpi-card__icon" style={{ background: '#e6ffe6', color: '#00cc00' }}>🏥</div>
-              <span className="kpi-card__title">Kesehatan</span>
-              <button className="kpi-card__more"><FiMoreVertical /></button>
-            </div>
-            <div className="kpi-card__bottom">
-              <h2>1,200</h2>
-              <span className="kpi-card__trend positive">📈 +5.4% dari bulan lalu</span>
-            </div>
-          </div>
-
-          <div className="admin-participation__kpi-card">
-            <div className="kpi-card__top">
-              <div className="kpi-card__icon" style={{ background: '#f5e6ff', color: '#9900ff' }}>🤝</div>
-              <span className="kpi-card__title">Sosial</span>
-              <button className="kpi-card__more"><FiMoreVertical /></button>
-            </div>
-            <div className="kpi-card__bottom">
-              <h2>850</h2>
-              <span className="kpi-card__trend negative">📉 -1.2% dari bulan lalu</span>
-            </div>
-          </div>
-
-          <div className="admin-participation__kpi-card">
-            <div className="kpi-card__top">
-              <div className="kpi-card__icon" style={{ background: '#ffe6e6', color: '#ff0000' }}>🌋</div>
-              <span className="kpi-card__title">Bencana</span>
-              <button className="kpi-card__more"><FiMoreVertical /></button>
-            </div>
-            <div className="kpi-card__bottom">
-              <h2>420</h2>
-              <span className="kpi-card__trend positive">📈 +2.4% dari bulan lalu</span>
-            </div>
-          </div>
-
-          <div className="admin-participation__kpi-card">
-            <div className="kpi-card__top">
-              <div className="kpi-card__icon" style={{ background: '#fff0e6', color: '#cc6600' }}>🐾</div>
-              <span className="kpi-card__title">Hewan</span>
-              <button className="kpi-card__more"><FiMoreVertical /></button>
-            </div>
-            <div className="kpi-card__bottom">
-              <h2>315</h2>
-              <span className="kpi-card__trend positive">📈 +4.1% dari bulan lalu</span>
-            </div>
-          </div>
-
-          <div className="admin-participation__kpi-card">
-            <div className="kpi-card__top">
-              <div className="kpi-card__icon" style={{ background: '#ffe6f0', color: '#cc0066' }}>🎨</div>
-              <span className="kpi-card__title">Kesenian</span>
-              <button className="kpi-card__more"><FiMoreVertical /></button>
-            </div>
-            <div className="kpi-card__bottom">
-              <h2>150</h2>
-              <span className="kpi-card__trend negative">📉 -0.5% dari bulan lalu</span>
-            </div>
-          </div>
-
+          {isLoading && (
+            <span style={{ color: '#999', padding: '8px 0' }}>Memuat ringkasan kategori...</span>
+          )}
+          {!isLoading && categoryStats.length === 0 && (
+            <span style={{ color: '#999', padding: '8px 0' }}>Belum ada data partisipasi per kategori.</span>
+          )}
+          {categoryStats.map((stat) => {
+            const meta = getCategoryMeta(stat.category)
+            const hasTrend = stat.growthPct !== null
+            const isPositive = (stat.growthPct ?? 0) >= 0
+            return (
+              <div className="admin-participation__kpi-card" key={stat.category}>
+                <div className="kpi-card__top">
+                  <div className="kpi-card__icon" style={{ background: meta.bg, color: meta.color }}>{meta.emoji}</div>
+                  <span className="kpi-card__title">{stat.category}</span>
+                  <button className="kpi-card__more"><FiMoreVertical /></button>
+                </div>
+                <div className="kpi-card__bottom">
+                  <h2>{stat.count.toLocaleString('id-ID')}</h2>
+                  {hasTrend ? (
+                    <span className={`kpi-card__trend ${isPositive ? 'positive' : 'negative'}`}>
+                      {isPositive ? '📈' : '📉'} {isPositive ? '+' : ''}{stat.growthPct}% dari bulan lalu
+                    </span>
+                  ) : (
+                    <span className="kpi-card__trend">Belum ada data bulan lalu</span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -212,7 +189,7 @@ export default function ParticipationExportPage() {
                       <img src={`https://ui-avatars.com/api/?name=${r.userName}&background=random&color=fff`} alt={r.userName} className="user-avatar" />
                       <div className="user-info">
                         <strong>{r.userName}</strong>
-                        <small>{r.userName.replace(/\s+/g, '').toLowerCase()}@mail.com</small>
+                        <small>{r.userEmail}</small>
                       </div>
                     </div>
                   </td>

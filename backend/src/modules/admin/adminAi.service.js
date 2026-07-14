@@ -165,14 +165,20 @@ const CHAT_SCHEMA = {
   additionalProperties: false,
 }
 
-function buildChatSystemPrompt(summary) {
-  return `Kamu adalah asisten admin ActiVibe. Jawab HANYA berdasarkan ringkasan data dashboard berikut
-(angka nyata dari database) — jangan mengarang angka yang tidak ada di sini. Jawab singkat, bahasa
-Indonesia. Kalau admin bertanya sesuatu yang tidak bisa dijawab dari data ini, katakan terus terang
-bahwa datanya tidak tersedia, jangan menebak.
+function buildChatSystemPrompt(summary, knowledge) {
+  return `Kamu adalah asisten admin ActiVibe. Jawab HANYA berdasarkan data berikut (angka & data nyata dari
+database) — jangan mengarang apa pun yang tidak ada di sini. Jawab singkat, bahasa Indonesia. Kalau admin
+bertanya sesuatu yang tidak bisa dijawab dari data ini, katakan terus terang bahwa datanya tidak tersedia,
+jangan menebak.
 
-RINGKASAN DATA DASHBOARD:
-${JSON.stringify(summary, null, 2)}`
+RINGKASAN DATA DASHBOARD (angka agregat platform-wide):
+${JSON.stringify(summary, null, 2)}
+
+DATA DETAIL TERKAIT PERTANYAAN (organisasi/kegiatan/feedback/laporan penutupan paling relevan dgn
+pertanyaan admin — daftar ini SUDAH disaring/dipilihkan, bukan seluruh database, jadi kalau sesuatu tidak
+ada di sini, katakan datanya tidak tersedia/tidak ditemukan, jangan mengasumsikan tidak ada sama sekali di
+platform):
+${JSON.stringify(knowledge, null, 2)}`
 }
 
 function buildFallbackReply(summary) {
@@ -193,7 +199,7 @@ function sanitizeMessages(messages) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_MESSAGE_LENGTH) }))
 }
 
-export async function chat(summary, rawMessages) {
+export async function chat(summary, rawMessages, knowledge) {
   const messages = sanitizeMessages(rawMessages)
   if (messages.length === 0) {
     return { reply: 'Silakan tulis pertanyaan Anda terlebih dahulu.', aiGenerated: false }
@@ -206,7 +212,7 @@ export async function chat(summary, rawMessages) {
 
   try {
     const parsed = await provider.generate({
-      system: buildChatSystemPrompt(summary),
+      system: buildChatSystemPrompt(summary, knowledge),
       prompt: transcript,
       schema: CHAT_SCHEMA,
     })

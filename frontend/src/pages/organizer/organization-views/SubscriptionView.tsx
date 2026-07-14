@@ -2,12 +2,20 @@ import { useEffect, useState } from 'react'
 import {
   FiCheck, FiStar, FiZap,
 } from 'react-icons/fi'
-import { getMySubscription, getPlans, cancelSubscription, type MySubscription, type Plan, type SubscriptionTier } from '../../../lib/subscriptionApi'
+import {
+  getMySubscription,
+  getPlans,
+  cancelSubscription,
+  type MySubscription,
+  type Plan,
+  type SubscriptionTier,
+  type BillingCycle,
+} from '../../../lib/subscriptionApi'
 import PaymentSimulationModal from '../../../components/PaymentSimulationModal'
 import '../OrganizationPage.css'
 
 function formatRupiah(amount: number): string {
-  return amount === 0 ? 'Gratis' : `Rp${new Intl.NumberFormat('id-ID').format(amount)}/bulan`
+  return amount === 0 ? 'Gratis' : `Rp${new Intl.NumberFormat('id-ID').format(amount)}`
 }
 
 function usageLabel(used: number, limit: number | null, unit: string) {
@@ -23,6 +31,7 @@ function usagePct(used: number, limit: number | null) {
 export default function SubscriptionView() {
   const [subscription, setSubscription] = useState<MySubscription | null>(null)
   const [plans, setPlans] = useState<Plan[]>([])
+  const [cycle, setCycle] = useState<BillingCycle>('MONTHLY')
   const [isLoading, setIsLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null)
@@ -37,8 +46,11 @@ export default function SubscriptionView() {
 
   useEffect(() => {
     load()
-    getPlans().then(setPlans).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    getPlans('ORGANIZER', cycle).then(setPlans).catch(() => {})
+  }, [cycle])
 
   const handleCancel = async () => {
     if (!window.confirm('Batalkan langganan ActiVibe Plus? Fitur premium akan langsung nonaktif.')) return
@@ -73,25 +85,47 @@ export default function SubscriptionView() {
               <div style={{ color: 'var(--color-text-muted)' }}>{plan.tagline}</div>
             </div>
             {!isPro && (
-              <button
-                className="btn btn--primary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                disabled={busy}
-                onClick={() => {
-                  const targetTier: SubscriptionTier = isFree ? 'PLUS_STARTER' : 'PLUS_PRO'
-                  const targetPlan = plans.find((p) => p.tier === targetTier)
-                  if (targetPlan) setCheckoutPlan(targetPlan)
-                }}
-              >
-                <FiZap /> Upgrade ke {isFree ? 'ActiVibe Plus Starter' : 'ActiVibe Plus Pro'}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '4px', background: 'var(--color-bg-surface)', borderRadius: '999px', padding: '3px' }}>
+                  <button
+                    type="button"
+                    className={`btn btn--sm ${cycle === 'MONTHLY' ? 'btn--primary' : 'btn--outline'}`}
+                    style={{ borderRadius: '999px' }}
+                    onClick={() => setCycle('MONTHLY')}
+                  >
+                    Bulanan
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn--sm ${cycle === 'YEARLY' ? 'btn--primary' : 'btn--outline'}`}
+                    style={{ borderRadius: '999px' }}
+                    onClick={() => setCycle('YEARLY')}
+                  >
+                    Tahunan
+                  </button>
+                </div>
+                <button
+                  className="btn btn--primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                  disabled={busy}
+                  onClick={() => {
+                    const targetTier: SubscriptionTier = isFree ? 'PLUS_STARTER' : 'PLUS_PRO'
+                    const targetPlan = plans.find((p) => p.tier === targetTier)
+                    if (targetPlan) setCheckoutPlan(targetPlan)
+                  }}
+                >
+                  <FiZap /> Upgrade ke {isFree ? 'ActiVibe Plus Starter' : 'ActiVibe Plus Pro'}
+                </button>
+              </div>
             )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', paddingBottom: '32px', borderBottom: '1px solid var(--color-border-light)', marginBottom: '32px' }}>
             <div>
               <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>Harga</div>
-              <div style={{ fontSize: '16px', fontWeight: 600 }}>{formatRupiah(plan.priceMonthly)}</div>
+              <div style={{ fontSize: '16px', fontWeight: 600 }}>
+                {formatRupiah(plan.priceMonthly)}{plan.priceMonthly > 0 ? '/bulan' : ''}
+              </div>
             </div>
             <div>
               <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>Berlaku Sampai</div>
@@ -200,8 +234,10 @@ export default function SubscriptionView() {
       {checkoutPlan && (
         <PaymentSimulationModal
           tier={checkoutPlan.tier as Exclude<SubscriptionTier, 'FREE'>}
+          audience={checkoutPlan.audience}
+          billingCycle={checkoutPlan.billingCycle}
           planName={checkoutPlan.name}
-          priceMonthly={checkoutPlan.priceMonthly}
+          priceTotal={checkoutPlan.priceTotal}
           onClose={() => setCheckoutPlan(null)}
           onSuccess={() => {
             setCheckoutPlan(null)

@@ -15,7 +15,11 @@ const STATUS_LABEL: Record<CertificateQueueItem['status'], string> = {
   COMPLETED: 'Selesai',
 }
 
-export default function QueueCertificatesView() {
+interface QueueCertificatesViewProps {
+  eventId?: string
+}
+
+export default function QueueCertificatesView({ eventId }: QueueCertificatesViewProps = {}) {
   const [queue, setQueue] = useState<CertificateQueueItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -25,7 +29,7 @@ export default function QueueCertificatesView() {
   const [quota, setQuota] = useState<{ used: number; limit: number | null } | null>(null)
 
   const loadData = async () => {
-    const [items, subscription] = await Promise.all([getCertificateQueueRequest(), getMySubscription()])
+    const [items, subscription] = await Promise.all([getCertificateQueueRequest(eventId), getMySubscription()])
     setQueue(items)
     setSelected(new Set())
     if (subscription.usage) {
@@ -38,7 +42,8 @@ export default function QueueCertificatesView() {
     loadData()
       .catch((err) => setError(err instanceof Error ? err.message : 'Gagal memuat antrean sertifikat.'))
       .finally(() => setIsLoading(false))
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId])
 
   const toggleSelected = (applicationId: string) => {
     setSelected((prev) => {

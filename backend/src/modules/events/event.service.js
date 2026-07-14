@@ -734,6 +734,25 @@ export async function listMatchableEvents() {
   return listPublishedEventsForVolunteer()
 }
 
+// "Kegiatan Terpopuler" (landing page, tidak butuh login) — populer diukur
+// dari filledSlots (jumlah pendaftar real), BUKAN rating (belum ada fitur
+// ulasan organisasi). Selalu dipotong ke 10 (keputusan produk, bukan
+// dikonfigurasi lewat query param).
+const POPULAR_LANDING_LIMIT = 10
+
+export async function listPopularEventsForLanding() {
+  const events = await prisma.event.findMany({ where: { status: { in: VOLUNTEER_VISIBLE_STATUSES } }, include: PUBLIC_EVENT_INCLUDE })
+  const eventIds = events.map((e) => e.id)
+  const [filledSlots, femaleAcceptedCounts] = await Promise.all([
+    filledSlotsByEventId(eventIds),
+    femaleAcceptedCountByEventId(eventIds),
+  ])
+  return events
+    .map((event) => serializePublicEvent(event, filledSlots.get(event.id) ?? 0, femaleAcceptedCounts.get(event.id) ?? 0))
+    .sort((a, b) => b.filledSlots - a.filledSlots)
+    .slice(0, POPULAR_LANDING_LIMIT)
+}
+
 // ============================================
 // Sinyal perilaku volunteer (buka & simpan event) — dipakai behavioral boost
 // di recommendation.service.js. Dipisah dr endpoint listing/detail supaya

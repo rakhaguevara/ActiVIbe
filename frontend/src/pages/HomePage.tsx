@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import Lenis from 'lenis'
 import { motion } from 'framer-motion'
 import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
+import { apiFetch } from '../lib/apiFetch'
+import { resolveAssetUrl } from '../lib/assetUrl'
 import bg from '../assets/svg/background-1.svg'
 import wave from '../assets/svg/wave.svg'
 import iconVolunteer from '../assets/svg/recruitment 1.svg'
@@ -99,65 +101,33 @@ const LOGO_SYMBOLS = [
   { title: 'Kotak', icon: iconKotak, desc: 'Struktur kuat di balik dampak yang nyata — dari kegiatan terverifikasi sampai Impact Passport yang tercatat rapi, kami pastikan setiap misi volunteer berjalan lancar dari awal hingga akhir. Fondasi yang solid ini memastikan kepercayaan volunteer, organizer, dan mitra tetap terjaga di setiap langkah perjalanan kontribusi.' },
 ]
 
-/* ── Activities (mock data — frontend-only for now, will be replaced by backend event listing) ── */
+/* ── Activities (real data — GET /events/public/popular, backend sudah membatasi ke 10) ── */
 const ACTIVITY_CATEGORIES = ['Semua', 'Lingkungan', 'Pendidikan', 'Sosial', 'Kesehatan']
 
-const ACTIVITIES = [
-  {
-    title: 'Bersih Pantai Bersama',
-    category: 'Lingkungan',
-    icon: iconAktivitas,
-    participants: 40,
-    dateRange: '12 - 28 Juli 2026',
-    quota: 15,
-    desc: 'Bergabunglah membersihkan sampah di pesisir pantai bersama puluhan relawan. Setiap sampah yang kamu angkat membuat ekosistem laut lebih sehat untuk generasi mendatang.',
-  },
-  {
-    title: 'Mengajar Anak-anak Pedesaan',
-    category: 'Pendidikan',
-    icon: guitarIcon,
-    participants: 11,
-    dateRange: '1 - 20 Agustus 2026',
-    quota: 8,
-    desc: 'Dampingi anak-anak di daerah terpencil dengan pelajaran dasar, literasi, dan kreativitas. Satu jam mengajarmu bisa mengubah cara pandang seorang anak terhadap masa depannya.',
-  },
-  {
-    title: 'Donor Darah Massal',
-    category: 'Kesehatan',
-    icon: medalIcon,
-    participants: 234,
-    dateRange: '5 Juli 2026',
-    quota: 50,
-    desc: 'Satu kantong darahmu bisa menyelamatkan hingga tiga nyawa. Bergabunglah dalam aksi donor massal bersama ratusan relawan terverifikasi ActiVibe dan PMI.',
-  },
-  {
-    title: 'Penanaman 1000 Pohon Mangrove',
-    category: 'Lingkungan',
-    icon: fireworkIcon,
-    participants: 342,
-    dateRange: '15 - 30 Juli 2026',
-    quota: 20,
-    desc: 'Tanam bibit mangrove bersama untuk menjaga pesisir dari abrasi. Setiap bibit yang kamu tanam adalah warisan nyata untuk alam dan generasi berikutnya.',
-  },
-  {
-    title: 'Bantu Panti Asuhan Ceria',
-    category: 'Sosial',
-    icon: iconOrganisasi,
-    participants: 28,
-    dateRange: '8 - 22 Agustus 2026',
-    quota: 12,
-    desc: 'Luangkan waktumu untuk mengunjungi dan menemani anak-anak panti asuhan. Kehadiranmu membawa keceriaan dan semangat yang berarti lebih dari yang bisa dibayangkan.',
-  },
-  {
-    title: 'Edukasi Kesehatan Remaja',
-    category: 'Kesehatan',
-    icon: iconVolunteer,
-    participants: 19,
-    dateRange: '3 - 17 Agustus 2026',
-    quota: 25,
-    desc: 'Dampingi remaja memahami pentingnya kesehatan diri, pola makan sehat, dan kesehatan mental. Jadilah panutan dan inspirasi nyata bagi generasi muda Indonesia.',
-  },
-]
+interface PopularActivity {
+  id: string
+  title: string
+  category: string
+  description: string
+  quota: number
+  filledSlots: number
+  startDate: string
+  endDate: string
+  photos: string[]
+  symbol: string
+}
+
+const ID_MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
+function formatDateRange(startISO: string, endISO: string): string {
+  const start = new Date(startISO)
+  const end = new Date(endISO)
+  const sameDay = start.toDateString() === end.toDateString()
+  if (sameDay) return `${start.getDate()} ${ID_MONTHS[start.getMonth()]} ${start.getFullYear()}`
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+  if (sameMonth) return `${start.getDate()} - ${end.getDate()} ${ID_MONTHS[end.getMonth()]} ${end.getFullYear()}`
+  return `${start.getDate()} ${ID_MONTHS[start.getMonth()]} - ${end.getDate()} ${ID_MONTHS[end.getMonth()]} ${end.getFullYear()}`
+}
 
 /* ── Trust badges (value proposition ActiVibe) ── */
 const TRUST_BADGES = [
@@ -328,10 +298,28 @@ export default function HomePage() {
   }
 
   /* Activities filter + horizontal carousel (4 card per tampilan, sisanya digeser) */
+  const [activities, setActivities] = useState<PopularActivity[]>([])
+  const [activitiesLoading, setActivitiesLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadPopularActivities() {
+      try {
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL ?? ''}/events/public/popular`)
+        const data = await res.json()
+        if (Array.isArray(data.events)) setActivities(data.events)
+      } catch (err) {
+        console.error('Failed to load popular activities', err)
+      } finally {
+        setActivitiesLoading(false)
+      }
+    }
+    loadPopularActivities()
+  }, [])
+
   const [activeCategory, setActiveCategory] = useState('Semua')
   const filteredActivities = activeCategory === 'Semua'
-    ? ACTIVITIES
-    : ACTIVITIES.filter(a => a.category === activeCategory)
+    ? activities
+    : activities.filter(a => a.category === activeCategory)
 
   const activitiesTrackRef = useRef<HTMLDivElement>(null)
 
@@ -758,35 +746,48 @@ export default function HomePage() {
             </button>
 
             <div className="activities__grid" ref={activitiesTrackRef}>
-              {filteredActivities.map(({ title, icon, participants, dateRange, quota, desc }, i) => (
-                <motion.article 
-                  key={title} 
-                  className="activity-card"
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: "-20px" }}
-                  transition={{ duration: 0.4, delay: i * 0.1, ease: 'easeOut' }}
-                >
-                  <div className={`activity-card__banner activity-card__banner--${i % 4}`}>
-                    <img src={icon} alt="" className="activity-card__icon" />
-                  </div>
+              {activitiesLoading ? (
+                <p className="activities__status">Memuat kegiatan...</p>
+              ) : filteredActivities.length === 0 ? (
+                <p className="activities__status">Belum ada kegiatan tersedia.</p>
+              ) : (
+                filteredActivities.map(({ id, title, category, description, filledSlots, startDate, endDate, quota, photos, symbol }, i) => (
+                  <motion.article
+                    key={id}
+                    className="activity-card"
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: "-20px" }}
+                    transition={{ duration: 0.4, delay: i * 0.1, ease: 'easeOut' }}
+                  >
+                    {photos[0] ? (
+                      <div
+                        className="activity-card__banner activity-card__banner--photo"
+                        style={{ backgroundImage: `url("${resolveAssetUrl(photos[0])}")` }}
+                      />
+                    ) : (
+                      <div className={`activity-card__banner activity-card__banner--${i % 4}`}>
+                        <span className="activity-card__symbol" aria-hidden="true">{symbol}</span>
+                      </div>
+                    )}
 
-                  <div className="activity-card__body">
-                    <div className="activity-card__meta">
-                      <span className="activity-card__participants">+{participants} Peserta</span>
-                      <span className="activity-card__date">{dateRange}</span>
+                    <div className="activity-card__body">
+                      <div className="activity-card__meta">
+                        <span className="activity-card__participants">+{filledSlots} Peserta</span>
+                        <span className="activity-card__date">{formatDateRange(startDate, endDate)}</span>
+                      </div>
+
+                      <h3 className="activity-card__title">{title}</h3>
+                      <p className="activity-card__desc">{description}</p>
+
+                      <div className="activity-card__footer">
+                        <span className="activity-card__quota">Kuota: {Math.max(quota - filledSlots, 0)} tersisa</span>
+                        <Link to={`/dashboard?event=${id}`} className="activity-card__cta">Daftar Sekarang</Link>
+                      </div>
                     </div>
-
-                    <h3 className="activity-card__title">{title}</h3>
-                    <p className="activity-card__desc">{desc}</p>
-
-                    <div className="activity-card__footer">
-                      <span className="activity-card__quota">Kuota: {quota} tersisa</span>
-                      <Link to="/dashboard" className="activity-card__cta">Daftar Sekarang</Link>
-                    </div>
-                  </div>
-                </motion.article>
-              ))}
+                  </motion.article>
+                ))
+              )}
             </div>
 
             <button

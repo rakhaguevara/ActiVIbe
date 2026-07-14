@@ -6,11 +6,12 @@ import {
   listGeneratedCertificates,
   listCertificateVersions,
   listFailedCandidates,
+  getActiveTemplateInfo,
 } from './certificate.service.js'
 
 export async function getQueue(req, res, next) {
   try {
-    const queue = await getCertificateQueue(req.user.id)
+    const queue = await getCertificateQueue(req.user.id, { eventId: req.query.eventId })
     return res.json({ queue })
   } catch (err) {
     next(err)
@@ -46,7 +47,7 @@ export async function regenerate(req, res, next) {
 
 export async function getGenerated(req, res, next) {
   try {
-    const certificates = await listGeneratedCertificates(req.user.id)
+    const certificates = await listGeneratedCertificates(req.user.id, { eventId: req.query.eventId })
     return res.json({ certificates })
   } catch (err) {
     next(err)
@@ -64,8 +65,17 @@ export async function getVersions(req, res, next) {
 
 export async function getFailed(req, res, next) {
   try {
-    const failed = await listFailedCandidates(req.user.id)
+    const failed = await listFailedCandidates(req.user.id, { eventId: req.query.eventId })
     return res.json({ failed })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getActiveTemplate(req, res, next) {
+  try {
+    const template = await getActiveTemplateInfo()
+    return res.json({ template })
   } catch (err) {
     next(err)
   }

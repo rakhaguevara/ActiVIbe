@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '../../lib/apiFetch'
 import { resolveAssetUrl } from '../../lib/assetUrl'
 import { FiMapPin, FiCalendar, FiUsers, FiStar, FiClock, FiZap, FiTrendingUp, FiAward } from 'react-icons/fi'
+import wave from '../../assets/svg/wave.svg'
 import Footer from '../../components/Footer'
 import './PublicFindActivityPage.css'
 import pic1 from '../../assets/png/pic1 1.png'
@@ -190,9 +191,14 @@ export default function PublicFindActivityPage({ onLoginClick }: { onLoginClick?
 
   return (
     <div className="pac-page">
-      {/* Hero header */}
+      {/* Hero background banner */}
       <div className="pac-hero">
-        <div className="pac-hero-inner">
+        <img src={wave} alt="" className="pac-hero-wave" />
+      </div>
+
+      {/* Page Title & Subtitle */}
+      <div className="pac-header-text">
+        <div className="pac-header-text-inner">
           <h1 className="pac-hero-title">Temukan Aktivitas Relawan</h1>
           <p className="pac-hero-sub">
             Jelajahi berbagai kegiatan kerelawanan yang sedang berlangsung dan mulai buat dampak positif.

@@ -8,6 +8,7 @@ import {
   rejectEvent,
   deleteEvent,
   listParticipation,
+  getParticipationByCategory,
   listActivityLog,
   getOverviewStats,
   getRegionDistribution,
@@ -23,6 +24,7 @@ import {
   deleteCertificateTemplate,
 } from './admin.service.js'
 import { chat as chatWithAdminAi, generateCampaignIdeas } from './adminAi.service.js'
+import { buildAdminKnowledgeContext } from './adminKnowledge.service.js'
 
 export async function overview(req, res, next) {
   try {
@@ -44,8 +46,11 @@ export async function getOverviewRegions(req, res, next) {
 
 export async function postAiChat(req, res, next) {
   try {
-    const summary = await buildDashboardSummary()
-    const result = await chatWithAdminAi(summary, req.body.messages)
+    const [summary, knowledge] = await Promise.all([
+      buildDashboardSummary(),
+      buildAdminKnowledgeContext(req.body.messages),
+    ])
+    const result = await chatWithAdminAi(summary, req.body.messages, knowledge)
     return res.json(result)
   } catch (err) {
     next(err)
@@ -138,6 +143,15 @@ export async function getParticipation(req, res, next) {
   try {
     const records = await listParticipation(req.query.from, req.query.to)
     return res.json({ records })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getParticipationCategories(req, res, next) {
+  try {
+    const categories = await getParticipationByCategory()
+    return res.json({ categories })
   } catch (err) {
     next(err)
   }

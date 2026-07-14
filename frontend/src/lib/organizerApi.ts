@@ -277,22 +277,36 @@ export async function markNoShowRequest(assignmentId: string): Promise<Attendanc
   return data.record
 }
 
-export async function getCertificateQueueRequest(): Promise<CertificateQueueItem[]> {
-  const res = await apiFetch(`${API_URL}/certificates/queue`, { credentials: 'include' })
+export async function getCertificateQueueRequest(eventId?: string): Promise<CertificateQueueItem[]> {
+  const qs = eventId ? `?eventId=${encodeURIComponent(eventId)}` : ''
+  const res = await apiFetch(`${API_URL}/certificates/queue${qs}`, { credentials: 'include' })
   const data = await parseResponse(res)
   return data.queue
 }
 
-export async function listGeneratedCertificatesRequest(): Promise<Certificate[]> {
-  const res = await apiFetch(`${API_URL}/certificates/generated`, { credentials: 'include' })
+export async function listGeneratedCertificatesRequest(eventId?: string): Promise<Certificate[]> {
+  const qs = eventId ? `?eventId=${encodeURIComponent(eventId)}` : ''
+  const res = await apiFetch(`${API_URL}/certificates/generated${qs}`, { credentials: 'include' })
   const data = await parseResponse(res)
   return data.certificates
 }
 
-export async function listFailedCertificatesRequest(): Promise<FailedCertificateCandidate[]> {
-  const res = await apiFetch(`${API_URL}/certificates/failed`, { credentials: 'include' })
+export async function listFailedCertificatesRequest(eventId?: string): Promise<FailedCertificateCandidate[]> {
+  const qs = eventId ? `?eventId=${encodeURIComponent(eventId)}` : ''
+  const res = await apiFetch(`${API_URL}/certificates/failed${qs}`, { credentials: 'include' })
   const data = await parseResponse(res)
   return data.failed
+}
+
+export interface ActiveCertificateTemplateInfo {
+  id: string
+  name: string
+}
+
+export async function getActiveCertificateTemplateRequest(): Promise<ActiveCertificateTemplateInfo | null> {
+  const res = await apiFetch(`${API_URL}/certificates/active-template`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.template
 }
 
 export async function listCertificateVersionsRequest(certificateId: string): Promise<CertificateVersionEntry[]> {

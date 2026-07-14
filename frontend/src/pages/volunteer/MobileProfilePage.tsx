@@ -9,8 +9,8 @@ export default function MobileProfilePage() {
   if (!user) return null
 
   // Fallback initial
-  const initial = user.firstName ? user.firstName[0].toUpperCase() : 'U'
-  const displayName = user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Guest'
+  const initial = user.name ? user.name[0].toUpperCase() : 'U'
+  const displayName = user.name ? user.name : 'Guest'
 
   return (
     <main className="mobile-profile-page">

@@ -5,7 +5,11 @@ import { generateCertificatePdf, downloadCertificatePdf } from '../../../utils/c
 import type { Certificate } from '../../../types/organizer'
 import '../CertificatesPage.css'
 
-export default function GeneratedCertificatesView() {
+interface GeneratedCertificatesViewProps {
+  eventId?: string
+}
+
+export default function GeneratedCertificatesView({ eventId }: GeneratedCertificatesViewProps = {}) {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -13,11 +17,11 @@ export default function GeneratedCertificatesView() {
 
   useEffect(() => {
     setIsLoading(true)
-    listGeneratedCertificatesRequest()
+    listGeneratedCertificatesRequest(eventId)
       .then(setCertificates)
       .catch((err) => setError(err instanceof Error ? err.message : 'Gagal memuat sertifikat.'))
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [eventId])
 
   const renderPdf = async (certificate: Certificate) => {
     if (!certificate.templateUrl) {

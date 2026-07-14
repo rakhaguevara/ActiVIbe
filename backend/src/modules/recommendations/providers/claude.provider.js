@@ -43,15 +43,16 @@ export const claudeProvider = {
   },
 }
 
-// Riset web live (Claude-only — OpenAI/Gemini provider di repo ini tidak
-// dikawinkan dengan tool search apa pun). SENGAJA terpisah dari `claudeProvider`
-// di atas: bukan bagian dari kontrak generik generate({system,prompt,schema})
-// yang dipakai resolveAiProvider lintas 3 provider, jadi dipanggil langsung by
-// name oleh pemanggil yang memang butuh riset internet (bukan lewat provider
-// resolution biasa). Tidak dikombinasikan dengan output_config/json_schema
-// dalam satu call yang sama — dipisah jadi 2 langkah oleh pemanggil
-// (searchIdeas() di utils/aiIdeaSearch.js): call ini cuma mengembalikan teks
-// temuan mentah, lalu diformat ulang lewat `generate()` biasa di atas.
+// Riset web live (Claude + OpenAI — lihat openaiWebSearch di openai.provider.js
+// utk versi ChatGPT; Gemini provider di repo ini masih belum dikawinkan dengan
+// tool search apa pun). SENGAJA terpisah dari `claudeProvider` di atas: bukan
+// bagian dari kontrak generik generate({system,prompt,schema}) yang dipakai
+// resolveAiProvider lintas 3 provider, jadi dipilih lewat daftar provider
+// khusus web-search di searchIdeas() (utils/aiIdeaSearch.js), bukan lewat
+// provider resolution biasa. Tidak dikombinasikan dengan output_config/json_schema
+// dalam satu call yang sama — dipisah jadi 2 langkah oleh pemanggil: call ini
+// cuma mengembalikan teks temuan mentah, lalu diformat ulang lewat `generate()`
+// biasa di atas.
 export async function claudeWebSearch({ system, prompt }) {
   if (!client) client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
 

@@ -1,11 +1,15 @@
 import React, { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   FiSearch, FiUsers, FiCheckCircle,
-  FiAward, FiStar, FiActivity, FiMoreVertical, FiClock
+  FiAward, FiStar, FiActivity, FiClock, FiUser, FiMessageSquare
 } from 'react-icons/fi'
 import ReactECharts from 'echarts-for-react'
 import VolunteerProfileDrawer from '../../../components/organizer/VolunteerProfileDrawer'
+import DropdownMenu from '../../../components/DropdownMenu'
 import { formatRelativeTime, volunteerDisplayStatus, attendanceLabel, type VolunteerDisplayStatus } from './volunteerFormat'
+import { generateVolunteerProfilePdf } from '../../../utils/volunteerProfilePdf'
+import { downloadCertificatePdf } from '../../../utils/certificateGenerator'
 import type { OrganizerVolunteer, OrganizerVolunteersResponse } from '../../../types/organizer'
 import '../VolunteersPage.css'
 
@@ -16,6 +20,7 @@ const STATUS_BADGE_CLASS: Record<VolunteerDisplayStatus, string> = {
 }
 
 export default function AllVolunteersView({ data }: { data: OrganizerVolunteersResponse }) {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'' | VolunteerDisplayStatus>('')
   const [selectedProfile, setSelectedProfile] = useState<OrganizerVolunteer | null>(null)
@@ -213,7 +218,12 @@ export default function AllVolunteersView({ data }: { data: OrganizerVolunteersR
                         <td>
                           <div className="v-table-actions">
                             <button className="btn btn--sm btn--outline" onClick={() => setSelectedProfile(vol)}>Profile</button>
-                            <button className="btn btn--sm btn--outline" style={{ padding: '0 8px' }}><FiMoreVertical/></button>
+                            <DropdownMenu
+                              items={[
+                                { label: 'Lihat Profil Lengkap', icon: <FiUser />, onClick: () => setSelectedProfile(vol) },
+                                { label: 'Kirim Pesan', icon: <FiMessageSquare />, onClick: () => navigate('/organizer/communication?tab=broadcast') },
+                              ]}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -382,6 +392,19 @@ export default function AllVolunteersView({ data }: { data: OrganizerVolunteersR
         volunteer={selectedProfile}
         isOpen={selectedProfile !== null}
         onClose={() => setSelectedProfile(null)}
+        // Belum ada sistem "invite volunteer ke event tertentu" di backend
+        // (di luar scope fase ini) — arahkan ke composer broadcast yang
+        // sudah nyata, bukan pura-pura sukses invite langsung.
+        onInvite={() => navigate('/organizer/communication?tab=broadcast')}
+        onMessage={() => navigate('/organizer/communication?tab=broadcast')}
+        onDownloadProfile={
+          selectedProfile
+            ? async () => {
+                const bytes = await generateVolunteerProfilePdf(selectedProfile)
+                downloadCertificatePdf(bytes, `Profil - ${selectedProfile.name}.pdf`)
+              }
+            : undefined
+        }
       />
     </div>
   )

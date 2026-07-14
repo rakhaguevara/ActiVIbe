@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { readFile } from 'fs/promises'
 import { env } from '../config/env.js'
 
 const resendClient = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
@@ -126,6 +127,37 @@ ${code}
 Kode ini berlaku selama ${expiryMinutes} menit. Kalau kamu tidak merasa mendaftar di ActiVibe, abaikan saja email ini.`,
   })
   logSendResult(`OTP registrasi -> ${to}`, result)
+}
+
+// Form "Lupa password?" (AuthModal / LoginPage) — auth.service.js
+// requestPasswordResetOtp(). Kode ini yang jadi pembuktian pemilik email
+// sebelum password beneran diganti (lihat resetPasswordWithOtp), pola sama
+// OTP registrasi/aktivasi organisasi, cuma purpose beda (PASSWORD_RESET).
+export async function sendPasswordResetOtpEmail(to, { name, code, expiryMinutes }) {
+  if (!resendClient) {
+    console.log(`[mailer] RESEND_API_KEY kosong — kode OTP reset password untuk ${to}: ${code} (berlaku ${expiryMinutes} menit)`)
+    return
+  }
+
+  const result = await resendClient.emails.send({
+    from: env.RESEND_FROM_EMAIL,
+    to,
+    subject: 'Kode verifikasi reset password ActiVibe',
+    html: `
+      <p>Halo ${name},</p>
+      <p>Gunakan kode berikut untuk mengatur ulang password akun ActiVibe kamu:</p>
+      <p style="font-size:28px;font-weight:700;letter-spacing:4px;">${code}</p>
+      <p>Kode ini berlaku selama ${expiryMinutes} menit. Kalau kamu tidak meminta reset password, abaikan saja email ini — password akunmu tidak akan berubah.</p>
+    `,
+    text: `Halo ${name},
+
+Gunakan kode berikut untuk mengatur ulang password akun ActiVibe kamu:
+
+${code}
+
+Kode ini berlaku selama ${expiryMinutes} menit. Kalau kamu tidak meminta reset password, abaikan saja email ini — password akunmu tidak akan berubah.`,
+  })
+  logSendResult(`OTP reset password -> ${to}`, result)
 }
 
 function formatDateRange(startDate, endDate) {
@@ -357,4 +389,105 @@ ${broadcastTitle}
 ${message}`,
   })
   logSendResult(`broadcast "${broadcastTitle}" -> ${to}`, result)
+}
+
+// "Send Test Email" di BrandingView (organization.service.js
+// sendMyOrganizationTestEmail) — email contoh yang menunjukkan bagaimana
+// header/warna/footer branding organisasi akan tampil kalau dipakai di email
+// nyata (broadcast/tiket). headerImagePath = path file lokal di disk (bukan
+// URL publik — dibaca & dilampirkan sbg inline attachment CID, pola sama
+// persis QR tiket di sendEventTicketEmail, krn Gmail dkk. bisa memblokir
+// data:/URL publik yang tidak stabil).
+export async function sendBrandingTestEmail(to, { organizationName, headerImagePath, primaryColor, footerText }) {
+  const accentColor = primaryColor || '#5B21B6'
+  const safeFooter = footerText ? escapeHtml(footerText).replace(/\n/g, '<br/>') : ''
+
+  if (!resendClient) {
+    console.log(`[mailer] RESEND_API_KEY kosong — test email branding "${organizationName}" utk ${to}${headerImagePath ? ' (dgn header image)' : ''}`)
+    return
+  }
+
+  let headerImageBuffer = null
+  if (headerImagePath) {
+    headerImageBuffer = await readFile(headerImagePath).catch(() => null)
+  }
+  const headerHtml = headerImageBuffer
+    ? `<p><img src="cid:branding-header" alt="Header ${organizationName}" style="max-width:100%;" /></p>`
+    : ''
+  const footerHtml = safeFooter
+    ? `<p style="margin-top:24px;padding-top:12px;border-top:1px solid #E5E7EB;font-size:12px;color:#6B7280;">${safeFooter}</p>`
+    : ''
+
+  const result = await resendClient.emails.send({
+    from: env.RESEND_FROM_EMAIL,
+    to,
+    subject: `Contoh email branding "${organizationName}"`,
+    html: `
+      ${headerHtml}
+      <p>Halo,</p>
+      <p>Ini adalah email contoh untuk melihat bagaimana identitas visual organisasi <strong>${organizationName}</strong> akan tampil di email nyata (broadcast/tiket).</p>
+      <p style="padding:12px 20px;background:${accentColor};color:#fff;border-radius:8px;display:inline-block;">Contoh tombol dengan warna utama organisasi</p>
+      ${footerHtml}
+    `,
+    text: `Halo,
+
+Ini adalah email contoh untuk melihat bagaimana identitas visual organisasi ${organizationName} akan tampil di email nyata (broadcast/tiket).
+${footerText ? `\n${footerText}` : ''}`,
+    ...(headerImageBuffer
+      ? {
+          attachments: [
+            {
+              filename: 'header-branding.png',
+              content: headerImageBuffer.toString('base64'),
+              contentType: 'image/png',
+              contentId: 'branding-header',
+            },
+          ],
+        }
+      : {}),
+  })
+  logSendResult(`test email branding "${organizationName}" -> ${to}`, result)
+}
+
+const MEMBER_ROLE_LABELS = {
+  OWNER: 'Owner',
+  ADMINISTRATOR: 'Administrator',
+  COORDINATOR: 'Coordinator',
+}
+
+// Undangan bergabung ke tim organisasi (TeamMembersView / organizationMembers.service.js
+// inviteMember & resendInvite) — link mengarah ke AcceptTeamInvitePage di
+// portal organizer (beda dari sendOrganizationSetPasswordEmail yang mengarah
+// ke portal volunteer krn origin registrasi organisasi memang di sana; di sini
+// pengundangnya sudah organizer, jadi link accept-nya wajar tinggal di portal
+// yang sama).
+export async function sendOrganizationMemberInviteEmail(to, { inviterName, organizationName, role, inviteUrl }) {
+  const roleLabel = MEMBER_ROLE_LABELS[role] ?? role
+
+  if (!resendClient) {
+    console.log(`[mailer] RESEND_API_KEY kosong — undangan tim "${organizationName}" (role ${roleLabel}) utk ${to}: ${inviteUrl}`)
+    return
+  }
+
+  const result = await resendClient.emails.send({
+    from: env.RESEND_FROM_EMAIL,
+    to,
+    subject: `${inviterName} mengundangmu bergabung ke tim "${organizationName}" di ActiVibe`,
+    html: `
+      <p>Halo,</p>
+      <p><strong>${escapeHtml(inviterName)}</strong> mengundangmu bergabung sebagai <strong>${escapeHtml(roleLabel)}</strong> di tim organisasi <strong>${escapeHtml(organizationName)}</strong> pada ActiVibe.</p>
+      <p>Klik tombol di bawah untuk mengatur password dan mengaktifkan aksesmu:</p>
+      <p><a href="${inviteUrl}" style="display:inline-block;padding:12px 20px;background:#5B21B6;color:#fff;border-radius:8px;text-decoration:none;">Terima Undangan</a></p>
+      <p>Link ini berlaku selama 7 hari. Kalau kamu tidak merasa diundang, abaikan saja email ini.</p>
+    `,
+    text: `Halo,
+
+${inviterName} mengundangmu bergabung sebagai ${roleLabel} di tim organisasi ${organizationName} pada ActiVibe.
+
+Buka link berikut untuk mengatur password dan mengaktifkan aksesmu:
+${inviteUrl}
+
+Link ini berlaku selama 7 hari. Kalau kamu tidak merasa diundang, abaikan saja email ini.`,
+  })
+  logSendResult(`undangan tim "${organizationName}" -> ${to}`, result)
 }

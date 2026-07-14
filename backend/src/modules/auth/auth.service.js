@@ -6,7 +6,7 @@ import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToke
 import { hashToken } from '../../utils/hash.js'
 import { generateOtpCode } from '../../utils/otp.js'
 import { AppError } from '../../utils/AppError.js'
-import { sendOtpEmail } from '../../utils/mailer.js'
+import { sendOtpEmail, sendPasswordResetOtpEmail } from '../../utils/mailer.js'
 import { env } from '../../config/env.js'
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -132,10 +132,108 @@ export async function resendRegistrationOtp({ email }) {
 
   const sentCount = await prisma.otpRequest.count({ where: { userId: user.id, purpose: 'REGISTER' } })
   if (sentCount >= 1 + env.OTP_MAX_RESEND_ATTEMPTS) {
-    throw new AppError(429, 'Batas permintaan ulang kode OTP tercapai')
+    // code dipakai frontend (OtpVerifyForm.tsx) buat memunculkan tombol
+    // "Lewati verifikasi" — lihat bypassRegistrationOtp di bawah.
+    throw new AppError(429, 'Batas permintaan ulang kode OTP tercapai', 'OTP_RESEND_LIMIT_REACHED')
   }
 
   await issueRegistrationOtp(user)
+}
+
+// Jalan keluar kalau email OTP registrasi memang tidak pernah sampai (mailer
+// fail-soft — lihat mailer.js sendOtpEmail, tidak pernah throw ke titik ini
+// — jadi "gagal" nyaris selalu berarti "diam-diam tidak terkirim" sampai
+// resend mentok limit, bukan error HTTP). Sengaja DIGATE ke kondisi yang sama
+// dgn resendRegistrationOtp (sentCount sudah mentok limit) — supaya user tidak
+// bisa langsung skip tanpa pernah mencoba resend, tapi begitu limit resend
+// habis (satu-satunya sinyal konkret "OTP macet" yang tersedia hari ini),
+// verifikasi email dianggap best-effort selesai. isVerified tetap di-set true
+// (alur onboarding lanjut normal) tapi otpBypassedAt dicatat sbg audit trail
+// eksplisit (beda dari verifikasi kode asli) — bukan dihapus diam-diam.
+export async function bypassRegistrationOtp({ email }) {
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user || user.isVerified) {
+    throw new AppError(400, 'Tidak ada registrasi yang menunggu verifikasi untuk email ini')
+  }
+
+  const otp = await prisma.otpRequest.findFirst({
+    where: { userId: user.id, purpose: 'REGISTER', verifiedAt: null },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!otp) {
+    throw new AppError(400, 'Tidak ada permintaan OTP untuk email ini')
+  }
+
+  const sentCount = await prisma.otpRequest.count({ where: { userId: user.id, purpose: 'REGISTER' } })
+  if (sentCount < 1 + env.OTP_MAX_RESEND_ATTEMPTS) {
+    throw new AppError(403, 'Coba kirim ulang kode dulu sebelum melewati verifikasi')
+  }
+
+  await prisma.$transaction([
+    prisma.otpRequest.update({ where: { id: otp.id }, data: { verifiedAt: new Date() } }),
+    prisma.user.update({ where: { id: user.id }, data: { isVerified: true, otpBypassedAt: new Date() } }),
+  ])
+
+  const tokens = await issueTokens(user)
+  return { user: toPublicUser({ ...user, isVerified: true }), ...tokens }
+}
+
+// Form "Lupa password?" di AuthModal — sengaja TIDAK mengungkap apakah email
+// terdaftar (beda dari resendRegistrationOtp yang eksplisit bilang "tidak ada
+// registrasi..."): selalu resolve tanpa error, OTP betulan cuma dikirim kalau
+// user ada & sudah verified. Controller membalas sukses generik apa pun hasilnya.
+export async function requestPasswordResetOtp({ email }) {
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user || !user.isVerified) return
+
+  const code = generateOtpCode()
+  await prisma.otpRequest.create({
+    data: {
+      userId: user.id,
+      code: hashToken(code),
+      purpose: 'PASSWORD_RESET',
+      expiresAt: new Date(Date.now() + env.OTP_EXPIRY_MINUTES * 60 * 1000),
+    },
+  })
+  await sendPasswordResetOtpEmail(user.email, { name: user.name, code, expiryMinutes: env.OTP_EXPIRY_MINUTES })
+}
+
+// Verifikasi kode + ganti password sekaligus (satu langkah — beda dari alur
+// aktivasi organisasi yang 2 endpoint terpisah krn ada token link email di
+// antaranya). Begitu kode cocok, semua RefreshToken aktif user ini direvoke
+// (password berubah = sesi lama di device lain seharusnya tidak lanjut valid)
+// lalu sesi baru diterbitkan di device yang baru saja reset (auto-login,
+// konsisten dgn verifyRegistrationOtp).
+export async function resetPasswordWithOtp({ email, code, newPassword }) {
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user) {
+    throw new AppError(400, 'Kode OTP tidak valid')
+  }
+
+  const otp = await prisma.otpRequest.findFirst({
+    where: { userId: user.id, purpose: 'PASSWORD_RESET', verifiedAt: null },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!otp || otp.expiresAt < new Date()) {
+    throw new AppError(400, 'Kode OTP sudah kedaluwarsa, minta kode baru')
+  }
+  if (otp.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+    throw new AppError(429, 'Terlalu banyak percobaan salah, minta kode baru')
+  }
+  if (hashToken(code) !== otp.code) {
+    await prisma.otpRequest.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } })
+    throw new AppError(400, 'Kode OTP salah')
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+  await prisma.$transaction([
+    prisma.otpRequest.update({ where: { id: otp.id }, data: { verifiedAt: new Date() } }),
+    prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } }),
+    prisma.refreshToken.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } }),
+  ])
+
+  const tokens = await issueTokens(user)
+  return { user: toPublicUser(user), ...tokens }
 }
 
 export async function loginUser({ email, password }) {

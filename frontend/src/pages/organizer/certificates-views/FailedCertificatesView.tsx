@@ -10,7 +10,11 @@ const REASON_LABEL: Record<FailedCertificateCandidate['reason'], string> = {
   quota_exceeded: 'Kuota sertifikat ActiVibe Plus bulan ini sudah habis',
 }
 
-export default function FailedCertificatesView() {
+interface FailedCertificatesViewProps {
+  eventId?: string
+}
+
+export default function FailedCertificatesView({ eventId }: FailedCertificatesViewProps = {}) {
   const [candidates, setCandidates] = useState<FailedCertificateCandidate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [retryingId, setRetryingId] = useState<string | null>(null)
@@ -18,7 +22,7 @@ export default function FailedCertificatesView() {
 
   const loadData = () => {
     setIsLoading(true)
-    return listFailedCertificatesRequest()
+    return listFailedCertificatesRequest(eventId)
       .then(setCandidates)
       .catch((err) => setError(err instanceof Error ? err.message : 'Gagal memuat daftar sertifikat gagal.'))
       .finally(() => setIsLoading(false))
@@ -26,7 +30,8 @@ export default function FailedCertificatesView() {
 
   useEffect(() => {
     loadData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId])
 
   const handleRetry = async (item: FailedCertificateCandidate) => {
     setRetryingId(item.applicationId)

@@ -33,10 +33,25 @@ export interface ResendOtpPayload {
   email: string
 }
 
+export interface ForgotPasswordRequestPayload {
+  email: string
+}
+
+export interface ResetPasswordPayload {
+  email: string
+  code: string
+  newPassword: string
+}
+
+// error.code (mis. 'OTP_RESEND_LIMIT_REACHED') di-attach ke Error supaya
+// pemanggil bisa membedakan jenis kegagalan tanpa mencocokkan teks pesan
+// (lihat errorHandler.js backend & OtpVerifyForm.tsx).
 async function parseResponse(res: Response) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data?.error?.message ?? 'Terjadi kesalahan, coba lagi.')
+    const error = new Error(data?.error?.message ?? 'Terjadi kesalahan, coba lagi.') as Error & { code?: string }
+    if (data?.error?.code) error.code = data.error.code
+    throw error
   }
   return data
 }
@@ -65,6 +80,42 @@ export async function verifyOtpRequest(payload: VerifyOtpPayload): Promise<{ use
 
 export async function resendOtpRequest(payload: ResendOtpPayload): Promise<{ success: true }> {
   const res = await apiFetch(`${API_URL}/auth/resend-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+// Dipanggil dari tombol "Lewati verifikasi" — backend cuma mengizinkan ini
+// setelah resend mentok limit (lihat auth.service.js bypassRegistrationOtp).
+export async function bypassOtpRequest(payload: ResendOtpPayload): Promise<{ user: AuthUser }> {
+  const res = await apiFetch(`${API_URL}/auth/bypass-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+// Selalu resolve sukses (200) apa pun status email-nya — backend sengaja
+// tidak mengungkap apakah email terdaftar (lihat auth.service.js requestPasswordResetOtp).
+export async function forgotPasswordRequestOtpRequest(payload: ForgotPasswordRequestPayload): Promise<{ success: true }> {
+  const res = await apiFetch(`${API_URL}/auth/forgot-password/request-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  return parseResponse(res)
+}
+
+// Berhasil = password sudah diganti DAN sesi baru langsung terbit (auto-login,
+// lihat auth.service.js resetPasswordWithOtp) — sama pola dgn verifyOtpRequest.
+export async function resetPasswordRequest(payload: ResetPasswordPayload): Promise<{ user: AuthUser }> {
+  const res = await apiFetch(`${API_URL}/auth/forgot-password/reset`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

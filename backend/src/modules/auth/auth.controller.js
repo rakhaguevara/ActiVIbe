@@ -6,6 +6,9 @@ import {
   refreshUserSession,
   verifyRegistrationOtp,
   resendRegistrationOtp,
+  bypassRegistrationOtp,
+  requestPasswordResetOtp,
+  resetPasswordWithOtp,
 } from './auth.service.js'
 import { env } from '../../config/env.js'
 import { accessCookieName, refreshCookieName } from '../../utils/sessionSlot.js'
@@ -48,6 +51,39 @@ export async function resendOtp(req, res, next) {
   try {
     await resendRegistrationOtp(req.body)
     res.status(200).json({ success: true })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// Dipanggil dari tombol "Lewati verifikasi" di OtpVerifyForm.tsx, cuma muncul
+// setelah resend mentok limit (lihat bypassRegistrationOtp di auth.service.js).
+export async function bypassOtp(req, res, next) {
+  try {
+    const { user, accessToken, refreshToken } = await bypassRegistrationOtp(req.body)
+    setAuthCookies(res, { accessToken, refreshToken }, req.sessionSlot)
+    res.status(200).json({ user })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// Selalu balas sukses generik, apa pun hasil internalnya (lihat
+// requestPasswordResetOtp — sengaja tidak mengungkap email terdaftar atau tidak).
+export async function forgotPasswordRequestOtp(req, res, next) {
+  try {
+    await requestPasswordResetOtp(req.body)
+    res.status(200).json({ success: true })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const { user, accessToken, refreshToken } = await resetPasswordWithOtp(req.body)
+    setAuthCookies(res, { accessToken, refreshToken }, req.sessionSlot)
+    res.status(200).json({ user })
   } catch (err) {
     next(err)
   }

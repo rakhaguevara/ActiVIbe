@@ -10,6 +10,7 @@ import {
   reject,
   remove,
   getParticipation,
+  getParticipationCategories,
   getActivityLog,
   getOverviewRegions,
   postAiChat,
@@ -51,6 +52,7 @@ router.patch('/events/:id/reject', validateRequest(validateEventReject), reject)
 router.delete('/events/:id', remove)
 
 router.get('/participation', getParticipation)
+router.get('/participation/categories', getParticipationCategories)
 router.get('/activity-log', getActivityLog)
 
 router.get('/premature-closures', getPrematureClosures)

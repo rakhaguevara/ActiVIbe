@@ -41,3 +41,27 @@ export const openaiProvider = {
     return JSON.parse(choice.message.content)
   },
 }
+
+// Riset web live lewat Responses API (tool `web_search` bawaan OpenAI) — dipakai
+// sbg fallback searchIdeas() (utils/aiIdeaSearch.js) kalau ANTHROPIC_API_KEY
+// kosong tapi OPENAI_API_KEY terisi. Sengaja terpisah dari `openaiProvider.generate()`
+// di atas (Chat Completions) krn tool web_search cuma tersedia di Responses API,
+// pola sama dgn claudeWebSearch di claude.provider.js: cuma mengembalikan teks
+// temuan mentah, diformat ulang lewat generate() biasa oleh pemanggil.
+export async function openaiWebSearch({ system, prompt }) {
+  if (!client) client = new OpenAI({ apiKey: env.OPENAI_API_KEY })
+
+  const response = await client.responses.create({
+    model: MODEL,
+    tools: [{ type: 'web_search' }],
+    input: [
+      { role: 'system', content: system },
+      { role: 'user', content: prompt },
+    ],
+  })
+
+  const text = response.output_text
+  if (!text) throw new Error('Respons riset OpenAI tidak berisi teks')
+
+  return text
+}

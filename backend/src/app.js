@@ -9,6 +9,7 @@ import applicationRoutes from './modules/applications/application.routes.js'
 import eventRoutes from './modules/events/event.routes.js'
 import organizationRoutes from './modules/organizations/organization.routes.js'
 import subOrganizerRoutes from './modules/subOrganizers/subOrganizer.routes.js'
+import organizationMembersRoutes from './modules/organizationMembers/organizationMembers.routes.js'
 import recommendationRoutes from './modules/recommendations/recommendation.routes.js'
 import adminRoutes from './modules/admin/admin.routes.js'
 import locationRoutes from './modules/location/location.routes.js'
@@ -56,6 +57,7 @@ app.use('/applications', applicationRoutes)
 app.use('/events', eventRoutes)
 app.use('/organizations', organizationRoutes)
 app.use('/sub-organizers', subOrganizerRoutes)
+app.use('/organization-members', organizationMembersRoutes)
 app.use('/recommendations', recommendationRoutes)
 app.use('/admin', adminRoutes)
 app.use('/locations', locationRoutes)

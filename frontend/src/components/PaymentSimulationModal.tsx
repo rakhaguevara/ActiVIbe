@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import QRCode from 'qrcode'
 import { FiCreditCard, FiSmartphone, FiCheckCircle, FiXCircle, FiX, FiLock } from 'react-icons/fi'
-import { checkoutSubscription, type MySubscription, type SubscriptionTier } from '../lib/subscriptionApi'
+import {
+  checkoutSubscription,
+  type MySubscription,
+  type SubscriptionTier,
+  type SubscriptionAudience,
+  type BillingCycle,
+} from '../lib/subscriptionApi'
 import './ConfirmDialog.css'
 import './PaymentSimulationModal.css'
 
@@ -10,8 +16,11 @@ type Status = 'form' | 'processing' | 'success' | 'error'
 
 interface PaymentSimulationModalProps {
   tier: Exclude<SubscriptionTier, 'FREE'>
+  audience: SubscriptionAudience
+  billingCycle: BillingCycle
   planName: string
-  priceMonthly: number
+  /** Total yg beneran ditagih sekali checkout (sudah x12 kalau YEARLY) */
+  priceTotal: number
   onClose: () => void
   onSuccess: (subscription: MySubscription) => void
 }
@@ -39,7 +48,8 @@ function formatExpiry(value: string): string {
 // checkoutSubscription(tier) — yang SUNGGUHAN mengaktifkan Subscription +
 // mencatat Transaction di database (muncul di halaman Admin Revenue), tanpa
 // perlu approval admin (lihat subscription.service.js checkout()).
-export default function PaymentSimulationModal({ tier, planName, priceMonthly, onClose, onSuccess }: PaymentSimulationModalProps) {
+export default function PaymentSimulationModal({ tier, audience, billingCycle, planName, priceTotal, onClose, onSuccess }: PaymentSimulationModalProps) {
+  const periodLabel = billingCycle === 'YEARLY' ? '/tahun' : '/bulan'
   const [method, setMethod] = useState<PaymentMethod>('card')
   const [status, setStatus] = useState<Status>('form')
   const [errorMessage, setErrorMessage] = useState('')
@@ -79,7 +89,7 @@ export default function PaymentSimulationModal({ tier, planName, priceMonthly, o
     // panggilan API, murni UX (tidak ada request apapun terjadi di sini).
     await new Promise((resolve) => setTimeout(resolve, 1400))
     try {
-      const subscription = await checkoutSubscription(tier)
+      const subscription = await checkoutSubscription(tier, audience, billingCycle)
       setStatus('success')
       setTimeout(() => onSuccess(subscription), 1100)
     } catch (err) {
@@ -119,7 +129,7 @@ export default function PaymentSimulationModal({ tier, planName, priceMonthly, o
           <>
             <h3 className="confirm-dialog__title">Simulasi Pembayaran</h3>
             <p className="confirm-dialog__message">
-              Berlangganan <strong>{planName}</strong> — {formatRupiah(priceMonthly)}/bulan
+              Berlangganan <strong>{planName}</strong> — {formatRupiah(priceTotal)}{periodLabel}
             </p>
 
             {status === 'error' && (
@@ -175,7 +185,7 @@ export default function PaymentSimulationModal({ tier, planName, priceMonthly, o
                   </label>
                 </div>
                 <button type="submit" className="btn btn--primary payment-sim-modal__submit" disabled={!cardValid}>
-                  <FiLock /> Bayar {formatRupiah(priceMonthly)}
+                  <FiLock /> Bayar {formatRupiah(priceTotal)}
                 </button>
               </form>
             )}
@@ -196,7 +206,7 @@ export default function PaymentSimulationModal({ tier, planName, priceMonthly, o
                   <span className="payment-sim-modal__va-bank">Bank {vaBank} Virtual Account</span>
                   <span className="payment-sim-modal__va-number">{vaNumber}</span>
                 </div>
-                <p>Transfer sejumlah {formatRupiah(priceMonthly)} ke nomor Virtual Account di atas.</p>
+                <p>Transfer sejumlah {formatRupiah(priceTotal)} ke nomor Virtual Account di atas.</p>
                 <button type="button" className="btn btn--primary payment-sim-modal__submit" onClick={runCheckout}>
                   Saya Sudah Membayar
                 </button>

@@ -1,0 +1,230 @@
+/* ═══════════════════════════════════════════════════════
+   PERSONALIZATION INSIGHT CARD  — paic-*
+   Solid purple, white text
+   ═══════════════════════════════════════════════════════ */
+
+.paic {
+  --paic-purple: #6d28d9;
+
+  position: relative;
+  overflow: hidden;
+  background: var(--paic-purple);
+  border-radius: 16px;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(109, 40, 217, 0.25);
+  transition: box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.paic:hover {
+  box-shadow: 0 8px 24px rgba(109, 40, 217, 0.35);
+}
+
+/* ── Compact variant (sidebar above ad) ── */
+.paic--compact {
+  margin-bottom: 12px;
+  border-radius: 14px;
+}
+
+/* ── Full variant (settings page) ── */
+.paic--full {
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+
+/* ── Decorative blobs for depth ── */
+.paic__blob {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+.paic__blob--1 {
+  width: 160px;
+  height: 160px;
+  top: -50px;
+  right: -30px;
+}
+.paic__blob--2 {
+  width: 100px;
+  height: 100px;
+  bottom: -40px;
+  left: 20px;
+}
+
+/* ── Inner layout ── */
+.paic__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.paic--full .paic__inner {
+  padding: 24px 28px;
+  gap: 24px;
+}
+
+/* ── Donut chart ── */
+.paic__chart-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.paic-donut {
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+}
+
+.paic__chart-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  letter-spacing: 0.02em;
+  max-width: 80px;
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* ── Text block ── */
+.paic__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* AI badge pill — legacy, masih dipakai sebagai fallback */
+.paic__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  width: fit-content;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+}
+
+/* ── Top-3 category badges ── */
+.paic__cat-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.paic__cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  /* colour set via inline style */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s, box-shadow 0.15s;
+  cursor: default;
+  white-space: nowrap;
+}
+.paic__cat-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.paic__title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.paic--full .paic__title {
+  font-size: 1.1rem;
+}
+
+/* Stats row */
+.paic__stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.paic__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.paic__stat-value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+.paic__stat-label {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.7);
+  font-weight: 500;
+  line-height: 1.2;
+  margin-top: 2px;
+  text-align: center;
+}
+.paic__stat-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255,255,255,0.25);
+  flex-shrink: 0;
+}
+
+/* Notice text */
+.paic__notice {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.85);
+  margin: 0;
+  line-height: 1.5;
+  background: rgba(0,0,0,0.15);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.paic__notice--warn {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fef3c7;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .paic__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+  }
+  .paic__chart-wrap {
+    flex-direction: row;
+    gap: 12px;
+    align-items: center;
+  }
+  .paic__chart-label {
+    max-width: none;
+    text-align: left;
+  }
+  .paic__stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

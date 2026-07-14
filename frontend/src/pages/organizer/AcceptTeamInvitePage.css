@@ -1,0 +1,106 @@
+.accept-invite-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 24px 64px;
+  background-color: var(--color-primary-soft);
+  background-image: url('../../assets/svg/background-1.svg');
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
+.accept-invite-page__panel {
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-bg-true);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(26, 26, 46, 0.12);
+  padding: 32px;
+}
+
+.accept-invite-page__title {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--color-text-heading);
+}
+
+.accept-invite-page__subtitle {
+  margin: -8px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+}
+
+.accept-invite-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.accept-invite-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+
+.accept-invite-page__field input {
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 4px;
+  padding: var(--space-sm);
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+.accept-invite-page__field input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.accept-invite-page__error {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-danger);
+}
+
+.accept-invite-page__confirmation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-sm);
+  padding: 24px 0;
+}
+
+.accept-invite-page__confirmation-icon {
+  font-size: 48px;
+  color: var(--color-success);
+}
+
+.accept-invite-page__confirmation h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--color-text-heading);
+}
+
+.accept-invite-page__confirmation p {
+  margin: 0;
+  color: var(--color-text-muted);
+  max-width: 400px;
+}
+
+@media (max-width: 600px) {
+  .accept-invite-page {
+    padding: 24px 16px 48px;
+  }
+
+  .accept-invite-page__panel {
+    padding: 24px;
+  }
+}

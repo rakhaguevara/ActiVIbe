@@ -16,12 +16,17 @@ interface OtpVerifyFormProps {
 // Organisasimu" + SetOrganizationPasswordPage (beda OTP purpose, tidak
 // lewat komponen ini — lihat organization.service.js).
 export default function OtpVerifyForm({ email, onVerified }: OtpVerifyFormProps) {
-  const { verifyOtp, resendOtp } = useAuth()
+  const { verifyOtp, resendOtp, bypassOtp } = useAuth()
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
-  const [status, setStatus] = useState<'idle' | 'submitting'>('idle')
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'bypassing'>('idle')
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS)
+  // Backend cuma mengizinkan bypass setelah limit resend tercapai (kode error
+  // 'OTP_RESEND_LIMIT_REACHED', lihat auth.service.js bypassRegistrationOtp)
+  // — tombol "Lewati verifikasi" baru muncul begitu sinyal itu didapat, bukan
+  // tersedia dari awal.
+  const [resendExhausted, setResendExhausted] = useState(false)
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -50,6 +55,23 @@ export default function OtpVerifyForm({ email, onVerified }: OtpVerifyFormProps)
       setInfo('Kode baru sudah dikirim ke email kamu.')
       setCooldown(RESEND_COOLDOWN_SECONDS)
     } catch (err) {
+      const code = err instanceof Error ? (err as Error & { code?: string }).code : undefined
+      if (code === 'OTP_RESEND_LIMIT_REACHED') {
+        setResendExhausted(true)
+      }
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi.')
+    }
+  }
+
+  const handleBypass = async () => {
+    setError(null)
+    setInfo(null)
+    setStatus('bypassing')
+    try {
+      const user = await bypassOtp(email)
+      onVerified(user)
+    } catch (err) {
+      setStatus('idle')
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi.')
     }
   }
@@ -81,7 +103,7 @@ export default function OtpVerifyForm({ email, onVerified }: OtpVerifyFormProps)
       <button
         type="submit"
         className="otp-verify-form__submit"
-        disabled={status === 'submitting' || code.length !== 6}
+        disabled={status !== 'idle' || code.length !== 6}
       >
         {status === 'submitting' ? 'Memverifikasi...' : 'Verifikasi'}
       </button>
@@ -90,10 +112,27 @@ export default function OtpVerifyForm({ email, onVerified }: OtpVerifyFormProps)
         type="button"
         className="otp-verify-form__resend"
         onClick={handleResend}
-        disabled={cooldown > 0}
+        disabled={cooldown > 0 || status !== 'idle'}
       >
         {cooldown > 0 ? `Kirim ulang kode (${cooldown}s)` : 'Kirim ulang kode'}
       </button>
+
+      {resendExhausted && (
+        <div className="otp-verify-form__bypass">
+          <p className="otp-verify-form__bypass-note">
+            Masih belum menerima kode setelah beberapa kali kirim ulang? Kamu bisa melewati verifikasi ini dan
+            melanjutkan ke onboarding — pastikan email <strong>{email}</strong> memang benar.
+          </p>
+          <button
+            type="button"
+            className="otp-verify-form__bypass-button"
+            onClick={handleBypass}
+            disabled={status !== 'idle'}
+          >
+            {status === 'bypassing' ? 'Melewati verifikasi...' : 'Lewati verifikasi'}
+          </button>
+        </div>
+      )}
     </form>
   )
 }

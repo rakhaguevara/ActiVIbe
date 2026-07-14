@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { FiPlus, FiTrash2 } from 'react-icons/fi'
 import { useOrganizerData } from '../../contexts/OrganizerDataContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { useUnsavedGuard } from '../../contexts/UnsavedGuardContext'
 import { getInterests, getSkills, type TaxonomyItem } from '../../lib/profileApi'
 import { loadDraft, saveDraft, clearDraft } from '../../lib/formDraft'
+import ConfirmDialog from '../../components/ConfirmDialog'
 import LocationSelector, { EMPTY_LOCATION, type LocationValue } from '../../components/location/LocationSelector'
 import MapsLinkField from '../../components/location/MapsLinkField'
 import EventDetailPanel from '../../components/EventDetailPanel'
@@ -133,6 +135,8 @@ export default function CreateEventPage() {
   const { addEvent, subOrganizers, addSubOrganizer } = useOrganizerData()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { setGuard: setUnsavedGuard } = useUnsavedGuard()
+  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false)
 
   const draftKey = `create-event:${user?.id ?? 'anon'}`
   const [draft] = useState(() => loadDraft<CreateEventDraft>(draftKey))
@@ -323,6 +327,80 @@ export default function CreateEventPage() {
     setGalleryImages([])
     setDeclarationChecklist(emptyDeclarationChecklist())
     setValidationErrors([])
+  }
+
+  // Ada isian yang berarti (belum tentu sama dgn draft ter-load — dicek per
+  // field, bukan dibandingkan ke draft) — dipakai buat nge-gate semua
+  // konfirmasi "tinggalkan halaman" di bawah, supaya form kosong tidak pernah
+  // nge-prompt apa-apa.
+  const hasUnsavedChanges =
+    title.trim() !== '' ||
+    description.trim() !== '' ||
+    location.trim() !== '' ||
+    startDate !== '' ||
+    endDate !== '' ||
+    category !== '' ||
+    picName.trim() !== '' ||
+    picContact.trim() !== '' ||
+    picEmail.trim() !== '' ||
+    mapLink.trim() !== '' ||
+    roles.some((role) => role.roleName.trim() !== '' || role.roleDescription.trim() !== '') ||
+    Object.values(documents).some((doc) => doc !== null) ||
+    Object.keys(legalDocs).length > 0 ||
+    galleryImages.length > 0
+
+  // Guard navigasi in-app (sidebar/topbar organizer, lihat OrganizerLayout +
+  // UnsavedGuardContext) — begitu ada isian, klik pindah halaman ditahan dulu
+  // & munculkan popup konfirmasi custom. Kalau user pilih tetap pindah,
+  // draft-nya ikut dibersihkan (onConfirmLeave) supaya konsisten dgn
+  // konfirmasi refresh di bawah: setuju = data hilang, batal = data tetap.
+  useEffect(() => {
+    setUnsavedGuard(hasUnsavedChanges, () => clearDraft(draftKey))
+    return () => setUnsavedGuard(false)
+  }, [hasUnsavedChanges, setUnsavedGuard, draftKey])
+
+  // Refresh via keyboard (F5 / Ctrl+R / Cmd+R) bisa di-preventDefault beneran
+  // (beda dari tombol reload toolbar/tutup tab, yg cuma bisa nampilin dialog
+  // bawaan browser tanpa teks custom) — jadi utk jalur ini popup card kita
+  // sendiri yang muncul, bukan dialog generik.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const isRefreshShortcut = e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r')
+      if (isRefreshShortcut && hasUnsavedChanges) {
+        e.preventDefault()
+        setShowRefreshConfirm(true)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [hasUnsavedChanges])
+
+  // Fallback utk tombol reload toolbar / tutup tab / navigasi lewat address
+  // bar — tidak bisa dicegat dgn popup custom (batasan browser), jadi browser
+  // nampilin dialog konfirmasi bawaannya sendiri. `pagehide` cuma jalan kalau
+  // halaman BENERAN ditinggalkan (user pilih "Leave"/tutup tab beneran) —
+  // kalau dialognya di-Cancel, pagehide tidak pernah terpanggil & draft utuh.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    const onPageHide = () => {
+      clearDraft(draftKey)
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [hasUnsavedChanges, draftKey])
+
+  const handleConfirmRefresh = () => {
+    clearDraft(draftKey)
+    setShowRefreshConfirm(false)
+    window.location.reload()
   }
 
   useEffect(() => {
@@ -975,6 +1053,17 @@ export default function CreateEventPage() {
         </h3>
         <EventDetailPanel event={previewEvent} />
       </div>
+
+      {showRefreshConfirm && (
+        <ConfirmDialog
+          title="Refresh halaman ini?"
+          message="Data yang sudah kamu isi di form Buat Event akan hilang kalau kamu refresh sekarang."
+          confirmLabel="Ya, Refresh"
+          tone="danger"
+          onConfirm={handleConfirmRefresh}
+          onCancel={() => setShowRefreshConfirm(false)}
+        />
+      )}
     </div>
   )
 }

@@ -7,9 +7,14 @@ import { prisma } from '../../config/prisma.js'
 import { AppError } from '../../utils/AppError.js'
 import { hashToken } from '../../utils/hash.js'
 import { generateOtpCode } from '../../utils/otp.js'
-import { sendOrganizationSetPasswordEmail, sendOrganizationActivationOtpEmail } from '../../utils/mailer.js'
+import {
+  sendOrganizationSetPasswordEmail,
+  sendOrganizationActivationOtpEmail,
+  sendBrandingTestEmail,
+} from '../../utils/mailer.js'
 import { env } from '../../config/env.js'
 import { ORG_LOGO_UPLOAD_DIR } from './organizationLogoUpload.js'
+import { ORG_BRANDING_UPLOAD_DIR } from './organizationBannerUpload.js'
 
 const ACTIVATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 const OTP_MAX_VERIFY_ATTEMPTS = 5
@@ -38,6 +43,16 @@ function serializeOrganization(org, eventsCount) {
     rating: 0,
     mission: org.mission ?? '',
     aboutUs: org.aboutUs ?? '',
+    bannerUrl: org.bannerUrl ?? undefined,
+    primaryColor: org.primaryColor ?? undefined,
+    secondaryColor: org.secondaryColor ?? undefined,
+    signatureUrl: org.signatureUrl ?? undefined,
+    stampUrl: org.stampUrl ?? undefined,
+    emailHeaderImageUrl: org.emailHeaderImageUrl ?? undefined,
+    emailFooterText: org.emailFooterText ?? '',
+    facebookUrl: org.facebookUrl ?? undefined,
+    instagramUrl: org.instagramUrl ?? undefined,
+    linkedinUrl: org.linkedinUrl ?? undefined,
   }
 }
 
@@ -128,6 +143,156 @@ export async function updateMyOrganizationLogo(ownerId, file) {
   })
   const [serialized] = await attachEventsCount([updated])
   return serialized
+}
+
+const BRANDING_ASSET_FIELDS = new Set(['bannerUrl', 'signatureUrl', 'stampUrl', 'emailHeaderImageUrl'])
+
+async function deleteBrandingFileIfExists(url) {
+  if (!url) return
+  await rm(path.join(ORG_BRANDING_UPLOAD_DIR, path.basename(url)), { force: true }).catch(() => {})
+}
+
+// Generic dipakai ke-4 aset BrandingView (banner/signature/stamp/email
+// header) — semua disk storage-nya sama (uploads/org-branding), cuma field
+// kolom Organization yang beda, jadi tidak perlu 4 fungsi service terpisah.
+export async function updateMyOrganizationBrandingAsset(ownerId, field, file) {
+  if (!BRANDING_ASSET_FIELDS.has(field)) {
+    throw new AppError(400, 'Jenis aset branding tidak dikenali')
+  }
+  if (!file) throw new AppError(400, 'Pilih file terlebih dahulu')
+
+  const user = await prisma.user.findUnique({ where: { id: ownerId } })
+  const organization = await ensureOrganizationForOwner(ownerId, { name: user.name })
+
+  await deleteBrandingFileIfExists(organization[field])
+  const updated = await prisma.organization.update({
+    where: { id: organization.id },
+    data: { [field]: `/uploads/org-branding/${file.filename}` },
+  })
+  const [serialized] = await attachEventsCount([updated])
+  return serialized
+}
+
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/
+
+export async function updateMyOrganizationVisualIdentity(ownerId, { primaryColor, secondaryColor }) {
+  if (primaryColor !== undefined && primaryColor !== null && primaryColor !== '' && !HEX_COLOR_REGEX.test(primaryColor)) {
+    throw new AppError(400, 'Primary color harus format hex valid, contoh #10b981')
+  }
+  if (secondaryColor !== undefined && secondaryColor !== null && secondaryColor !== '' && !HEX_COLOR_REGEX.test(secondaryColor)) {
+    throw new AppError(400, 'Secondary color harus format hex valid, contoh #059669')
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: ownerId } })
+  const organization = await ensureOrganizationForOwner(ownerId, { name: user.name })
+
+  const updated = await prisma.organization.update({
+    where: { id: organization.id },
+    data: {
+      primaryColor: primaryColor || null,
+      secondaryColor: secondaryColor || null,
+    },
+  })
+  const [serialized] = await attachEventsCount([updated])
+  return serialized
+}
+
+const EMAIL_FOOTER_MAX_LENGTH = 500
+
+export async function updateMyOrganizationEmailIdentity(ownerId, { emailFooterText }) {
+  if (emailFooterText !== undefined && emailFooterText !== null && emailFooterText.length > EMAIL_FOOTER_MAX_LENGTH) {
+    throw new AppError(400, `Footer email maksimal ${EMAIL_FOOTER_MAX_LENGTH} karakter`)
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: ownerId } })
+  const organization = await ensureOrganizationForOwner(ownerId, { name: user.name })
+
+  const updated = await prisma.organization.update({
+    where: { id: organization.id },
+    data: { emailFooterText: emailFooterText?.trim() || null },
+  })
+  const [serialized] = await attachEventsCount([updated])
+  return serialized
+}
+
+const URL_REGEX = /^https?:\/\//i
+// Wajib diisi — kolom NOT NULL di schema (Organization.name/location/phone
+// semuanya String, bukan String?), beda dari OPTIONAL_TEXT_FIELDS di bawah
+// yang memang nullable. Kalau phone ikut dianggap "boleh dikosongkan" spt
+// mission/aboutUs/website, update dgn phone='' akan gagal di Prisma (null
+// bukan value valid utk kolom NOT NULL).
+const REQUIRED_PROFILE_FIELDS = ['name', 'location', 'phone']
+const REQUIRED_PROFILE_FIELD_LABELS = { name: 'Nama', location: 'Lokasi', phone: 'Telepon' }
+// Nullable, boleh dikosongkan (string kosong -> null).
+const OPTIONAL_TEXT_FIELDS = ['mission', 'aboutUs', 'website']
+const SOCIAL_URL_FIELDS = ['facebookUrl', 'instagramUrl', 'linkedinUrl']
+
+function assertSocialUrlValid(field, value) {
+  if (value === undefined || value === null || value === '') return
+  if (!URL_REGEX.test(value)) {
+    throw new AppError(400, `${field} harus berupa URL yang valid (diawali http:// atau https://)`)
+  }
+}
+
+// "Edit Profile" di OrganizationProfileView — beda dari updateMyOrganizationVisualIdentity/
+// updateMyOrganizationEmailIdentity di atas (aset branding/warna/email) yang
+// dipisah krn dipakai halaman Branding: ini field profil publik organisasi
+// (nama, lokasi, kontak, mission/about, link sosial media).
+export async function updateMyOrganizationProfile(ownerId, payload) {
+  const data = {}
+
+  for (const field of REQUIRED_PROFILE_FIELDS) {
+    if (payload[field] === undefined) continue
+    const trimmed = payload[field]?.trim()
+    if (!trimmed) {
+      throw new AppError(400, `${REQUIRED_PROFILE_FIELD_LABELS[field]} organisasi tidak boleh kosong`)
+    }
+    data[field] = trimmed
+  }
+  for (const field of OPTIONAL_TEXT_FIELDS) {
+    if (payload[field] === undefined) continue
+    data[field] = payload[field]?.trim() || null
+  }
+  for (const field of SOCIAL_URL_FIELDS) {
+    if (payload[field] === undefined) continue
+    assertSocialUrlValid(field, payload[field])
+    data[field] = payload[field]?.trim() || null
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: ownerId } })
+  const organization = await ensureOrganizationForOwner(ownerId, { name: user.name })
+
+  const updated = await prisma.organization.update({ where: { id: organization.id }, data })
+  const [serialized] = await attachEventsCount([updated])
+  return serialized
+}
+
+// "Send Test Email" di BrandingView — dikirim ke email organisasi sendiri
+// (bukan owner.email — organizer mungkin ingin tes ke inbox yang sama dgn
+// yang dipakai kirim broadcast/tiket ke volunteer) supaya organizer bisa
+// lihat langsung bagaimana header/warna/footer branding-nya tampil di email
+// nyata sebelum dipakai di broadcast/tiket sungguhan. Header image dikirim
+// sbg inline attachment (CID) dibaca langsung dari disk — bukan URL publik
+// (tidak ada env "backend base URL" di repo ini sejak BACKEND_URL dihapus,
+// lihat CLAUDE.md — pola sama persis QR tiket di sendEventTicketEmail yang
+// juga menghindari data:/URL publik krn Gmail dkk. bisa memblokirnya).
+export async function sendMyOrganizationTestEmail(ownerId) {
+  const user = await prisma.user.findUnique({ where: { id: ownerId } })
+  const organization = await ensureOrganizationForOwner(ownerId, { name: user.name })
+
+  const headerImagePath = organization.emailHeaderImageUrl
+    ? path.join(ORG_BRANDING_UPLOAD_DIR, path.basename(organization.emailHeaderImageUrl))
+    : null
+  const recipient = organization.email || user.email
+
+  await sendBrandingTestEmail(recipient, {
+    organizationName: organization.name,
+    headerImagePath,
+    primaryColor: organization.primaryColor,
+    footerText: organization.emailFooterText,
+  })
+
+  return { sentTo: recipient }
 }
 
 // Dipanggil dari registerOrganization() — SATU alur untuk semua pendaftar,

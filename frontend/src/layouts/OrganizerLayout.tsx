@@ -17,6 +17,7 @@ import {
 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { OrganizerDataProvider } from '../contexts/OrganizerDataContext'
+import { UnsavedGuardProvider, useUnsavedGuard } from '../contexts/UnsavedGuardContext'
 import logo from '../assets/svg/logo.svg'
 import './OrganizerLayout.css'
 
@@ -149,18 +150,8 @@ function getInitials(name: string): string {
 }
 
 export default function OrganizerLayout() {
-  const { user, isLoading, logout } = useAuth()
+  const { user, isLoading } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  
-  const searchParams = new URLSearchParams(location.search)
-  const currentStatus = searchParams.get('status')
-  const currentTab = searchParams.get('tab')
-  
-  const [expandedNavs, setExpandedNavs] = useState<Record<string, boolean>>({
-    'Events': true,
-    'Volunteers': false
-  })
 
   useEffect(() => {
     if (!isLoading && (!user || user.role !== 'ORGANIZER')) {
@@ -168,157 +159,208 @@ export default function OrganizerLayout() {
     }
   }, [isLoading, user, navigate])
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/')
-  }
-
   if (isLoading || !user || user.role !== 'ORGANIZER') {
     return null
   }
 
   return (
-    <div className="organizer-layout">
-      <aside className="organizer-layout__sidebar" aria-label="Navigasi organizer">
+    <UnsavedGuardProvider>
+      <div className="organizer-layout">
+        <OrganizerSidebar userName={user.name} />
 
-        {/* Brand */}
-        <div className="organizer-layout__brand">
-          <img src={logo} alt="ActiVibe logo" height="32" style={{ flexShrink: 0 }} />
-          <div className="organizer-layout__brand-info">
-            <span className="organizer-layout__brand-label">Organizer Panel</span>
-          </div>
+        <main className="organizer-layout__content">
+          <OrganizerDataProvider>
+            <Outlet />
+          </OrganizerDataProvider>
+        </main>
+      </div>
+    </UnsavedGuardProvider>
+  )
+}
+
+/**
+ * Sidebar navigasi — dipisah dari OrganizerLayout supaya bisa memanggil
+ * useUnsavedGuard() (butuh berada di dalam UnsavedGuardProvider di tree,
+ * bukan cuma dipanggil di function yang sama). Tiap klik link/logout dibungkus
+ * `guardedAction` — kalau halaman aktif (mis. CreateEventPage) sedang menandai
+ * ada isian belum tersimpan, navigasi ditahan dulu dan popup konfirmasi custom
+ * muncul (lihat UnsavedGuardContext); kalau tidak, navigasi jalan seperti biasa.
+ */
+function OrganizerSidebar({ userName }: { userName: string }) {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { guardedAction } = useUnsavedGuard()
+
+  const searchParams = new URLSearchParams(location.search)
+  const currentStatus = searchParams.get('status')
+  const currentTab = searchParams.get('tab')
+
+  const [expandedNavs, setExpandedNavs] = useState<Record<string, boolean>>({
+    'Events': true,
+    'Volunteers': false
+  })
+
+  const handleLogout = () => {
+    guardedAction(() => {
+      logout().then(() => navigate('/'))
+    })
+  }
+
+  return (
+    <aside className="organizer-layout__sidebar" aria-label="Navigasi organizer">
+
+      {/* Brand */}
+      <div className="organizer-layout__brand">
+        <img src={logo} alt="ActiVibe logo" height="32" style={{ flexShrink: 0 }} />
+        <div className="organizer-layout__brand-info">
+          <span className="organizer-layout__brand-label">Organizer Panel</span>
         </div>
+      </div>
 
-        {/* Search bar — CareDoc style */}
-        <div className="organizer-layout__search" role="search">
-          <FiSearch className="organizer-layout__search-icon" aria-hidden="true" />
-          <input
-            type="text"
-            placeholder="Cari..."
-            aria-label="Cari halaman"
-            readOnly
-            onFocus={(e) => e.target.blur()} /* placeholder UX saja */
-          />
-          <div className="organizer-layout__search-shortcut" aria-hidden="true">
-            <span className="organizer-layout__search-key">Ctrl</span>
-            <span className="organizer-layout__search-key">K</span>
-          </div>
+      {/* Search bar — CareDoc style */}
+      <div className="organizer-layout__search" role="search">
+        <FiSearch className="organizer-layout__search-icon" aria-hidden="true" />
+        <input
+          type="text"
+          placeholder="Cari..."
+          aria-label="Cari halaman"
+          readOnly
+          onFocus={(e) => e.target.blur()} /* placeholder UX saja */
+        />
+        <div className="organizer-layout__search-shortcut" aria-hidden="true">
+          <span className="organizer-layout__search-key">Ctrl</span>
+          <span className="organizer-layout__search-key">K</span>
         </div>
+      </div>
 
-        {/* Navigasi per section */}
-        <nav className="organizer-layout__nav" aria-label="Menu utama">
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.label}>
-              <p className="organizer-layout__nav-section">{section.label}</p>
+      {/* Navigasi per section */}
+      <nav className="organizer-layout__nav" aria-label="Menu utama">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label}>
+            <p className="organizer-layout__nav-section">{section.label}</p>
 
-              {section.items.map(({ to, label, icon: Icon, end, subItems }) => {
-                const hasSub = !!subItems?.length
-                const isExpanded = expandedNavs[label]
+            {section.items.map(({ to, label, icon: Icon, end, subItems }) => {
+              const hasSub = !!subItems?.length
+              const isExpanded = expandedNavs[label]
 
-                return (
-                  <div key={to} className="organizer-layout__nav-item-wrapper">
-                    <NavLink
-                      to={to}
-                      end={end}
-                      data-label={label}
-                      onClick={() => {
-                        if (hasSub) {
-                          setExpandedNavs(prev => ({ ...prev, [label]: !prev[label] }))
-                        }
-                      }}
-                      className={({ isActive }) =>
-                        ['organizer-layout__nav-link', isActive ? 'is-active' : ''].filter(Boolean).join(' ')
+              return (
+                <div key={to} className="organizer-layout__nav-item-wrapper">
+                  <NavLink
+                    to={to}
+                    end={end}
+                    data-label={label}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (hasSub) {
+                        setExpandedNavs(prev => ({ ...prev, [label]: !prev[label] }))
                       }
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '12px' }}>
-                        <Icon className="organizer-layout__nav-icon" aria-hidden="true" />
-                        <span className="organizer-layout__nav-label">{label}</span>
-                      </div>
-                      {hasSub && (
-                        <FiChevronDown 
-                          style={{ 
-                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', 
-                            transition: 'transform 0.2s',
-                            opacity: 0.6
-                          }} 
-                        />
-                      )}
-                    </NavLink>
-                    {hasSub && isExpanded && (
-                      <div className="organizer-layout__subnav" style={{ paddingLeft: '44px', marginTop: '4px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {(subItems ?? []).map((sub: NavSubItem) => {
-                          const subUrl = new URL(sub.to, 'http://localhost')
-                          const subStatus = subUrl.searchParams.get('status')
-                          const subTab = subUrl.searchParams.get('tab')
-                          
-                          const isSubActive = location.pathname === subUrl.pathname && currentStatus === subStatus && currentTab === subTab
-                          
-                          return (
-                            <Link
-                              key={sub.to}
-                              to={sub.to}
-                              className={['organizer-layout__subnav-link', isSubActive ? 'is-active' : ''].filter(Boolean).join(' ')}
-                              style={{
-                                textDecoration: 'none',
-                                fontSize: '14px',
-                                padding: '8px 12px',
-                                borderRadius: '8px',
-                                color: isSubActive ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                                background: isSubActive ? 'var(--color-primary-soft)' : 'transparent',
-                                fontWeight: isSubActive ? 600 : 400,
-                                display: 'block'
-                              }}
-                            >
-                              {sub.label}
-                            </Link>
-                          )
-                        })}
-                      </div>
+                      guardedAction(() => navigate(to))
+                    }}
+                    className={({ isActive }) =>
+                      ['organizer-layout__nav-link', isActive ? 'is-active' : ''].filter(Boolean).join(' ')
+                    }
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '12px' }}>
+                      <Icon className="organizer-layout__nav-icon" aria-hidden="true" />
+                      <span className="organizer-layout__nav-label">{label}</span>
+                    </div>
+                    {hasSub && (
+                      <FiChevronDown
+                        style={{
+                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
+                          transition: 'transform 0.2s',
+                          opacity: 0.6
+                        }}
+                      />
                     )}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </nav>
+                  </NavLink>
+                  {hasSub && isExpanded && (
+                    <div className="organizer-layout__subnav" style={{ paddingLeft: '44px', marginTop: '4px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {(subItems ?? []).map((sub: NavSubItem) => {
+                        const subUrl = new URL(sub.to, 'http://localhost')
+                        const subStatus = subUrl.searchParams.get('status')
+                        const subTab = subUrl.searchParams.get('tab')
 
-        {/* Footer — Help & Support + user row */}
-        <div className="organizer-layout__footer">
-          <a href="#" className="organizer-layout__help-link" onClick={(e) => e.preventDefault()}>
-            <FiHelpCircle className="organizer-layout__help-icon" aria-hidden="true" />
-            <span className="organizer-layout__help-label">Bantuan &amp; Dukungan</span>
-          </a>
-          <Link to="/organizer/settings" className="organizer-layout__help-link">
-            <FiSettings className="organizer-layout__help-icon" aria-hidden="true" />
-            <span className="organizer-layout__help-label">Pengaturan</span>
-          </Link>
+                        const isSubActive = location.pathname === subUrl.pathname && currentStatus === subStatus && currentTab === subTab
 
-          <div className="organizer-layout__user-row">
-            <div className="organizer-layout__user-avatar" aria-hidden="true">
-              {getInitials(user.name)}
-            </div>
-            <div className="organizer-layout__user-info">
-              <p className="organizer-layout__user-name">{user.name}</p>
-              <p className="organizer-layout__user-role-label">Organizer</p>
-            </div>
-            <button
-              type="button"
-              className="organizer-layout__logout-btn"
-              onClick={handleLogout}
-              title="Logout"
-              aria-label="Logout"
-            >
-              <FiLogOut aria-hidden="true" />
-            </button>
+                        return (
+                          <Link
+                            key={sub.to}
+                            to={sub.to}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              guardedAction(() => navigate(sub.to))
+                            }}
+                            className={['organizer-layout__subnav-link', isSubActive ? 'is-active' : ''].filter(Boolean).join(' ')}
+                            style={{
+                              textDecoration: 'none',
+                              fontSize: '14px',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              color: isSubActive ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                              background: isSubActive ? 'var(--color-primary-soft)' : 'transparent',
+                              fontWeight: isSubActive ? 600 : 400,
+                              display: 'block'
+                            }}
+                          >
+                            {sub.label}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
-        </div>
-      </aside>
+        ))}
+      </nav>
 
-      <main className="organizer-layout__content">
-        <OrganizerDataProvider>
-          <Outlet />
-        </OrganizerDataProvider>
-      </main>
-    </div>
+      {/* Footer — Help & Support + user row */}
+      <div className="organizer-layout__footer">
+        <Link
+          to="/organizer/help"
+          className="organizer-layout__help-link"
+          onClick={(e) => {
+            e.preventDefault()
+            guardedAction(() => navigate('/organizer/help'))
+          }}
+        >
+          <FiHelpCircle className="organizer-layout__help-icon" aria-hidden="true" />
+          <span className="organizer-layout__help-label">Bantuan &amp; Dukungan</span>
+        </Link>
+        <Link
+          to="/organizer/settings"
+          className="organizer-layout__help-link"
+          onClick={(e) => {
+            e.preventDefault()
+            guardedAction(() => navigate('/organizer/settings'))
+          }}
+        >
+          <FiSettings className="organizer-layout__help-icon" aria-hidden="true" />
+          <span className="organizer-layout__help-label">Pengaturan</span>
+        </Link>
+
+        <div className="organizer-layout__user-row">
+          <div className="organizer-layout__user-avatar" aria-hidden="true">
+            {getInitials(userName)}
+          </div>
+          <div className="organizer-layout__user-info">
+            <p className="organizer-layout__user-name">{userName}</p>
+            <p className="organizer-layout__user-role-label">Organizer</p>
+          </div>
+          <button
+            type="button"
+            className="organizer-layout__logout-btn"
+            onClick={handleLogout}
+            title="Logout"
+            aria-label="Logout"
+          >
+            <FiLogOut aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </aside>
   )
 }

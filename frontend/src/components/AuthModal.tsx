@@ -9,6 +9,8 @@ import { PORTAL_URLS } from '../config/portalUrls'
 import { updateMyProfile, type Gender } from '../lib/profileApi'
 import LocationSelector, { EMPTY_LOCATION, type LocationValue } from './location/LocationSelector'
 import OtpVerifyForm from './OtpVerifyForm'
+import ForgotPasswordForm from './ForgotPasswordForm'
+import type { AuthUser } from '../lib/api'
 import './AuthModal.css'
 
 export type AuthMode = 'login' | 'signup'
@@ -31,6 +33,7 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
   // ada sesi saat register(), jadi ditahan di state lokal lalu dikirim via
   // updateMyProfile() begitu OTP terverifikasi, lihat handleOtpVerified).
   const [gender, setGender] = useState<Gender | ''>('')
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const navigate = useNavigate()
   const { login, register, logout } = useAuth()
 
@@ -76,6 +79,7 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
     setPendingEmail('')
     setLocation(EMPTY_LOCATION)
     setGender('')
+    setShowForgotPassword(false)
   }, [mode])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -150,6 +154,26 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
     }, 1200)
   }
 
+  // Dipanggil setelah ForgotPasswordForm berhasil reset password — sesi baru
+  // sudah terbit (auto-login, lihat resetPasswordWithOtp), sama gate role
+  // VOLUNTEER seperti login manual krn AuthModal ini portal volunteer saja.
+  const handleForgotPasswordDone = async (user: AuthUser) => {
+    if (user.role !== 'VOLUNTEER') {
+      await logout()
+      setShowForgotPassword(false)
+      setError(
+        `Akun ini terdaftar sebagai ${user.role}. Silakan masuk lewat portal yang sesuai: ${PORTAL_URLS[user.role]}`,
+      )
+      return
+    }
+    setShowForgotPassword(false)
+    setStatus('success')
+    setTimeout(() => {
+      onClose()
+      navigate('/dashboard')
+    }, 1200)
+  }
+
   return (
     <div className="auth-modal__backdrop" onMouseDown={onClose}>
       <div
@@ -166,22 +190,26 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
         <div className="auth-modal__body" ref={bodyRef}>
           <img src={logo} alt="ActiVibe" className="auth-modal__logo" />
 
-          <h2 className="auth-modal__title">
-            {isLogin ? 'Masuk ke akunmu' : 'Buat akun barumu'}
-          </h2>
+          {!showForgotPassword && (
+            <>
+              <h2 className="auth-modal__title">
+                {isLogin ? 'Masuk ke akunmu' : 'Buat akun barumu'}
+              </h2>
 
-          <p className="auth-modal__subtitle">
-            {isLogin ? 'Belum punya akun? ' : 'Sudah punya akun? '}
-            <button
-              type="button"
-              className="auth-modal__switch"
-              onClick={() => onModeChange(isLogin ? 'signup' : 'login')}
-            >
-              {isLogin ? 'Daftar' : 'Masuk'}
-            </button>
-          </p>
+              <p className="auth-modal__subtitle">
+                {isLogin ? 'Belum punya akun? ' : 'Sudah punya akun? '}
+                <button
+                  type="button"
+                  className="auth-modal__switch"
+                  onClick={() => onModeChange(isLogin ? 'signup' : 'login')}
+                >
+                  {isLogin ? 'Daftar' : 'Masuk'}
+                </button>
+              </p>
+            </>
+          )}
 
-          {status !== 'otp-pending' && (
+          {status !== 'otp-pending' && !showForgotPassword && (
             <>
               <div className="auth-modal__social">
                 <button type="button" className="auth-modal__social-btn">
@@ -210,6 +238,11 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
             </p>
           ) : status === 'otp-pending' ? (
             <OtpVerifyForm email={pendingEmail} onVerified={handleOtpVerified} />
+          ) : showForgotPassword ? (
+            <ForgotPasswordForm
+              onDone={handleForgotPasswordDone}
+              onBackToLogin={() => setShowForgotPassword(false)}
+            />
           ) : (
             <form className="auth-modal__form" onSubmit={handleSubmit}>
               {!isLogin && (
@@ -269,7 +302,13 @@ export default function AuthModal({ mode, onClose, onModeChange }: AuthModalProp
               {error && <p className="auth-modal__error">{error}</p>}
 
               {isLogin ? (
-                <a href="#" className="auth-modal__forgot">Lupa password?</a>
+                <button
+                  type="button"
+                  className="auth-modal__forgot"
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  Lupa password?
+                </button>
               ) : (
                 <label className="auth-modal__checkbox">
                   <input type="checkbox" required />

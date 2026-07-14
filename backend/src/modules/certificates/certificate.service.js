@@ -24,8 +24,16 @@ async function findOwnedApplicationOrThrow(organizerId, applicationId) {
   return application
 }
 
-async function getActiveTemplate() {
+export async function getActiveTemplate() {
   return prisma.certificateTemplate.findFirst({ where: { isActive: true } })
+}
+
+// Dipakai endpoint GET /certificates/active-template — wrapper tipis,
+// cuma expose id+name (bukan seluruh row template) ke frontend Branding page.
+export async function getActiveTemplateInfo() {
+  const template = await getActiveTemplate()
+  if (!template) return null
+  return { id: template.id, name: template.name }
 }
 
 async function getMyOrganizationLogoUrl(organizerId) {
@@ -64,10 +72,10 @@ async function assertCertificateQuota(organizerId, eventId) {
   }
 }
 
-export async function getCertificateQueue(organizerId) {
+export async function getCertificateQueue(organizerId, { eventId } = {}) {
   const applications = await prisma.application.findMany({
     where: {
-      event: { organizerId },
+      event: { organizerId, ...(eventId ? { id: eventId } : {}) },
       status: { in: CERTIFICATE_ELIGIBLE_STATUSES },
       certificate: null,
     },
@@ -180,9 +188,9 @@ export async function regenerateCertificate(organizerId, certificateId, note) {
   })
 }
 
-export async function listGeneratedCertificates(organizerId) {
+export async function listGeneratedCertificates(organizerId, { eventId } = {}) {
   const certificates = await prisma.certificate.findMany({
-    where: { event: { organizerId } },
+    where: { event: { organizerId, ...(eventId ? { id: eventId } : {}) } },
     include: {
       event: { select: { id: true, title: true } },
       application: { include: { user: { select: { name: true } } } },
@@ -237,8 +245,8 @@ export async function listCertificateVersions(organizerId, certificateId) {
 // (bukan log historis) — supaya tab ini tidak pernah basi: begitu admin
 // aktifkan template atau organizer upgrade paket, baris ini otomatis hilang
 // tanpa perlu proses "resolve" manual.
-export async function listFailedCandidates(organizerId) {
-  const eligible = await getCertificateQueue(organizerId)
+export async function listFailedCandidates(organizerId, { eventId } = {}) {
+  const eligible = await getCertificateQueue(organizerId, { eventId })
   if (eligible.length === 0) return []
 
   const template = await getActiveTemplate()

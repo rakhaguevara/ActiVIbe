@@ -1,9 +1,13 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  FiSearch, FiUsers, FiAward, FiClock, FiFileText, FiMoreVertical, FiDownload
+  FiSearch, FiUsers, FiAward, FiClock, FiFileText, FiDownload
 } from 'react-icons/fi'
 import VolunteerProfileDrawer from '../../../components/organizer/VolunteerProfileDrawer'
-import type { OrganizerVolunteer, OrganizerVolunteerApplication, OrganizerVolunteersResponse } from '../../../types/organizer'
+import { listGeneratedCertificatesRequest } from '../../../lib/organizerApi'
+import { generateCertificatePdf, downloadCertificatePdf } from '../../../utils/certificateGenerator'
+import { generateVolunteerProfilePdf } from '../../../utils/volunteerProfilePdf'
+import type { Certificate, OrganizerVolunteer, OrganizerVolunteerApplication, OrganizerVolunteersResponse } from '../../../types/organizer'
 import '../VolunteersPage.css'
 
 interface CompletedRow {
@@ -16,9 +20,41 @@ function formatDate(iso: string): string {
 }
 
 export default function CompletedVolunteersView({ data }: { data: OrganizerVolunteersResponse }) {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [eventFilter, setEventFilter] = useState('')
   const [selectedProfile, setSelectedProfile] = useState<OrganizerVolunteer | null>(null)
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  // Sertifikat difetch terpisah dari OrganizerVolunteersResponse (endpoint
+  // beda modul) — cukup sekali saat view ini mount, dipakai lookup by
+  // applicationId saat tombol Download diklik.
+  useEffect(() => {
+    listGeneratedCertificatesRequest().then(setCertificates).catch(() => {})
+  }, [])
+
+  const handleDownloadCertificate = async (app: OrganizerVolunteerApplication) => {
+    const certificate = certificates.find((c) => c.applicationId === app.applicationId)
+    if (!certificate || !certificate.templateUrl) {
+      window.alert('Sertifikat belum tersedia untuk diunduh.')
+      return
+    }
+    setDownloadingId(app.applicationId)
+    try {
+      const bytes = await generateCertificatePdf({
+        participantName: certificate.participantName,
+        eventTitle: certificate.eventTitle,
+        templateUrl: certificate.templateUrl,
+        organizationLogoUrl: certificate.organizationLogoUrl,
+      })
+      downloadCertificatePdf(bytes, `Sertifikat - ${certificate.volunteerName} - ${certificate.eventTitle}.pdf`)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Gagal mengunduh sertifikat.')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   const rows: CompletedRow[] = useMemo(() => {
     const result: CompletedRow[] = []
@@ -138,7 +174,15 @@ export default function CompletedVolunteersView({ data }: { data: OrganizerVolun
                     <td>
                       <div className="v-table-actions">
                         <button className="btn btn--sm btn--outline" onClick={() => setSelectedProfile(vol)}>Profile</button>
-                        <button className="btn btn--sm btn--outline" style={{ padding: '0 8px' }} title="Download Certificate" disabled={!app.certificateIssued}><FiDownload/></button>
+                        <button
+                          className="btn btn--sm btn--outline"
+                          style={{ padding: '0 8px' }}
+                          title="Download Certificate"
+                          disabled={!app.certificateIssued || downloadingId === app.applicationId}
+                          onClick={() => handleDownloadCertificate(app)}
+                        >
+                          <FiDownload/>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -157,6 +201,19 @@ export default function CompletedVolunteersView({ data }: { data: OrganizerVolun
         volunteer={selectedProfile}
         isOpen={selectedProfile !== null}
         onClose={() => setSelectedProfile(null)}
+        // Belum ada sistem "invite volunteer ke event tertentu" di backend
+        // (di luar scope fase ini) — arahkan ke composer broadcast yang
+        // sudah nyata, bukan pura-pura sukses invite langsung.
+        onInvite={() => navigate('/organizer/communication?tab=broadcast')}
+        onMessage={() => navigate('/organizer/communication?tab=broadcast')}
+        onDownloadProfile={
+          selectedProfile
+            ? async () => {
+                const bytes = await generateVolunteerProfilePdf(selectedProfile)
+                downloadCertificatePdf(bytes, `Profil - ${selectedProfile.name}.pdf`)
+              }
+            : undefined
+        }
       />
     </div>
   )

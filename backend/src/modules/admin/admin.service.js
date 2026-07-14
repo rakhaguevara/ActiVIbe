@@ -4,7 +4,7 @@ import { matchProvince } from '../../utils/provinces.js'
 import { generateInsights } from './adminAi.service.js'
 import { sendOrganizerWarningEmail } from '../../utils/mailer.js'
 import { getUserTiers, adminSetTier as adminSetTierService } from '../subscriptions/subscription.service.js'
-import { PLANS } from '../subscriptions/plans.js'
+import { getMonthlyPrice } from '../subscriptions/plans.js'
 import bcrypt from 'bcryptjs'
 
 const ACCEPTED_APPLICATION_STATUSES = ['ACCEPTED', 'CHECKED_IN', 'COMPLETED']
@@ -367,6 +367,7 @@ export async function listParticipation(from, to) {
   return applications.map((app) => ({
     id: app.id,
     userName: app.user.name,
+    userEmail: app.user.email,
     eventTitle: app.event.title,
     attended: app.attended,
     impactMetricLabel: app.event.impactMetricLabel,
@@ -374,6 +375,50 @@ export async function listParticipation(from, to) {
     impactUnit: app.event.impactMetricUnit ?? '',
     date: toDateOnly(app.event.startDate),
   }))
+}
+
+// Ringkasan partisipasi per kategori event, dipakai KPI card di halaman
+// Partisipasi (FR-021 export). Count = jumlah Application attended
+// non-null (definisi sama dgn "Total Aktif" milik getParticipationSummary()),
+// dikelompokkan per Event.category. Trend = growth bulan ini vs bulan lalu
+// berdasar Event.startDate (kapan kegiatannya berlangsung — konsisten dgn
+// listParticipation() yang juga memfilter dari startDate, bukan dari kapan
+// attendance-nya ditandai organizer).
+export async function getParticipationByCategory() {
+  const now = new Date()
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+  const tracked = await prisma.application.findMany({
+    where: { attended: { not: null } },
+    select: { event: { select: { category: true, startDate: true } } },
+  })
+
+  const totals = new Map()
+  const thisMonthCounts = new Map()
+  const lastMonthCounts = new Map()
+
+  for (const { event } of tracked) {
+    const category = event?.category
+    if (!category) continue
+    totals.set(category, (totals.get(category) ?? 0) + 1)
+    if (event.startDate >= thisMonthStart) {
+      thisMonthCounts.set(category, (thisMonthCounts.get(category) ?? 0) + 1)
+    } else if (event.startDate >= lastMonthStart && event.startDate < thisMonthStart) {
+      lastMonthCounts.set(category, (lastMonthCounts.get(category) ?? 0) + 1)
+    }
+  }
+
+  return Array.from(totals.entries())
+    .map(([category, count]) => {
+      const current = thisMonthCounts.get(category) ?? 0
+      const previous = lastMonthCounts.get(category) ?? 0
+      // previous === 0 sengaja dikembalikan null (bukan 0% atau +100%) —
+      // tidak ada baseline yang valid untuk dihitung growth-nya.
+      const growthPct = previous > 0 ? Math.round(((current - previous) / previous) * 100) : null
+      return { category, count, growthPct }
+    })
+    .sort((a, b) => b.count - a.count)
 }
 
 // ============================================
@@ -652,15 +697,21 @@ export async function getRevenueSummary() {
 
   const now = new Date()
   const activeByTier = { PLUS_STARTER: 0, PLUS_PRO: 0 }
+  // MRR (Monthly Recurring Revenue) — dihitung dari harga efektif per bulan
+  // tiap subscriber ACTIVE saat ini (audience+cycle row-nya sendiri, BUKAN
+  // harga tunggal per tier lagi — organizer/volunteer & monthly/yearly beda
+  // harga sejak subscription dipecah per audience, lihat plans.js), BUKAN
+  // dari total historis Transaction (yang bisa termasuk langganan yang
+  // sudah cancelled/expired).
+  let mrr = 0
   for (const sub of activeSubscriptions) {
     if (sub.currentPeriodEnd && sub.currentPeriodEnd < now) continue
     if (sub.tier === 'PLUS_STARTER') activeByTier.PLUS_STARTER += 1
     else if (sub.tier === 'PLUS_PRO') activeByTier.PLUS_PRO += 1
+    if (sub.tier === 'PLUS_STARTER' || sub.tier === 'PLUS_PRO') {
+      mrr += getMonthlyPrice(sub.tier, sub.audience, sub.billingCycle)
+    }
   }
-  // MRR (Monthly Recurring Revenue) — dihitung dari jumlah subscriber ACTIVE
-  // saat ini × harga plan, BUKAN dari total historis Transaction (yang bisa
-  // termasuk langganan yang sudah cancelled/expired).
-  const mrr = activeByTier.PLUS_STARTER * PLANS.PLUS_STARTER.priceMonthly + activeByTier.PLUS_PRO * PLANS.PLUS_PRO.priceMonthly
 
   const paidSubscribers = activeByTier.PLUS_STARTER + activeByTier.PLUS_PRO
   const subscriberCounts = {
@@ -685,6 +736,8 @@ export async function getRevenueSummary() {
       userEmail: t.subscription.user.email,
       userRole: t.subscription.user.role,
       tier: t.tier,
+      audience: t.audience,
+      billingCycle: t.billingCycle,
       amount: t.amount,
       method: t.method,
       status: t.status,
@@ -714,6 +767,8 @@ export async function listSubscriptions() {
       userEmail: u.email,
       userRole: u.role,
       tier,
+      audience: sub?.audience ?? null,
+      billingCycle: sub?.billingCycle ?? null,
       status: sub?.status ?? 'ACTIVE',
       currentPeriodEnd: sub?.currentPeriodEnd ?? null,
     }

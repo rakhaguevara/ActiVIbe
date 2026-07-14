@@ -16,4 +16,17 @@ export interface Organization {
   rating: number
   mission: string
   aboutUs: string
+  // Branding (BrandingView.tsx) — semua opsional, organisasi lama belum tentu
+  // pernah mengisinya.
+  bannerUrl?: string
+  primaryColor?: string
+  secondaryColor?: string
+  signatureUrl?: string
+  stampUrl?: string
+  emailHeaderImageUrl?: string
+  emailFooterText?: string
+  // Link sosial media (OrganizationProfileView.tsx) — semua opsional.
+  facebookUrl?: string
+  instagramUrl?: string
+  linkedinUrl?: string
 }

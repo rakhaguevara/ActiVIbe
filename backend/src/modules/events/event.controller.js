@@ -14,6 +14,7 @@ import {
   restoreEvent,
   closeRegistration,
   listPublishedEventsForVolunteer,
+  listPopularEventsForLanding,
   getPublishedEventById,
   logEventView,
   bookmarkEvent,
@@ -151,6 +152,15 @@ export async function listPublic(req, res, next) {
   try {
     const { keyword, category, location, skill } = req.query
     const events = await listPublishedEventsForVolunteer({ keyword, category, location, skill })
+    return res.json({ events })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function listPopular(req, res, next) {
+  try {
+    const events = await listPopularEventsForLanding()
     return res.json({ events })
   } catch (err) {
     next(err)

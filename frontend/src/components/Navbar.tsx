@@ -9,7 +9,6 @@ type NavAccent = 'primary' | 'secondary' | 'orange' | 'yellow'
 const NAV_LINKS: { label: string; href: string; to?: string; accent: NavAccent }[] = [
   { label: 'Cari Aktivitas', href: '#', to: '/cari-aktivitas', accent: 'primary' },
   { label: 'Cari Organisasi', href: '#', to: '/cari-organisasi', accent: 'secondary' },
-  { label: 'Cara Kerja', href: '#', to: '/cara-kerja', accent: 'orange' },
   { label: 'Tentang Kami', href: '#', to: '/tentang-kami', accent: 'yellow' },
   { label: 'ActiVibe Plus', href: '#', to: '/activibe-plus', accent: 'yellow' },
 ]

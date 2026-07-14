@@ -1,8 +1,15 @@
 import { getMySubscription, checkout, cancel, serializePlans } from './subscription.service.js'
+import { AUDIENCES, BILLING_CYCLES } from './plans.js'
 
+// audience/cycle datang dari query (?audience=ORGANIZER&cycle=YEARLY) —
+// endpoint ini publik/bisa diakses logged-out (lihat routes.js), jadi tidak
+// bisa ditebak dari req.user. Default VOLUNTEER/MONTHLY kalau tidak dikirim
+// atau tidak valid (bukan 400 — ini cuma katalog harga, bukan aksi).
 export async function getPlans(req, res, next) {
   try {
-    return res.json({ plans: serializePlans() })
+    const audience = AUDIENCES.includes(req.query.audience) ? req.query.audience : 'VOLUNTEER'
+    const cycle = BILLING_CYCLES.includes(req.query.cycle) ? req.query.cycle : 'MONTHLY'
+    return res.json({ plans: serializePlans(audience, cycle) })
   } catch (err) {
     next(err)
   }
@@ -19,8 +26,8 @@ export async function getMe(req, res, next) {
 
 export async function postCheckout(req, res, next) {
   try {
-    const { tier } = req.body
-    const subscription = await checkout(req.user.id, tier)
+    const { tier, audience, cycle } = req.body
+    const subscription = await checkout(req.user.id, tier, audience, cycle)
     return res.status(201).json({ subscription })
   } catch (err) {
     next(err)

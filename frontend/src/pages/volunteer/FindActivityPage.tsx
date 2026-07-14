@@ -257,6 +257,8 @@ export default function FindActivityPage() {
               onSelect={handleSelectEvent}
               currentUserGender={currentUserGender}
               showAd={showAd}
+              aiEnabled={aiEnabled}
+              profileComplete={profileComplete}
             />
           </ScrollPane>
         )}

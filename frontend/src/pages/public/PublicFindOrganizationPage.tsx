@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../lib/apiFetch'
 import { FiMapPin, FiUsers, FiStar, FiTrendingUp, FiAward } from 'react-icons/fi'
+import wave from '../../assets/svg/wave.svg'
 import Footer from '../../components/Footer'
 import './PublicFindActivityPage.css'
 import './PublicFindOrganizationPage.css'
@@ -118,15 +119,18 @@ export default function PublicFindOrganizationPage({ onLoginClick }: { onLoginCl
     load()
   }, [])
 
-  /** 1. Terpopuler — rating tertinggi */
-  const topRated = [...orgs]
-    .filter(o => o.rating > 0)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 10)
+  /** 1. Terpopuler — rating tertinggi (fallback: semua org jika tidak ada yang punya rating) */
+  const topRated = (() => {
+    const withRating = [...orgs].filter(o => o.rating > 0).sort((a, b) => b.rating - a.rating)
+    // Jika tidak ada yg punya rating, tampilkan semua org (urutan createdAt terbaru)
+    return (withRating.length > 0 ? withRating : [...orgs].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )).slice(0, 10)
+  })()
 
-  /** 2. Paling Aktif — event terbanyak */
+  /** 2. Paling Aktif — event terbanyak, fallback ke nama A-Z */
   const mostActive = [...orgs]
-    .sort((a, b) => b.eventCount - a.eventCount)
+    .sort((a, b) => b.eventCount - a.eventCount || a.name.localeCompare(b.name))
     .slice(0, 10)
 
   /** 3. Baru Bergabung — createdAt terbaru */
@@ -134,11 +138,17 @@ export default function PublicFindOrganizationPage({ onLoginClick }: { onLoginCl
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 10)
 
+
   return (
     <div className="pac-page">
-      {/* Hero */}
+      {/* Hero (Background Banner) */}
       <div className="pac-hero pac-hero--org">
-        <div className="pac-hero-inner">
+        <img src={wave} alt="" className="pac-hero-wave" />
+      </div>
+
+      {/* Page Title & Subtitle */}
+      <div className="pac-header-text">
+        <div className="pac-header-text-inner">
           <h1 className="pac-hero-title">Cari Organisasi</h1>
           <p className="pac-hero-sub">
             Temukan organisasi yang sejalan dengan nilai-nilai Anda dan ikuti kegiatan mereka.

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import AccountSidebar from '../../components/AccountSidebar'
+import PersonalizationInsightCard from '../../components/PersonalizationInsightCard'
+import { useRecommendations } from '../../hooks/useRecommendations'
 import {
   getInterests,
   getSkills,
@@ -75,6 +77,7 @@ function groupByCategory(items: TaxonomyItem[]): [string, TaxonomyItem[]][] {
 export default function SettingsPage() {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
+  const { events: recEvents, aiEnabled, aiProvider, profileComplete } = useRecommendations()
 
   const draftKey = `volunteer-settings:${user?.id ?? 'anon'}`
   const [draft] = useState(() => loadDraft<SettingsDraft>(draftKey))
@@ -366,6 +369,13 @@ export default function SettingsPage() {
             Buang Perubahan
           </button>
         </header>
+
+        <PersonalizationInsightCard
+          events={recEvents}
+          aiEnabled={aiEnabled}
+          profileComplete={profileComplete}
+          variant="full"
+        />
 
         <section className="card settings-page__section">
           <h2>Profil Diri</h2>

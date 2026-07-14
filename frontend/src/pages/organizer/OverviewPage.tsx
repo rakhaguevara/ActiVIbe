@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   FiPlus, FiDownload, FiCalendar, FiUsers, FiCheckSquare,
   FiMessageSquare, FiXCircle, FiTrendingUp, FiStar,
@@ -103,9 +103,29 @@ const eventStatusRank: Record<OrganizerEvent['status'], number> = {
 }
 
 export default function OverviewPage() {
+  const navigate = useNavigate()
   const { events, applicants } = useOrganizerData()
   const [stats, setStats] = useState<OrganizerOverviewStats>(EMPTY_STATS)
   const [isStatsLoaded, setIsStatsLoaded] = useState(false)
+
+  // GET /reports/search (Phase 6) belum dibangun — utk fase ini pencarian
+  // difilter langsung dari daftar event organizer yang sudah di-load
+  // useOrganizerData() (tidak ada query baru ke backend). Debounce ringan
+  // supaya tidak filter di tiap keystroke pada daftar event yang besar.
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearchQuery(searchQuery), 250)
+    return () => clearTimeout(timeout)
+  }, [searchQuery])
+
+  const searchResults = useMemo(() => {
+    const query = debouncedSearchQuery.trim().toLowerCase()
+    if (!query) return []
+    return events.filter((e) => e.title.toLowerCase().includes(query)).slice(0, 8)
+  }, [events, debouncedSearchQuery])
 
   useEffect(() => {
     let cancelled = false
@@ -267,9 +287,64 @@ export default function OverviewPage() {
         <div className="admin-dashboard-header__top">
           <h1 className="admin-dashboard-header__title">Dashboard</h1>
           <div className="admin-dashboard-header__top-actions">
-            <div className="admin-dashboard-header__search">
+            <div className="admin-dashboard-header__search" style={{ position: 'relative' }}>
               <FiSearch />
-              <input type="text" placeholder="Search everything" />
+              <input
+                type="text"
+                placeholder="Search everything"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
+              />
+              {isSearchFocused && searchQuery.trim() && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    left: 0,
+                    minWidth: '280px',
+                    background: 'var(--color-bg-true)',
+                    border: '1px solid var(--color-border-light)',
+                    borderRadius: '12px',
+                    boxShadow: '0 12px 32px rgba(26, 26, 46, 0.18)',
+                    padding: '6px',
+                    zIndex: 60,
+                  }}
+                >
+                  {searchResults.length === 0 ? (
+                    <p style={{ margin: 0, padding: '8px 10px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                      Tidak ada event yang cocok dengan &quot;{searchQuery}&quot;.
+                    </p>
+                  ) : (
+                    searchResults.map((event) => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('')
+                          navigate(`/organizer/events/${event.id}`)
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 10px',
+                          border: 'none',
+                          background: 'transparent',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          color: 'var(--color-text-body)',
+                        }}
+                      >
+                        <strong>{event.title}</strong>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{STATUS_LABEL[event.status]}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

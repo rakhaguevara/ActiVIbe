@@ -31,12 +31,22 @@ export interface AdminEvent {
 export interface ParticipationRecord {
   id: string
   userName: string
+  userEmail: string
   eventTitle: string
   attended: boolean
   impactMetricLabel: string
   impactValue: number
   impactUnit: string
   date: string
+}
+
+// Ringkasan KPI per kategori event, halaman Partisipasi (admin.service.js
+// getParticipationByCategory). growthPct null = belum ada data bulan lalu
+// utk kategori itu (tidak ada baseline yg valid utk dihitung).
+export interface ParticipationCategoryStat {
+  category: string
+  count: number
+  growthPct: number | null
 }
 
 export interface ActivityLogEntry {
@@ -65,6 +75,10 @@ export interface PrematureClosure {
 // ActiVibe Plus — halaman admin "Revenue" (grup Manajemen), lihat
 // admin.service.js getRevenueSummary/listSubscriptions.
 export type SubscriptionTier = 'FREE' | 'PLUS_STARTER' | 'PLUS_PRO'
+// "Dibeli sebagai" siapa (harga beda per audience, lihat subscriptions/plans.js)
+// x siklus penagihan — null utk baris FREE/belum pernah checkout.
+export type SubscriptionAudience = 'ORGANIZER' | 'VOLUNTEER'
+export type BillingCycle = 'MONTHLY' | 'YEARLY'
 
 export interface RevenueTransaction {
   id: string
@@ -72,6 +86,8 @@ export interface RevenueTransaction {
   userEmail: string
   userRole: 'VOLUNTEER' | 'ORGANIZER' | 'ADMIN'
   tier: SubscriptionTier
+  audience: SubscriptionAudience
+  billingCycle: BillingCycle
   amount: number
   method: string
   status: 'SUCCESS' | 'FAILED'
@@ -91,6 +107,8 @@ export interface AdminSubscription {
   userEmail: string
   userRole: 'VOLUNTEER' | 'ORGANIZER' | 'ADMIN'
   tier: SubscriptionTier
+  audience: SubscriptionAudience | null
+  billingCycle: BillingCycle | null
   status: 'ACTIVE' | 'CANCELLED'
   currentPeriodEnd: string | null
 }

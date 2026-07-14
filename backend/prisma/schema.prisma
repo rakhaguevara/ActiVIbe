@@ -8,18 +8,27 @@ datasource db {
 }
 
 model User {
-  id         String     @id @default(uuid())
-  name       String
-  email      String?    @unique
-  phone      String?    @unique
-  password   String
-  role       Role       @default(VOLUNTEER)
-  isVerified Boolean    @default(false)
+  id                 String     @id @default(uuid())
+  name               String
+  email              String?    @unique
+  phone              String?    @unique
+  password           String
+  role               Role       @default(VOLUNTEER)
+  isVerified         Boolean    @default(false)
+  // Diisi kalau user melewati verifikasi OTP registrasi lewat tombol "Lewati
+  // verifikasi" (hanya bisa dipakai setelah batas kirim ulang OTP tercapai —
+  // lihat bypassRegistrationOtp di auth.service.js). Null = diverifikasi normal
+  // via kode. Murni audit trail, tidak memengaruhi behavior lain.
+  otpBypassedAt      DateTime?
   // FR-019: admin bisa aktifkan/nonaktifkan/suspend akun. SUSPENDED juga
   // memblokir login (lihat auth.service.js loginUser) — bukan cuma label.
-  status     UserStatus @default(ACTIVE)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  status             UserStatus @default(ACTIVE)
+  // TOTP 2FA opsional (Security settings) — secret base32, enabledAt null =
+  // belum aktif. Verifikasi kode terjadi di loginUser() kalau enabledAt terisi.
+  twoFactorSecret    String?
+  twoFactorEnabledAt DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   otpRequests   OtpRequest[]
   refreshTokens RefreshToken[]
@@ -34,12 +43,18 @@ model User {
 
   // Organizer domain — dua relasi terpisah ke Event karena satu User bisa
   // jadi organizer sekaligus (di kesempatan lain) admin yang approve event.
-  organizedEvents Event[]        @relation("EventOrganizer")
-  approvedEvents  Event[]        @relation("EventApprovedBy")
+  organizedEvents          Event[]              @relation("EventOrganizer")
+  approvedEvents           Event[]              @relation("EventApprovedBy")
   // Satu User bisa memiliki lebih dari satu Organization (lihat komentar di
   // model Organization) — lihat model Organization untuk alasan kenapa ini
   // model terpisah, bukan sekadar query User role=ORGANIZER.
-  organizations   Organization[] @relation("OrganizationOwner")
+  organizations            Organization[]       @relation("OrganizationOwner")
+  // Keanggotaan tim organisasi lain (bukan pemilik) — lihat model OrganizationMember.
+  organizationMemberships  OrganizationMember[] @relation("OrganizationMemberUser")
+  organizationInvitesSent  OrganizationMember[] @relation("OrganizationMemberInvitedBy")
+  messageTemplatesCreated  MessageTemplate[]    @relation("MessageTemplateCreatedBy")
+  scheduledMessagesCreated ScheduledMessage[]   @relation("ScheduledMessageCreatedBy")
+  apiKeysCreated           ApiKey[]             @relation("ApiKeyCreatedBy")
 
   assignmentsMade      VolunteerAssignment[] @relation("AssignmentAssignedBy")
   organizerNotes       OrganizerNote[]       @relation("OrganizerNoteAuthor")
@@ -96,15 +111,22 @@ model OtpRequest {
 enum OtpPurpose {
   REGISTER
   ORGANIZATION_ACTIVATION
+  PASSWORD_RESET
 }
 
 model RefreshToken {
-  id        String    @id @default(uuid())
-  userId    String
-  tokenHash String    @unique
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  // Metadata sesi (nullable, token lama sebelum kolom ini ada tetap valid) —
+  // dipakai UI "Kelola Sesi" di Security settings supaya user bisa lihat &
+  // cabut sesi individual dari device lain. Diisi saat issueTokens()/refresh.
+  userAgent  String?
+  ipAddress  String?
+  lastUsedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -369,6 +391,7 @@ model Event {
   legalDocuments    EventLegalDocument[]
   closeReport       EventCloseReport?
   organizerWarnings OrganizerWarning[]
+  scheduledMessages ScheduledMessage[]
 
   @@index([organizerId])
   @@index([organizationId])
@@ -401,6 +424,9 @@ enum OrganizationEntityType {
 enum OrganizationStatus {
   PENDING_VERIFICATION
   ACTIVE
+  // Dinonaktifkan sementara oleh owner sendiri (bisa diaktifkan lagi lewat
+  // reactivateMyOrganization) — beda dari deletedAt yang permanen/soft-delete.
+  DEACTIVATED
 }
 
 enum LegalDocType {
@@ -501,12 +527,35 @@ model Organization {
   activationTokenExpiresAt DateTime?
   mission                  String?
   aboutUs                  String?
+  // Link sosial media organisasi (opsional) — ditampilkan di OrganizationProfileView.
+  facebookUrl              String?
+  instagramUrl             String?
+  linkedinUrl              String?
+  // Soft-delete ("Hapus Organisasi" di Settings) — TIDAK hard-delete krn
+  // Event.organizationId & SubOrganizer mereferensikan baris ini, hard-delete
+  // akan merusak histori event. Semua query baca WAJIB filter deletedAt: null.
+  deletedAt                DateTime?
+  // Aset visual & email identity (BrandingView) — warna disimpan sbg hex
+  // string, file fisik di backend/uploads/org-branding/. Nullable/tanpa
+  // default supaya organisasi lama tidak perlu backfill.
+  bannerUrl                String?
+  primaryColor             String?
+  secondaryColor           String?
+  signatureUrl             String?
+  stampUrl                 String?
+  emailHeaderImageUrl      String?
+  emailFooterText          String?
   createdAt                DateTime           @default(now())
   updatedAt                DateTime           @updatedAt
 
-  owner         User           @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  events        Event[]
-  subOrganizers SubOrganizer[]
+  owner             User                  @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  events            Event[]
+  subOrganizers     SubOrganizer[]
+  members           OrganizationMember[]
+  messageTemplates  MessageTemplate[]
+  scheduledMessages ScheduledMessage[]
+  settings          OrganizationSettings?
+  apiKeys           ApiKey[]
 
   @@index([ownerId])
 }
@@ -980,6 +1029,153 @@ model AuditLog {
 }
 
 // ============================================
+// COMMUNICATION CENTER — Templates & Scheduled Messages
+// (BroadcastView/CommunicationLog sudah real lewat CommunicationLog di atas;
+// dua model ini melengkapi TemplatesView & ScheduledMessagesView yang
+// sebelumnya 100% mock.)
+// ============================================
+
+// Template pesan reusable, per-organisasi (TemplatesView).
+model MessageTemplate {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  category       String?
+  subject        String?
+  body           String
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("MessageTemplateCreatedBy", fields: [createdById], references: [id])
+
+  @@index([organizationId])
+}
+
+enum ScheduledMessageStatus {
+  SCHEDULED
+  SENT
+  CANCELLED
+  FAILED
+}
+
+// Broadcast terjadwal (ScheduledMessagesView) — dispatch lewat in-process
+// poller (setInterval ~60d di server.js, lihat startScheduledMessagePoller di
+// scheduledMessages.service.js) yang mencari baris SCHEDULED dgn sendAt lewat,
+// bukan node-cron (belum ada precedent dependency itu di repo, single-instance
+// app cukup dgn polling sederhana).
+model ScheduledMessage {
+  id                     String                 @id @default(uuid())
+  organizationId         String
+  eventId                String
+  title                  String
+  message                String
+  targetSegment          String
+  sendAt                 DateTime
+  status                 ScheduledMessageStatus @default(SCHEDULED)
+  sentCommunicationLogId String?
+  createdById            String
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("ScheduledMessageCreatedBy", fields: [createdById], references: [id])
+
+  @@index([organizationId])
+  @@index([status, sendAt])
+}
+
+enum OrganizationMemberRole {
+  OWNER
+  ADMINISTRATOR
+  COORDINATOR
+}
+
+enum OrganizationMemberStatus {
+  INVITED
+  ACTIVE
+}
+
+// Anggota tim organisasi yang PUNYA akun ActiVibe (TeamMembersView) — beda
+// dari SubOrganizer yang cuma record kontak PIC tanpa akun. userId null
+// selama status INVITED (belum accept undangan lewat inviteTokenHash), terisi
+// begitu acceptInvite() dipanggil.
+model OrganizationMember {
+  id                   String                   @id @default(uuid())
+  organizationId       String
+  userId               String?
+  email                String
+  name                 String
+  role                 OrganizationMemberRole   @default(COORDINATOR)
+  status               OrganizationMemberStatus @default(INVITED)
+  inviteTokenHash      String?                  @unique
+  inviteTokenExpiresAt DateTime?
+  invitedById          String
+  joinedAt             DateTime?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("OrganizationMemberUser", fields: [userId], references: [id], onDelete: SetNull)
+  invitedBy    User         @relation("OrganizationMemberInvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+}
+
+// Preferensi umum & notifikasi organisasi (Settings > General/Notifications/
+// API) — 1:1 dgn Organization. Kolom diskrit (bukan Json) krn himpunan
+// preferensi sudah pasti/tetap, konsisten dgn prinsip repo ini reservasi Json
+// hanya utk bentuk yg benar2 fleksibel (lihat Event.declarationChecklist).
+model OrganizationSettings {
+  id                           String   @id @default(uuid())
+  organizationId               String   @unique
+  // General
+  language                     String   @default("id")
+  country                      String?
+  timezone                     String   @default("Asia/Jakarta")
+  currency                     String   @default("IDR")
+  dateFormat                   String   @default("DD/MM/YYYY")
+  timeFormat                   String   @default("24h")
+  weekStart                    String   @default("MONDAY")
+  units                        String?
+  defaultEventDurationHours    Int?
+  // Notifications
+  notifyEmailNewApplicant      Boolean  @default(true)
+  notifyEmailEventReminder     Boolean  @default(true)
+  notifyEmailBroadcastReceipts Boolean  @default(false)
+  notifyEmailWeeklyDigest      Boolean  @default(false)
+  notificationFrequency        String   @default("INSTANT")
+  // API / Integrations
+  webhookUrl                   String?
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Kunci API organizer (ApiSettingsView) — hanya hash yang disimpan, plaintext
+// cuma ditampilkan sekali saat createApiKey() (mirror RefreshToken.tokenHash).
+model ApiKey {
+  id             String    @id @default(uuid())
+  organizationId String
+  label          String
+  keyPrefix      String
+  keyHash        String    @unique
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+  createdById    String
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("ApiKeyCreatedBy", fields: [createdById], references: [id])
+
+  @@index([organizationId])
+}
+
+// ============================================
 // ACTIVIBE PLUS — freemium/premium subscription
 // Satu produk/harga sama utk akun ORGANIZER maupun VOLUNTEER, manfaatnya
 // menyesuaikan role (lihat subscriptions/plans.js LIMITS). Pembayaran di-mock
@@ -1004,15 +1200,31 @@ enum TransactionStatus {
   FAILED
 }
 
+// Satu akun bisa punya role VOLUNTEER & ORGANIZER sekaligus — harga paket
+// beda tergantung "dibeli sebagai" siapa (lihat subscriptions/plans.js
+// PRICING), jadi Subscription/Transaction perlu tahu audience mana yang
+// dipilih saat checkout, bukan cuma User.role saat itu (bisa berubah).
+enum SubscriptionAudience {
+  ORGANIZER
+  VOLUNTEER
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
 model Subscription {
-  id               String             @id @default(uuid())
-  userId           String             @unique
-  tier             SubscriptionTier   @default(FREE)
-  status           SubscriptionStatus @default(ACTIVE)
+  id               String               @id @default(uuid())
+  userId           String               @unique
+  tier             SubscriptionTier     @default(FREE)
+  audience         SubscriptionAudience @default(VOLUNTEER)
+  billingCycle     BillingCycle         @default(MONTHLY)
+  status           SubscriptionStatus   @default(ACTIVE)
   currentPeriodEnd DateTime?
   cancelledAt      DateTime?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
@@ -1021,17 +1233,19 @@ model Subscription {
 // Riwayat "pembayaran" (mock) — juga sumber angka utk halaman Admin Revenue
 // (getRevenueSummary/listSubscriptions di admin.service.js).
 model Transaction {
-  id             String            @id @default(uuid())
+  id             String               @id @default(uuid())
   subscriptionId String
   userId         String
   tier           SubscriptionTier
+  audience       SubscriptionAudience @default(VOLUNTEER)
+  billingCycle   BillingCycle         @default(MONTHLY)
   amount         Int
-  status         TransactionStatus @default(SUCCESS)
+  status         TransactionStatus    @default(SUCCESS)
   // 'simulasi' = user checkout sendiri (mock instant-activate),
   // 'admin-manual' = admin override lewat halaman Revenue (amount 0).
   method         String
-  paidAt         DateTime          @default(now())
-  createdAt      DateTime          @default(now())
+  paidAt         DateTime             @default(now())
+  createdAt      DateTime             @default(now())
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 

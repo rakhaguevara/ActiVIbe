@@ -11,18 +11,41 @@
   flex-direction: column;
 }
 
-/* ── Hero banner ── */
+/* ── Hero banner (hanya untuk background image) ── */
 .pac-hero {
-  padding: 120px 40px 48px;
-  background: linear-gradient(135deg, #f0edff 0%, #e8f3ff 100%);
-  border-bottom: 1px solid rgba(99, 62, 218, 0.08);
+  position: relative;
+  min-height: 25vw; /* sesuaikan tinggi banner */
+  background-image: url('../../assets/svg/background-1.svg');
+  background-size: cover;
+  background-position: bottom center;
+  background-repeat: no-repeat;
+  background-color: #c2e7f8;
 }
 .pac-hero--org {
-  background: linear-gradient(135deg, #edfff6 0%, #e6f0ff 100%);
+  /* Hapus gradient, biarkan sama karena menggunakan gambar yang sama */
 }
-.pac-hero-inner {
+
+.pac-hero-wave {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  min-width: 100%;
+  height: auto;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(1.02);
+  z-index: 1;
+}
+
+/* ── Hero text (di bawah wave) ── */
+.pac-header-text {
+  padding: 20px 40px 0;
+}
+.pac-header-text-inner {
   max-width: 1200px;
   margin: 0 auto;
+  /* text-align: left (default) */
 }
 .pac-hero-title {
   font-size: clamp(1.8rem, 4vw, 2.8rem);
@@ -32,9 +55,10 @@
   line-height: 1.2;
 }
 .pac-hero-sub {
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
   color: var(--color-text-body, #555);
-  max-width: 560px;
+  font-weight: 500;
+  max-width: 600px;
   margin: 0;
   line-height: 1.6;
 }
@@ -95,12 +119,11 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #633eda, #9b6dff);
+  background: var(--color-primary, #633eda);
   color: #fff;
   font-size: 1.1rem;
   flex-shrink: 0;
   margin-top: 2px;
-  box-shadow: 0 4px 12px rgba(99, 62, 218, 0.3);
 }
 
 .pac-section-title {

@@ -45,6 +45,13 @@ export const env = {
   // bukan error. Default ke origin pertama di FRONTEND_URL (urutan volunteer,
   // organizer, admin — lihat komentar allowedOrigins di app.js).
   VOLUNTEER_PORTAL_URL: process.env.VOLUNTEER_PORTAL_URL || process.env.FRONTEND_URL.split(',')[0].trim(),
+  // Portal organizer (tempat AcceptTeamInvitePage live, lihat
+  // organizationMembers.service.js inviteMember) — dipakai membangun link
+  // undangan tim di email. Beda dari VOLUNTEER_PORTAL_URL di atas: tidak
+  // diturunkan dari FRONTEND_URL (urutan originnya tidak dijamin match portal
+  // organizer), fallback ke port dev default organizer (lihat
+  // frontend/.env.organizer & frontend/src/config/portalUrls.ts).
+  ORGANIZER_PORTAL_URL: process.env.ORGANIZER_PORTAL_URL || 'http://localhost:5176',
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'ActiVibe <no-reply@activibe.id>',
   // OTP registrasi (FR-002/003) — expiry & batas resend, dipakai auth.service.js

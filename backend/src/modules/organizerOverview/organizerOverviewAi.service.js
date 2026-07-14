@@ -190,14 +190,20 @@ const CHAT_SCHEMA = {
   additionalProperties: false,
 }
 
-function buildChatSystemPrompt(summary) {
-  return `Kamu adalah asisten organizer ActiVibe. Jawab HANYA berdasarkan ringkasan data dashboard organizer ini
-(angka nyata dari database, khusus milik organizer ini) — jangan mengarang angka yang tidak ada di sini. Jawab
-singkat, bahasa Indonesia. Kalau organizer bertanya sesuatu yang tidak bisa dijawab dari data ini, katakan terus
-terang bahwa datanya tidak tersedia, jangan menebak.
+function buildChatSystemPrompt(summary, knowledge) {
+  return `Kamu adalah asisten organizer ActiVibe. Jawab HANYA berdasarkan data berikut (angka & data nyata dari
+database, khusus milik organizer ini) — jangan mengarang apa pun yang tidak ada di sini. Jawab singkat, bahasa
+Indonesia. Kalau organizer bertanya sesuatu yang tidak bisa dijawab dari data ini, katakan terus terang bahwa
+datanya tidak tersedia, jangan menebak.
 
-RINGKASAN DATA DASHBOARD ORGANIZER:
-${JSON.stringify(summary, null, 2)}`
+RINGKASAN DATA DASHBOARD ORGANIZER (angka agregat):
+${JSON.stringify(summary, null, 2)}
+
+DATA DETAIL TERKAIT PERTANYAAN (kegiatan/pelamar/feedback/laporan penutupan/sub organizer milik organizer ini
+yang paling relevan dgn pertanyaannya — daftar ini SUDAH disaring/dipilihkan, bukan seluruh data organizer
+ini, jadi kalau sesuatu tidak ada di sini, katakan datanya tidak ditemukan, jangan mengasumsikan tidak ada
+sama sekali):
+${JSON.stringify(knowledge, null, 2)}`
 }
 
 function buildFallbackReply(summary) {
@@ -218,7 +224,7 @@ function sanitizeMessages(messages) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_MESSAGE_LENGTH) }))
 }
 
-export async function chat(summary, rawMessages) {
+export async function chat(summary, rawMessages, knowledge) {
   const messages = sanitizeMessages(rawMessages)
   if (messages.length === 0) {
     return { reply: 'Silakan tulis pertanyaan Anda terlebih dahulu.', aiGenerated: false }
@@ -231,7 +237,7 @@ export async function chat(summary, rawMessages) {
 
   try {
     const parsed = await provider.generate({
-      system: buildChatSystemPrompt(summary),
+      system: buildChatSystemPrompt(summary, knowledge),
       prompt: transcript,
       schema: CHAT_SCHEMA,
     })

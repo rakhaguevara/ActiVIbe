@@ -15,6 +15,7 @@ import {
   restore,
   closeEventRegistration,
   listPublic,
+  listPopular,
   getPublic,
   trackView,
   addBookmark,
@@ -40,6 +41,9 @@ const router = Router()
 // router.use(requireRole('ORGANIZER')) di bawah, karena middleware level-router
 // cuma berlaku utk route yang didaftarkan SETELAHNYA di router yang sama.
 router.get('/public', listPublic)
+// '/public/popular' HARUS didaftarkan sebelum '/public/:id' (Express match
+// urutan pendaftaran, kalau tidak "popular" ketangkap jadi :id).
+router.get('/public/popular', listPopular)
 router.get('/public/:id', getPublic)
 router.get('/bookmarks/me', requireAuth, listBookmarks)
 router.post('/:id/view', requireAuth, trackView)

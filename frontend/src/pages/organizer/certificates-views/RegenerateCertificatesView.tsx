@@ -8,7 +8,11 @@ import {
 import type { Certificate, CertificateVersionEntry } from '../../../types/organizer'
 import '../CertificatesPage.css'
 
-export default function RegenerateCertificatesView() {
+interface RegenerateCertificatesViewProps {
+  eventId?: string
+}
+
+export default function RegenerateCertificatesView({ eventId }: RegenerateCertificatesViewProps = {}) {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -20,11 +24,11 @@ export default function RegenerateCertificatesView() {
 
   useEffect(() => {
     setIsLoading(true)
-    listGeneratedCertificatesRequest()
+    listGeneratedCertificatesRequest(eventId)
       .then(setCertificates)
       .catch((err) => setError(err instanceof Error ? err.message : 'Gagal memuat sertifikat.'))
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [eventId])
 
   const loadVersions = (certificateId: string) => {
     setSelectedId(certificateId)
@@ -43,7 +47,7 @@ export default function RegenerateCertificatesView() {
       await regenerateCertificateRequest(selectedId, note.trim() || undefined)
       setNote('')
       const [updatedCertificates, updatedVersions] = await Promise.all([
-        listGeneratedCertificatesRequest(),
+        listGeneratedCertificatesRequest(eventId),
         listCertificateVersionsRequest(selectedId),
       ])
       setCertificates(updatedCertificates)

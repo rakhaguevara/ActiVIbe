@@ -60,3 +60,29 @@ export function validateResendOtpInput(body) {
 
   return { valid: true }
 }
+
+export function validateForgotPasswordRequestInput(body) {
+  const { email } = body
+
+  if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
+    return { valid: false, message: 'Email tidak valid' }
+  }
+
+  return { valid: true }
+}
+
+export function validateResetPasswordInput(body) {
+  const { email, code, newPassword } = body
+
+  if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
+    return { valid: false, message: 'Email tidak valid' }
+  }
+  if (!code || typeof code !== 'string' || !OTP_CODE_REGEX.test(code)) {
+    return { valid: false, message: 'Kode OTP harus 6 digit angka' }
+  }
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+    return { valid: false, message: 'Password minimal 8 karakter' }
+  }
+
+  return { valid: true }
+}

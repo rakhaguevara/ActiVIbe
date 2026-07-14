@@ -6,9 +6,22 @@ interface VolunteerProfileDrawerProps {
   volunteer: OrganizerVolunteer | null
   isOpen: boolean
   onClose: () => void
+  // Drawer murni komponen tampilan — parent yang menyuplai aksi nyata
+  // (pola sama VolunteerDetailDrawer's onStatusChange/onAddNote). Tombol
+  // tetap tampil tapi disabled kalau parent tidak menyuplai handler-nya.
+  onInvite?: () => void
+  onMessage?: () => void
+  onDownloadProfile?: () => void
 }
 
-export default function VolunteerProfileDrawer({ volunteer, isOpen, onClose }: VolunteerProfileDrawerProps) {
+export default function VolunteerProfileDrawer({
+  volunteer,
+  isOpen,
+  onClose,
+  onInvite,
+  onMessage,
+  onDownloadProfile,
+}: VolunteerProfileDrawerProps) {
   if (!isOpen || !volunteer) return null
 
   const rating = volunteer.ratingProxy ?? 0
@@ -104,9 +117,21 @@ export default function VolunteerProfileDrawer({ volunteer, isOpen, onClose }: V
         </div>
 
         <div className="v-drawer-footer">
-          <button className="btn btn--primary" style={{ flex: 1 }}><FiUserPlus /> Invite</button>
-          <button className="btn btn--outline" style={{ flex: 1 }}><FiMessageSquare /> Message</button>
-          <button className="btn btn--outline" style={{ padding: '0 12px' }} title="Download Profile"><FiDownload /></button>
+          <button className="btn btn--primary" style={{ flex: 1 }} disabled={!onInvite} onClick={onInvite}>
+            <FiUserPlus /> Invite
+          </button>
+          <button className="btn btn--outline" style={{ flex: 1 }} disabled={!onMessage} onClick={onMessage}>
+            <FiMessageSquare /> Message
+          </button>
+          <button
+            className="btn btn--outline"
+            style={{ padding: '0 12px' }}
+            title="Download Profile"
+            disabled={!onDownloadProfile}
+            onClick={onDownloadProfile}
+          >
+            <FiDownload />
+          </button>
         </div>
       </div>
     </div>

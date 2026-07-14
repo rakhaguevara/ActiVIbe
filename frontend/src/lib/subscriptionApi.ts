@@ -3,6 +3,8 @@ import { apiFetch } from './apiFetch'
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export type SubscriptionTier = 'FREE' | 'PLUS_STARTER' | 'PLUS_PRO'
+export type SubscriptionAudience = 'ORGANIZER' | 'VOLUNTEER'
+export type BillingCycle = 'MONTHLY' | 'YEARLY'
 
 export interface PlanLimits {
   eventsPerMonth: number | null
@@ -18,7 +20,12 @@ export interface PlanLimits {
 export interface Plan {
   tier: SubscriptionTier
   name: string
+  audience: SubscriptionAudience
+  billingCycle: BillingCycle
+  /** Harga per bulan — utk billingCycle YEARLY ini sudah harga efektif/bulan (didiskon), bukan priceTotal/12 */
   priceMonthly: number
+  /** Total yg beneran ditagih sekali checkout (MONTHLY: sama dgn priceMonthly; YEARLY: priceMonthly x 12) */
+  priceTotal: number
   tagline: string
   limits: PlanLimits
 }
@@ -26,6 +33,8 @@ export interface Plan {
 export interface SubscriptionTransaction {
   id: string
   tier: SubscriptionTier
+  audience: SubscriptionAudience
+  billingCycle: BillingCycle
   amount: number
   status: 'SUCCESS' | 'FAILED'
   method: string
@@ -40,6 +49,8 @@ export interface SubscriptionUsage {
 
 export interface MySubscription {
   tier: SubscriptionTier
+  audience: SubscriptionAudience
+  billingCycle: BillingCycle
   status: 'ACTIVE' | 'CANCELLED'
   currentPeriodEnd: string | null
   cancelledAt: string | null
@@ -57,8 +68,8 @@ async function parseResponse(res: Response) {
   return data
 }
 
-export async function getPlans(): Promise<Plan[]> {
-  const res = await fetch(`${API_URL}/subscriptions/plans`)
+export async function getPlans(audience: SubscriptionAudience = 'VOLUNTEER', cycle: BillingCycle = 'MONTHLY'): Promise<Plan[]> {
+  const res = await fetch(`${API_URL}/subscriptions/plans?audience=${audience}&cycle=${cycle}`)
   const data = await parseResponse(res)
   return data.plans
 }
@@ -69,12 +80,16 @@ export async function getMySubscription(): Promise<MySubscription> {
   return data.subscription
 }
 
-export async function checkoutSubscription(tier: 'PLUS_STARTER' | 'PLUS_PRO'): Promise<MySubscription> {
+export async function checkoutSubscription(
+  tier: 'PLUS_STARTER' | 'PLUS_PRO',
+  audience: SubscriptionAudience,
+  cycle: BillingCycle,
+): Promise<MySubscription> {
   const res = await apiFetch(`${API_URL}/subscriptions/checkout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ tier }),
+    body: JSON.stringify({ tier, audience, cycle }),
   })
   const data = await parseResponse(res)
   return data.subscription

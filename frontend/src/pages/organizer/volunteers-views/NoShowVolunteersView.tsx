@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  FiSearch, FiAlertTriangle, FiUserX, FiTrendingDown, FiActivity, FiMoreVertical, FiShieldOff
+  FiSearch, FiAlertTriangle, FiUserX, FiTrendingDown, FiActivity, FiShieldOff, FiUser, FiMessageSquare
 } from 'react-icons/fi'
 import ReactECharts from 'echarts-for-react'
 import VolunteerProfileDrawer from '../../../components/organizer/VolunteerProfileDrawer'
+import DropdownMenu from '../../../components/DropdownMenu'
 import { attendanceLabel } from './volunteerFormat'
 import type { OrganizerVolunteer, OrganizerVolunteerApplication, OrganizerVolunteersResponse } from '../../../types/organizer'
 import '../VolunteersPage.css'
@@ -23,6 +25,7 @@ function warningLevelFor(noShowCount: number): WarningLevel {
 }
 
 export default function NoShowVolunteersView({ data }: { data: OrganizerVolunteersResponse }) {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [warningFilter, setWarningFilter] = useState<'' | WarningLevel>('')
   const [selectedProfile, setSelectedProfile] = useState<OrganizerVolunteer | null>(null)
@@ -201,7 +204,12 @@ export default function NoShowVolunteersView({ data }: { data: OrganizerVoluntee
                   <td>
                     <div className="v-table-actions">
                       <button className="btn btn--sm btn--outline" onClick={() => setSelectedProfile(vol)}>Profile</button>
-                      <button className="btn btn--sm btn--outline" style={{ padding: '0 8px' }}><FiMoreVertical/></button>
+                      <DropdownMenu
+                        items={[
+                          { label: 'Lihat Profil Lengkap', icon: <FiUser />, onClick: () => setSelectedProfile(vol) },
+                          { label: 'Kirim Pesan', icon: <FiMessageSquare />, onClick: () => navigate('/organizer/communication?tab=broadcast') },
+                        ]}
+                      />
                     </div>
                   </td>
                 </tr>

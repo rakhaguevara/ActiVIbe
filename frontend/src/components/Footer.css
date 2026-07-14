@@ -24,7 +24,7 @@
   position: absolute;
   inset: 0;
   width: 100%;
-  height: s;
+  height: 100%;
   object-fit: cover;
   z-index: 0;
 }
@@ -304,6 +304,10 @@
     border-radius: 20px;
     aspect-ratio: auto;
     min-height: 380px;
+  }
+
+  .footer__newsletter-overlay {
+    background: linear-gradient(180deg, rgba(26, 26, 46, 0.4) 0%, rgba(26, 26, 46, 0.9) 100%);
   }
 
   .footer__newsletter-title {

@@ -1,4 +1,4 @@
-import type { AdminUser, AdminEvent, ParticipationRecord, ActivityLogEntry, PrematureClosure, RevenueSummary, AdminSubscription, SubscriptionTier, CertificateTemplate } from '../types/admin'
+import type { AdminUser, AdminEvent, ParticipationRecord, ParticipationCategoryStat, ActivityLogEntry, PrematureClosure, RevenueSummary, AdminSubscription, SubscriptionTier, CertificateTemplate } from '../types/admin'
 import type { RegionDistributionResponse } from '../types/region'
 import { apiFetch } from './apiFetch'
 
@@ -155,6 +155,12 @@ export async function listParticipation(from?: string, to?: string): Promise<Par
   const res = await apiFetch(`${API_URL}/admin/participation${query}`, { credentials: 'include' })
   const data = await parseResponse(res)
   return data.records
+}
+
+export async function listParticipationCategories(): Promise<ParticipationCategoryStat[]> {
+  const res = await apiFetch(`${API_URL}/admin/participation/categories`, { credentials: 'include' })
+  const data = await parseResponse(res)
+  return data.categories
 }
 
 export async function listActivityLog(): Promise<ActivityLogEntry[]> {

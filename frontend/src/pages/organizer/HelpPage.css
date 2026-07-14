@@ -1,0 +1,43 @@
+.help-page__card {
+  background: var(--color-bg-true);
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.help-page__faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.help-page__faq-item {
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.help-page__faq-item summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-heading);
+  list-style: none;
+}
+
+.help-page__faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.help-page__faq-item p {
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.help-page__support-text {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin: 0 0 16px;
+}

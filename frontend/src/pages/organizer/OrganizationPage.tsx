@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { FiEdit2, FiExternalLink } from 'react-icons/fi'
 
@@ -6,6 +6,9 @@ import OrganizationProfileView from './organization-views/OrganizationProfileVie
 import TeamMembersView from './organization-views/TeamMembersView'
 import SubscriptionView from './organization-views/SubscriptionView'
 import BrandingView from './organization-views/BrandingView'
+import { getMyOrganization } from '../../lib/organizationApi'
+import type { Organization } from '../../types/organization'
+import { PORTAL_URLS } from '../../config/portalUrls'
 
 import './OrganizationPage.css'
 
@@ -13,6 +16,25 @@ export default function OrganizationPage() {
   const location = useLocation()
   const searchParams = new URLSearchParams(location.search)
   const tabParam = searchParams.get('tab')
+
+  // Diangkat ke sini (bukan cuma di dalam OrganizationProfileView) krn tombol
+  // header "Preview Public Profile"/"Edit Profile" butuh organization.id +
+  // kontrol mode edit lintas dua komponen berbeda. BrandingView/TeamMembersView
+  // tetap fetch data sendiri-sendiri (pola yang sudah ada sejak Phase 2),
+  // sengaja tidak dipaksa refactor ikut prop ini.
+  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+
+  useEffect(() => {
+    getMyOrganization()
+      .then(setOrganization)
+      .catch((err) => window.alert(err instanceof Error ? err.message : 'Gagal memuat data organisasi.'))
+  }, [])
+
+  const handleProfileSaved = (updated: Organization) => {
+    setOrganization(updated)
+    setIsEditingProfile(false)
+  }
 
   const renderView = () => {
     switch (tabParam) {
@@ -24,7 +46,13 @@ export default function OrganizationPage() {
         return <BrandingView />
       case 'profile':
       default:
-        return <OrganizationProfileView />
+        return (
+          <OrganizationProfileView
+            organization={organization}
+            isEditing={isEditingProfile}
+            onSaved={handleProfileSaved}
+          />
+        )
     }
   }
 
@@ -59,8 +87,24 @@ export default function OrganizationPage() {
         <div className="org-header__actions">
           {(tabParam === 'profile' || !tabParam) && (
             <>
-              <button type="button" className="btn btn--outline btn--sm"><FiExternalLink /> Preview Public Profile</button>
-              <button type="button" className="btn btn--primary btn--sm"><FiEdit2 /> Edit Profile</button>
+              {organization && (
+                <a
+                  className="btn btn--outline btn--sm"
+                  href={`${PORTAL_URLS.VOLUNTEER}/dashboard/organisasi?org=${organization.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FiExternalLink /> Preview Public Profile
+                </a>
+              )}
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                disabled={!organization}
+                onClick={() => setIsEditingProfile((prev) => !prev)}
+              >
+                <FiEdit2 /> {isEditingProfile ? 'Batal Edit' : 'Edit Profile'}
+              </button>
             </>
           )}
         </div>

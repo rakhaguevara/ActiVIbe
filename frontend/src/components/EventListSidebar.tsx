@@ -7,6 +7,7 @@ import { trackEventView } from '../lib/eventApi'
 import type { Gender } from '../lib/profileApi'
 import type { Event } from '../types/event'
 import CertificateBadge from './CertificateBadge'
+import PersonalizationInsightCard from './PersonalizationInsightCard'
 import './EventListSidebar.css'
 
 interface EventListSidebarProps {
@@ -17,9 +18,12 @@ interface EventListSidebarProps {
   currentUserGender?: Gender | null
   /** ActiVibe Plus — house ad utk volunteer tier FREE (hilang setelah upgrade) */
   showAd?: boolean
+  /** Props untuk PersonalizationInsightCard */
+  aiEnabled?: boolean
+  profileComplete?: boolean
 }
 
-export default function EventListSidebar({ events, selectedEventId, onSelect, currentUserGender, showAd }: EventListSidebarProps) {
+export default function EventListSidebar({ events, selectedEventId, onSelect, currentUserGender, showAd, aiEnabled = false, profileComplete = true }: EventListSidebarProps) {
   const { isBookmarked, toggle } = useBookmarkedEvents()
   const [copiedEventId, setCopiedEventId] = useState<string | null>(null)
 
@@ -47,6 +51,13 @@ export default function EventListSidebar({ events, selectedEventId, onSelect, cu
 
   return (
     <div className="event-list-sidebar">
+      {/* Personalization insight card — always shown when events loaded */}
+      <PersonalizationInsightCard
+        events={events}
+        aiEnabled={aiEnabled}
+        profileComplete={profileComplete}
+        variant="compact"
+      />
       {showAd && (
         <a href="/activibe-plus" className="event-list-sidebar__ad">
           <span className="event-list-sidebar__ad-label">Sponsor</span>

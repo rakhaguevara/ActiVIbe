@@ -21,6 +21,7 @@ import VolunteerSettingsPage from '../pages/volunteer/SettingsPage'
 import SavedItemsPage from '../pages/volunteer/SavedItemsPage'
 import ApplicationHistoryPage from '../pages/volunteer/ApplicationHistoryPage'
 import ActivityDetailPage from '../pages/volunteer/ActivityDetailPage'
+import MobileProfilePage from '../pages/volunteer/MobileProfilePage'
 import LoginPage from '../pages/auth/LoginPage'
 import OverviewPage from '../pages/admin/OverviewPage'
 import UsersPage from '../pages/admin/UsersPage'
@@ -40,6 +41,7 @@ import OverviewTab from '../pages/organizer/event-detail/OverviewTab'
 import RolesTab from '../pages/organizer/event-detail/RolesTab'
 import RequirementsTab from '../pages/organizer/event-detail/RequirementsTab'
 import ImpactTab from '../pages/organizer/event-detail/ImpactTab'
+import EventCertificatesTab from '../pages/organizer/EventCertificatesTab'
 import ApplicantsPage from '../pages/organizer/ApplicantsPage'
 import AssignmentsPage from '../pages/organizer/AssignmentsPage'
 import AttendancePage from '../pages/organizer/AttendancePage'
@@ -48,6 +50,8 @@ import ReportsPage from '../pages/organizer/ReportsPage'
 import CertificatesPage from '../pages/organizer/CertificatesPage'
 import OrganizationPage from '../pages/organizer/OrganizationPage'
 import OrganizerSettingsPage from '../pages/organizer/SettingsPage'
+import OrganizerHelpPage from '../pages/organizer/HelpPage'
+import AcceptTeamInvitePage from '../pages/organizer/AcceptTeamInvitePage'
 import { PORTAL } from '../config/portal'
 import LoadingScreen from '../components/LoadingScreen'
 import { useAuth } from '../contexts/AuthContext'
@@ -89,6 +93,11 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
           path="/"
           element={<LoginPage allowedRole="ORGANIZER" homeRoute="/organizer" title="Masuk sebagai Organizer" />}
         />
+        {/* Publik (tanpa requireAuth) — dibuka dari email undangan tim
+            organisasi, lihat organizationMembers.service.js inviteMember.
+            Didaftarkan di luar OrganizerLayout (sama seperti "/" di atas)
+            krn belum tentu (dan tidak perlu) ada sesi login saat dibuka. */}
+        <Route path="/accept-invite" element={<AcceptTeamInvitePage />} />
         <Route element={<OrganizerLayout />}>
           <Route path="/organizer" element={<OrganizerOverviewPage />} />
           <Route path="/organizer/events" element={<OrganizerEventsPage />} />
@@ -102,7 +111,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="communication" element={<CommunicationPage />} />
             <Route path="impact" element={<ImpactTab />} />
-            <Route path="certificates" element={<p style={{ padding: '24px' }}>Certificates coming soon...</p>} />
+            <Route path="certificates" element={<EventCertificatesTab />} />
           </Route>
           <Route path="/organizer/communication" element={<CommunicationPage />} />
           <Route path="/organizer/reports" element={<ReportsPage />} />
@@ -112,6 +121,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
           <Route path="/organizer/certificates" element={<CertificatesPage />} />
           <Route path="/organizer/organization" element={<OrganizationPage />} />
           <Route path="/organizer/settings" element={<OrganizerSettingsPage />} />
+          <Route path="/organizer/help" element={<OrganizerHelpPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
@@ -143,6 +153,7 @@ export default function AppRoutes({ onLoginClick, onSignupClick }: AppRoutesProp
         <Route path="/dashboard/saved" element={<SavedItemsPage />} />
         <Route path="/dashboard/history" element={<ApplicationHistoryPage />} />
         <Route path="/dashboard/activity/:id" element={<ActivityDetailPage />} />
+        <Route path="/dashboard/profile" element={<MobileProfilePage />} />
       </Route>
     </Routes>
   )

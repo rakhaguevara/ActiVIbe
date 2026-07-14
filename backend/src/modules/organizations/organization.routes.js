@@ -4,6 +4,14 @@ import {
   getOne,
   getMine,
   postMyLogo,
+  postMyBanner,
+  postMySignature,
+  postMyStamp,
+  postMyEmailHeader,
+  patchMyVisualIdentity,
+  patchMyEmailIdentity,
+  patchMyProfile,
+  postMyBrandingTestEmail,
   register,
   getSetPasswordInfo,
   requestSetPasswordOtp,
@@ -12,6 +20,10 @@ import {
 import { requireAuth } from '../../middlewares/requireAuth.js'
 import { requireRole } from '../../middlewares/requireRole.js'
 import { handleOrgLogoUpload } from './organizationLogoUpload.js'
+import { handleOrgBannerUpload } from './organizationBannerUpload.js'
+import { handleOrgSignatureUpload } from './organizationSignatureUpload.js'
+import { handleOrgStampUpload } from './organizationStampUpload.js'
+import { handleOrgEmailHeaderUpload } from './organizationEmailHeaderUpload.js'
 
 const router = Router()
 
@@ -35,7 +47,20 @@ router.post('/set-password', setPassword)
 // "Organisasi milik saya sendiri" (BrandingView.tsx, dst) — didaftarkan
 // sebelum '/:id' supaya 'me' tidak ketangkep sbg param id.
 router.get('/me', requireAuth, requireRole('ORGANIZER'), getMine)
+router.patch('/me/profile', requireAuth, requireRole('ORGANIZER'), patchMyProfile)
 router.post('/me/logo', requireAuth, requireRole('ORGANIZER'), handleOrgLogoUpload, postMyLogo)
+
+// Branding (BrandingView.tsx) — 4 aset gambar + warna + footer email + test
+// email. Lihat cross-cutting decision #1 (docs plan): tidak ada endpoint
+// "certificate theme" di sini — itu read-only dari GET /certificates/active-template
+// (dikelola admin, satu template global).
+router.post('/me/banner', requireAuth, requireRole('ORGANIZER'), handleOrgBannerUpload, postMyBanner)
+router.post('/me/signature', requireAuth, requireRole('ORGANIZER'), handleOrgSignatureUpload, postMySignature)
+router.post('/me/stamp', requireAuth, requireRole('ORGANIZER'), handleOrgStampUpload, postMyStamp)
+router.post('/me/email-header', requireAuth, requireRole('ORGANIZER'), handleOrgEmailHeaderUpload, postMyEmailHeader)
+router.patch('/me/visual-identity', requireAuth, requireRole('ORGANIZER'), patchMyVisualIdentity)
+router.patch('/me/email-identity', requireAuth, requireRole('ORGANIZER'), patchMyEmailIdentity)
+router.post('/me/branding/test-email', requireAuth, requireRole('ORGANIZER'), postMyBrandingTestEmail)
 
 router.get('/:id', requireAuth, getOne)
 

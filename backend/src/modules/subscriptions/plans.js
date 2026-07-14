@@ -1,36 +1,56 @@
-// Single source of truth utk ActiVibe Plus — satu produk/harga sama utk akun
-// ORGANIZER maupun VOLUNTEER (manfaat menyesuaikan role, lihat komentar di
-// masing2 field LIMITS). Semua gating (event quota, sertifikat, AI insight,
-// broadcast, QR scan, prioritas admin, Impact Passport, iklan) import angka
-// dari sini — supaya tidak ada duplikasi angka yang bisa drift antara backend
-// enforcement dan halaman pricing frontend.
+// Single source of truth utk ActiVibe Plus. Beda dari revisi awal (1
+// harga sama lintas role): karena 1 akun bisa jadi ORGANIZER *dan*
+// VOLUNTEER, harga sekarang dipecah per audience ("dibeli sebagai" role
+// apa, dipilih eksplisit di halaman pricing — BUKAN dari User.role saat
+// checkout) x billing cycle (MONTHLY/YEARLY). Manfaat (LIMITS) TETAP SAMA
+// lintas audience — cuma harga & label yang beda, supaya tidak ada 2 sumber
+// kebenaran fitur. Semua gating (event quota, sertifikat, AI insight,
+// broadcast, QR scan, prioritas admin, Impact Passport, iklan) tetap import
+// LIMITS dari sini — tidak berubah.
 
 export const TIERS = ['FREE', 'PLUS_STARTER', 'PLUS_PRO']
+export const AUDIENCES = ['ORGANIZER', 'VOLUNTEER']
+export const BILLING_CYCLES = ['MONTHLY', 'YEARLY']
 
-export const PLANS = {
+export const PLAN_META = {
   FREE: {
-    tier: 'FREE',
     name: 'Free',
-    priceMonthly: 0,
     tagline: 'Mulai jadi organizer atau volunteer di ActiVibe tanpa biaya.',
   },
   PLUS_STARTER: {
-    tier: 'PLUS_STARTER',
     name: 'ActiVibe Plus Starter',
-    priceMonthly: 150000,
     tagline: 'Kuota event & sertifikat lebih besar utk organizer yang mulai berkembang.',
   },
   PLUS_PRO: {
-    tier: 'PLUS_PRO',
     name: 'ActiVibe Plus Pro',
-    priceMonthly: 250000,
     tagline: 'Semua fitur tanpa batas — event, sertifikat, AI, broadcast, scan QR, prioritas review.',
+  },
+}
+
+// Harga per bulan (dalam Rupiah) per audience x billing cycle. Utk YEARLY,
+// angka ini adalah "harga efektif per bulan" (dipakai jg utk label
+// "Rp.../bulan, ditagih tahunan") — total yg beneran ditagih di checkout()
+// adalah angka ini × 12 (lihat getBillingAmount di bawah). Organizer sengaja
+// jauh lebih mahal dari volunteer (skala manfaat: kuota event/sertifikat
+// org, bukan cuma Impact Passport) — dikonfirmasi user. Yearly SENGAJA
+// dipatok murah rata (sama nominal lintas audience) sbg insentif komit
+// tahunan, bukan proporsional dari harga monthly masing2 audience.
+export const PRICING = {
+  ORGANIZER: {
+    PLUS_STARTER: { MONTHLY: 1500000, YEARLY: 100000 },
+    PLUS_PRO: { MONTHLY: 2500000, YEARLY: 150000 },
+  },
+  VOLUNTEER: {
+    PLUS_STARTER: { MONTHLY: 150000, YEARLY: 100000 },
+    PLUS_PRO: { MONTHLY: 250000, YEARLY: 150000 },
   },
 }
 
 // Infinity = tanpa batas (unlimited) — diserialisasi jadi `null` di response
 // API (lihat serializeLimits di subscription.service.js) supaya frontend
-// tidak perlu tahu soal Infinity.
+// tidak perlu tahu soal Infinity. Identik lintas audience — beda role cuma
+// beda label fitur di frontend (ORGANIZER_FEATURE_ROWS/VOLUNTEER_FEATURE_ROWS
+// di ActivibePlusPage.tsx), bukan beda angka.
 export const LIMITS = {
   FREE: {
     eventsPerMonth: 4,
@@ -66,6 +86,19 @@ export const LIMITS = {
 
 export function isPaidTier(tier) {
   return tier === 'PLUS_STARTER' || tier === 'PLUS_PRO'
+}
+
+// Harga "per bulan" utk ditampilkan (efektif, sudah didiskon kalau YEARLY).
+export function getMonthlyPrice(tier, audience, cycle) {
+  if (!isPaidTier(tier)) return 0
+  return PRICING[audience][tier][cycle]
+}
+
+// Total yg beneran ditagih sekali checkout — MONTHLY: sama dgn harga/bulan;
+// YEARLY: harga/bulan × 12 (ditagih di muka utk 1 tahun).
+export function getBillingAmount(tier, audience, cycle) {
+  const monthly = getMonthlyPrice(tier, audience, cycle)
+  return cycle === 'YEARLY' ? monthly * 12 : monthly
 }
 
 export function startOfCurrentMonth() {

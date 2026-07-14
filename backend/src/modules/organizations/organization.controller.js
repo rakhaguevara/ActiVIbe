@@ -3,6 +3,11 @@ import {
   getOrganizationById,
   getMyOrganization,
   updateMyOrganizationLogo,
+  updateMyOrganizationBrandingAsset,
+  updateMyOrganizationVisualIdentity,
+  updateMyOrganizationEmailIdentity,
+  updateMyOrganizationProfile,
+  sendMyOrganizationTestEmail,
   registerOrganization,
   getOrganizationActivationInfo,
   requestOrganizationActivationOtp,
@@ -22,6 +27,91 @@ export async function postMyLogo(req, res, next) {
   try {
     const organization = await updateMyOrganizationLogo(req.user.id, req.file)
     return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMyBanner(req, res, next) {
+  try {
+    const organization = await updateMyOrganizationBrandingAsset(req.user.id, 'bannerUrl', req.file)
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMySignature(req, res, next) {
+  try {
+    const organization = await updateMyOrganizationBrandingAsset(req.user.id, 'signatureUrl', req.file)
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMyStamp(req, res, next) {
+  try {
+    const organization = await updateMyOrganizationBrandingAsset(req.user.id, 'stampUrl', req.file)
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMyEmailHeader(req, res, next) {
+  try {
+    const organization = await updateMyOrganizationBrandingAsset(req.user.id, 'emailHeaderImageUrl', req.file)
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function patchMyVisualIdentity(req, res, next) {
+  try {
+    const { primaryColor, secondaryColor } = req.body
+    const organization = await updateMyOrganizationVisualIdentity(req.user.id, { primaryColor, secondaryColor })
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function patchMyEmailIdentity(req, res, next) {
+  try {
+    const { emailFooterText } = req.body
+    const organization = await updateMyOrganizationEmailIdentity(req.user.id, { emailFooterText })
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function patchMyProfile(req, res, next) {
+  try {
+    const { name, location, phone, mission, aboutUs, website, facebookUrl, instagramUrl, linkedinUrl } = req.body
+    const organization = await updateMyOrganizationProfile(req.user.id, {
+      name,
+      location,
+      phone,
+      mission,
+      aboutUs,
+      website,
+      facebookUrl,
+      instagramUrl,
+      linkedinUrl,
+    })
+    return res.json({ organization })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function postMyBrandingTestEmail(req, res, next) {
+  try {
+    const result = await sendMyOrganizationTestEmail(req.user.id)
+    return res.json(result)
   } catch (err) {
     next(err)
   }

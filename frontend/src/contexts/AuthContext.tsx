@@ -4,6 +4,9 @@ import {
   loginRequest,
   verifyOtpRequest,
   resendOtpRequest,
+  bypassOtpRequest,
+  forgotPasswordRequestOtpRequest,
+  resetPasswordRequest,
   meRequest,
   logoutRequest,
   type AuthUser,
@@ -17,6 +20,9 @@ interface AuthContextValue {
   register: (payload: RegisterPayload) => Promise<{ otpRequired: true; email: string }>
   verifyOtp: (email: string, code: string) => Promise<AuthUser>
   resendOtp: (email: string) => Promise<void>
+  bypassOtp: (email: string) => Promise<AuthUser>
+  requestPasswordReset: (email: string) => Promise<void>
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<AuthUser>
   login: (payload: LoginPayload) => Promise<AuthUser>
   logout: () => Promise<void>
 }
@@ -49,6 +55,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await resendOtpRequest({ email })
   }
 
+  const bypassOtp = async (email: string) => {
+    const { user } = await bypassOtpRequest({ email })
+    setUser(user)
+    return user
+  }
+
+  const requestPasswordReset = async (email: string) => {
+    await forgotPasswordRequestOtpRequest({ email })
+  }
+
+  const resetPassword = async (email: string, code: string, newPassword: string) => {
+    const { user } = await resetPasswordRequest({ email, code, newPassword })
+    setUser(user)
+    return user
+  }
+
   const login = async (payload: LoginPayload) => {
     const { user } = await loginRequest(payload)
     setUser(user)
@@ -61,7 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, register, verifyOtp, resendOtp, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, register, verifyOtp, resendOtp, bypassOtp, requestPasswordReset, resetPassword, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   )

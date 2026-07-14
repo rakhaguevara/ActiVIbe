@@ -11,6 +11,21 @@ const TIER_LABEL: Record<SubscriptionTier, string> = {
   PLUS_PRO: 'ActiVibe Plus Pro',
 }
 
+const AUDIENCE_LABEL: Record<AdminSubscription['audience'] & string, string> = {
+  ORGANIZER: 'Organizer',
+  VOLUNTEER: 'Volunteer',
+}
+
+const CYCLE_LABEL: Record<AdminSubscription['billingCycle'] & string, string> = {
+  MONTHLY: 'Bulanan',
+  YEARLY: 'Tahunan',
+}
+
+function audienceCycleLabel(audience: AdminSubscription['audience'], billingCycle: AdminSubscription['billingCycle']) {
+  if (!audience || !billingCycle) return '—'
+  return `${AUDIENCE_LABEL[audience]} · ${CYCLE_LABEL[billingCycle]}`
+}
+
 function formatRupiah(amount: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount)
 }
@@ -81,7 +96,7 @@ export default function RevenuePage() {
             <h3 className="admin-overview__kpi-title"><FiStar /> Starter Subscribers</h3>
           </div>
           <p className="admin-overview__kpi-value">{counts.PLUS_STARTER}</p>
-          <p className="admin-overview__kpi-subtitle">ActiVibe Plus Starter — Rp150.000/bln</p>
+          <p className="admin-overview__kpi-subtitle">Harga beda per audience &amp; siklus — lihat tabel transaksi</p>
         </div>
 
         <div className="admin-overview__kpi-card">
@@ -89,7 +104,7 @@ export default function RevenuePage() {
             <h3 className="admin-overview__kpi-title"><FiZap /> Pro Subscribers</h3>
           </div>
           <p className="admin-overview__kpi-value">{counts.PLUS_PRO}</p>
-          <p className="admin-overview__kpi-subtitle">ActiVibe Plus Pro — Rp250.000/bln</p>
+          <p className="admin-overview__kpi-subtitle">Harga beda per audience &amp; siklus — lihat tabel transaksi</p>
         </div>
       </div>
 
@@ -128,6 +143,7 @@ export default function RevenuePage() {
               <tr>
                 <th>User</th>
                 <th>Paket</th>
+                <th>Dibeli Sebagai</th>
                 <th>Jumlah</th>
                 <th>Metode</th>
                 <th>Waktu</th>
@@ -135,7 +151,7 @@ export default function RevenuePage() {
             </thead>
             <tbody>
               {!isLoading && (revenue?.recentTransactions.length ?? 0) === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>Belum ada transaksi.</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>Belum ada transaksi.</td></tr>
               )}
               {revenue?.recentTransactions.map((t) => (
                 <tr key={t.id}>
@@ -144,6 +160,7 @@ export default function RevenuePage() {
                     <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{t.userEmail}</div>
                   </td>
                   <td>{TIER_LABEL[t.tier]}</td>
+                  <td>{audienceCycleLabel(t.audience, t.billingCycle)}</td>
                   <td>{formatRupiah(t.amount)}</td>
                   <td>{t.method === 'admin-manual' ? 'Admin Manual' : 'Checkout (Simulasi)'}</td>
                   <td>{new Date(t.paidAt).toLocaleString('id-ID')}</td>
@@ -166,13 +183,14 @@ export default function RevenuePage() {
                 <th>User</th>
                 <th>Role</th>
                 <th>Paket Saat Ini</th>
+                <th>Dibeli Sebagai</th>
                 <th>Berlaku Sampai</th>
                 <th>Ubah Paket</th>
               </tr>
             </thead>
             <tbody>
               {subscriptions.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>Belum ada user yang pernah berlangganan.</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>Belum ada user yang pernah berlangganan.</td></tr>
               )}
               {subscriptions.map((s) => (
                 <tr key={s.userId}>
@@ -182,6 +200,7 @@ export default function RevenuePage() {
                   </td>
                   <td>{s.userRole}</td>
                   <td>{TIER_LABEL[s.tier]}</td>
+                  <td>{audienceCycleLabel(s.audience, s.billingCycle)}</td>
                   <td>{s.currentPeriodEnd ? new Date(s.currentPeriodEnd).toLocaleDateString('id-ID') : '—'}</td>
                   <td>
                     <select
